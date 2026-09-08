@@ -1,0 +1,8 @@
+# winget installer manifest (pair of HikariHasegawa.VersoCon.yaml)
+Installer:
+  - Architecture: x64
+    InstallerType: exe
+    Url: https://github.com/HikariHasegawa/versocon/releases/download/v0.2.0/versocon-setup-0.2.0.exe
+    InstallerSwitches:
+      Custom: /VERYSILENT /NORESTART
+      Elevated: /VERYSILENT /NORESTART

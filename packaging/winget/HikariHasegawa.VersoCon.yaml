@@ -1,0 +1,16 @@
+# winget-pkgs manifest — VERSOCON (copy into Microsoft/winget-pkgs PR)
+# Target: manifests/h/HikariHasegawa/VersoCon/
+Identity: HikariHasegawa.VersoCon
+Version: 0.2.0
+Name: VersoCon
+Publisher: hikari22
+Architecture: x64
+License: MIT
+LicenseUrl: https://github.com/HikariHasegawa/versocon/blob/master/LICENSE.md
+Url: https://github.com/HikariHasegawa/versocon
+DisplayName: "VersoCon - Convertitore di File"
+Description: >-
+  Free, 100% offline file converter: HEIC photos, PDFs (edit, sign, merge,
+  compress, OCR) and video. No cloud, no account, no telemetry — runs entirely
+  on your machine.
+Moniker: versocon
