@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pillow
+pillow-heif
+pymupdf
+python-multipart
+pywebview
+pytest
+httpx<0.28

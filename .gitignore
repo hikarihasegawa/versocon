@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.eggs/
+build/
+dist/
+QA.pdf.png
+packaging/*.log
+packaging/versocon._fix.png
