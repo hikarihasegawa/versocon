@@ -1,8 +1,15 @@
-# winget installer manifest (pair of HikariHasegawa.VersoCon.yaml)
-Installer:
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+PackageIdentifier: HikariHasegawa.VersoCon
+PackageVersion: 0.2.0
+ReleaseDate: 2026-09-08
+Installers:
   - Architecture: x64
     InstallerType: exe
-    Url: https://github.com/HikariHasegawa/versocon/releases/download/v0.2.0/versocon-setup-0.2.0.exe
+    Scope: user
+    InstallerUrl: https://github.com/HikariHasegawa/versocon/releases/download/v0.2.0/versocon-setup-0.2.0.exe
+    InstallerSha256: 585BE60256CF4272250DE7868990AF215454085EDD76414A82880ED6D8B74EE8
     InstallerSwitches:
       Custom: /VERYSILENT /NORESTART
-      Elevated: /VERYSILENT /NORESTART
+    ElevationRequirement: noElevation
+ManifestType: installer
+ManifestVersion: 1.12.0
