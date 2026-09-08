@@ -1,48 +1,61 @@
 # VersoCon 変
 
-> **Converti foto, PDF e video — al 100% sul tuo computer.** Niente cloud, niente account, niente upload: i tuoi file non lasciano mai il tuo PC.
+> **Convert photos, PDFs, and videos — 100% on your own machine.** No cloud, no account, no upload: your files never leave your PC.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-4dabf7?logo=mit&logoColor=white)](LICENSE.md)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](requirements.txt)
 [![Windows](https://img.shields.io/badge/Windows-Setup-0078d6?logo=windows&logoColor=white)](#)
 [![Linux](https://img.shields.io/badge/Linux-Deb-__AppImage-2b8a3e?logo=linux&logoColor=white)](#)
-[![Supporta il progetto](https://img.shields.io/badge/Ko--fi-Supporta-ff5f5f?logo=ko-fi&logoColor=white)](https://ko-fi.com/hikari22)
+[![Support the project](https://img.shields.io/badge/Ko--fi-Support-ff5f5f?logo=ko-fi&logoColor=white)](https://ko-fi.com/hikari22)
 
 <p align="center">
-  <img src="assets/demo/versocon-demo.gif" alt="Demo di VersoCon: conversione HEIC, editor PDF con firma e compressione PDF" width="640">
+  <img src="assets/demo/versocon-demo.gif" alt="VersoCon demo: HEIC conversion, PDF editor with signature, and PDF compression" width="640">
 </p>
 
-VersoCon è un convertitore di file con interfaccia desktop in stile **manga anime**. Converte foto HEIC, trasforma PDF in immagini (e viceversa), firma e organizza PDF, estrae testo, comprime e rinomina — **tutto in locale**.
+<p align="center">
+  <a href="https://ko-fi.com/hikari22" target="_blank">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy me a coffee 🧡" height="38">
+  </a>
+</p>
 
-## ⚡ Perché VersoCon
+<p align="center" style="line-height:1.6; max-width:62ch; margin:8px auto 20px;">
+  💗 <b>VersoCon is free &amp; 100% local.</b><br>
+  If it saves you time, a
+  <a href="https://ko-fi.com/hikari22" target="_blank" style="text-decoration:none; font-weight:600; color:inherit;">coffee for the dev</a> ☕
+  would be a lovely thank-you — <i>zero strings, full support</i>.
+</p>
 
-- 🔒 **Privacy totale**: elaborazione esclusivamente su `127.0.0.1`, nessun dato inviato online.
-- 📸 **HEIC nativo**: le foto iPhone (`.heic`) si aprono e si convertono senza app di terze parti.
-- 📄 **Kit PDF completo**: editor con anteprima live, firma (disegnata o da nome), riordino, rotazione, watermark, merge e split.
-- 🎬 **Video**: transcode MP4/WebM (se hai `ffmpeg`).
-- 🪶 **Leggero e offline**: un solo eseguibile, nessuna dipendenza da servizi web.
-- 🎨 **Interfaccia curata**: tema Shonen Manga, drag & drop, toast, animazioni.
+VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handles HEIC photos, PDFs (edit, sign, merge, compress, extract text), and video transcode — **all locally**. The UI is currently in Italian; English i18n is on the roadmap.
 
-## ✨ Funzionalità
+## ⚡ Why VersoCon
 
-| Area | Cosa fa |
-|------|---------|
-| **Foto** | HEIC / HEIF / JPG / PNG / WebP / BMP / TIFF / GIF → JPEG, PNG o WebP. Qualità, ridimensionamento (lato max), EXIF/rotazione preservati, GIF animate mantenute, batch fino a 500 file, download singolo o ZIP. |
-| **PDF** | PDF → immagini · immagini → PDF · merge · split · rinomina batch. |
-| **Editor PDF** | Anteprima live in-browser, firma disegnata o generata da nome (4 stili calligrafici), firma da immagine, posizionamento/ridimensionamento libero, rotazione e opacità, watermark, riordino/rotazione/cancellazione pagine, testo. |
-| **Comprimi** | Riduci dimensione di immagini (obiettivo in byte o qualità) e PDF (basso/medio/alto), con indicazione del risparmio. |
-| **PDF → testo** | Estrazione testo e OCR (Tesseract, opzionale). |
-| **Video** | Transcode in MP4 o WebM (richiede `ffmpeg`). |
+- 🔒 **Total privacy**: everything runs on `127.0.0.1`, nothing ever goes online.
+- 📸 **Native HEIC**: open and convert iPhone photos (`.heic`) without any third-party app.
+- 📄 **Full PDF kit**: live preview editor, signature (drawn or generated from your name), reordering, rotation, watermark, merge & split.
+- 🎬 **Video**: MP4/WebM transcode (if you have `ffmpeg`).
+- 🪶 **Lightweight & offline**: one executable, no web services, no telemetry.
+- 🎨 **Careful UI**: shonen manga theme, drag & drop, toasts, animations.
 
-## 🚀 Installazione
+## ✨ Features
 
-### Da store / installer (consigliato)
-- **Windows**: scarica `versocon-setup-X.Y.Z.exe` dalle [Releases](https://github.com/hikarihasegawa/versocon/releases) e avvialo. Oppure, quando disponibile, `winget install VersoCon` / `scoop install versocon`.
-- **Linux**: `.deb` per apt o `AppImage` portatile dalle [Releases](https://github.com/hikarihasegawa/versocon/releases).
+| Area | What it does |
+|------|-------------|
+| **Photos** | HEIC / HEIF / JPG / PNG / WebP / BMP / TIFF / GIF → JPEG, PNG or WebP. Quality slider, max-side resize, EXIF / rotation preserved, animated GIFs kept, batch up to 500 files, single download or ZIP. |
+| **PDF** | PDF → images · images → PDF · merge · split · batch rename. |
+| **PDF Editor** | In-browser live preview, drawn or text-generated signature (4 calligraphy styles), signature from image, free placement / resize, rotation and opacity, watermark, reorder / rotate / delete pages, text. |
+| **Compress** | Shrink images (target bytes or quality) and PDFs (low/medium/high), with a "saved %" badge. |
+| **PDF → text** | Plain-text extraction and OCR (Tesseract, optional). |
+| **Video** | Transcode to MP4 or WebM (requires `ffmpeg`). |
 
-> Ogni piattaforma: installazione locale, nessun account richiesto.
+## 🚀 Installation
 
-### Da codice sorgente
+### From installer / store (recommended)
+- **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or, when available: `winget install VersoCon` / `scoop install versocon`.
+- **Linux**: `.deb` for apt or portable `AppImage` from [Releases](https://github.com/hikarihasegawa/versocon/releases).
+
+> Every platform: local install, no account required.
+
+### From source
 
 ```bash
 git clone https://github.com/hikarihasegawa/versocon.git
@@ -51,17 +64,17 @@ python -m venv .venv
 
 # Windows
 .venv\Scripts\activate
-# Linux/macOS
+# Linux / macOS
 # source .venv/bin/activate
 
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# OCR opzionale (Tesseract nel sistema + pytesseract)
+# Optional OCR (Tesseract on the system + pytesseract)
 pip install -r requirements-ocr.txt
 ```
 
-Oppure usa gli script di setup che installano anche Tesseract:
+Or use the setup scripts (which also install Tesseract):
 
 ```powershell
 # Windows (PowerShell)
@@ -73,52 +86,52 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 bash install.sh
 ```
 
-### Avvio
+### Running
 
 ```bash
-python run.py              # finestra desktop (pywebview) o browser se non disponibile
-python run.py --browser    # forza il browser di default
-# oppure, senza pywebview:
+python run.py              # desktop window (pywebview) or browser if unavailable
+python run.py --browser    # force the default browser
+# or, without pywebview:
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8321
-# poi apri: http://127.0.0.1:8321
+# then open: http://127.0.0.1:8321
 ```
 
-## 📋 Requisiti
+## 📋 Requirements
 
-- **Python 3.11+** per l'esecuzione da sorgente.
-- **Dipendenze di base**: `fastapi`, `uvicorn`, `pillow`, `pillow-heif`, `pymupdf`, `pywebview` (vedi `requirements.txt`).
-- **Opzionale**:
-  - `ffmpeg` nel PATH per la conversione video.
-  - `Tesseract` per l'OCR (opzionale).
+- **Python 3.11+** for running from source.
+- **Base dependencies**: `fastapi`, `uvicorn`, `pillow`, `pillow-heif`, `pymupdf`, `pywebview` (see `requirements.txt`).
+- **Optional**:
+  - `ffmpeg` on your PATH for video conversion.
+  - `Tesseract` for OCR (optional).
 
-## 🗂️ Struttura del progetto
+## 🗂️ Project structure
 
 ```
 versocon/
-├─ app/            # FastAPI: endpoint API + costanti
-├─ converters/     # logica di conversione (immagini, documenti, video, PDF, firma, compressione)
+├─ app/            # FastAPI: API endpoints + constants
+├─ converters/     # conversion logic (images, documents, video, PDF, signature, compression)
 ├─ static/         # frontend HTML+CSS+JS (no build step) + vendor (pdf.js)
-├─ assets/         # font, logo, demo
-├─ packaging/      # PyInstaller spec, icone, Inno Setup, make_icon
-├─ tests/          # suite pytest
-├─ run.py          # lanciatore desktop/browser
+├─ assets/         # fonts, logo, demo
+├─ packaging/      # PyInstaller spec, icons, Inno Setup, make_icon
+├─ tests/          # pytest suite
+├─ run.py          # desktop/browser launcher
 ├─ requirements.txt
-└─ PROGRESS.md     # stato e roadmap dello sviluppo (fonte di verità)
+└─ PROGRESS.md     # dev state & roadmap (source of truth)
 ```
 
-## 🧪 Test
+## 🧪 Tests
 
 ```bash
 .venv\Scripts\python -m pytest tests -q   # Windows
-# o:
+# or:
 python -m pytest tests -q
 ```
 
-## 🤝 Contribuire e supporto
+## 🤝 Contributing & support
 
-Apri un issue o un pull request. Se ti è utile, puoi
-[sostenere lo sviluppo ☕](https://ko-fi.com/hikari22).
+Open an issue or a pull request. If it's useful to you, you can
+[sponsor the development ☕](https://ko-fi.com/hikari22).
 
-## 📄 Licenza
+## 📄 License
 
-[MIT](LICENSE.md) — libera da usare, modificare e ridistribuire.
+[MIT](LICENSE.md) — free to use, modify, and redistribute.
