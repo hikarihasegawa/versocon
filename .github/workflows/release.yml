@@ -1,0 +1,73 @@
+name: Release (Windows installer)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versione (es. 0.3.0)'
+        required: true
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install deps + PyInstaller
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Set installer version from tag/manual input
+        id: ver
+        shell: pwsh
+        run: |
+          $raw = "${{ github.event.inputs.version }}"
+          if (-not $raw) { $raw = "${{ github.ref_name }}" }
+          $v = ($raw -replace '^v','').Trim()
+          Write-Host "Versione installer: $v"
+          $iss = "packaging/inno/versocon.iss"
+          $c = [IO.File]::ReadAllText($iss)
+          $c = [regex]::Replace($c, '#define \s*MyAppVersion\s+"[^"]*"', "#define MyAppVersion   `"$v`"")
+          [IO.File]::WriteAllText($iss, $c)
+
+      - name: Build single-dir app (PyInstaller)
+        shell: pwsh
+        run: pyinstaller packaging\versacon.spec --noconfirm --clean
+
+      - name: Compile Inno Setup installer (iscc is preinstalled on the runner)
+        shell: pwsh
+        run: iscc packaging\inno\versocon.iss
+
+      - name: Find installer artifact
+        id: artifact
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "dist" -Filter "*.exe" | Select-Object -First 1
+          if (-not $exe) { throw "setup .exe non trovato in dist/" }
+          "name=${$exe.Name.Replace('.exe','')}" >> $env:GITHUB_OUTPUT
+          "size=${$exe.Length}" >> $env:GITHUB_OUTPUT
+          Write-Output "Installer: $($exe.FullName) ($(($exe.Length/1MB).ToString('F0')) MB)"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          tag_name: ${{ github.event.inputs.version || github.ref_name }}
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.exe
+            assets/demo/versocon-demo.gif
