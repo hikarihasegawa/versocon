@@ -8,3 +8,7 @@ dist/
 QA.pdf.png
 packaging/*.log
 packaging/versocon._fix.png
+
+# File di lavoro dell'operatore/AGI (nessun valore da repo pubblico).
+# Rimane in locale; non va tracciato.
+PROGRESS.md
