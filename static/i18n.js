@@ -15,6 +15,20 @@
   const STORE_KEY = "vscon_lang";
   const dicts = {};   // lang -> object
   let cur = "it";     // applied language
+
+  // I testanti API /api/* spediscono la lingua attiva (X-VersoCon-Lang),
+  // così gli errori HTTP tornano già tradotti.
+  const _nativeFetch = window.fetch;
+  window.fetch = function (input, init) {
+    const url = typeof input === "string" ? input : (input && input.url) || "";
+    if (url.indexOf("/api/") === 0 || url.indexOf("api/") === 0) {
+      init = Object.assign({}, init);
+      const h = new Headers((init && init.headers) || (typeof input === "object" && input.headers) || {});
+      if (!h.has("X-VersoCon-Lang")) h.set("X-VersoCon-Lang", cur);
+      init.headers = h;
+    }
+    return _nativeFetch.call(window, input, init);
+  };
   let enDict = null;
   let itDict = null;
 

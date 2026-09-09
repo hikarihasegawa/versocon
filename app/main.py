@@ -8,7 +8,7 @@ import urllib.parse
 import zipfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -22,6 +22,7 @@ from converters import tools as toolconv
 from converters import video as vidconv
 
 from app import constants
+from app.i18n import t as T
 
 app = FastAPI(title="VersoCon", version="0.2.4")
 
@@ -63,9 +64,9 @@ def _open_support_in_browser() -> None:
 
 
 @app.post("/api/support")
-def support():
+def support(request: Request):
     if not constants.KOFI_URL:
-        raise HTTPException(503, "Link di supporto non configurato.")
+        raise HTTPException(503, T(request, "api.support_not_configured"))
     _open_support_in_browser()
     return {"opened": True, "url": constants.KOFI_URL}
 
@@ -99,20 +100,21 @@ def _image_size(data: bytes) -> tuple[int, int] | None:
         return None
 
 
-def _read_upload(uf: UploadFile) -> bytes:
+def _read_upload(request: Request, uf: UploadFile) -> bytes:
     data = uf.file.read()
+    name = Path(uf.filename or "").name
     if not data:
-        raise HTTPException(400, f"{uf.filename} is empty")
-    name = Path(uf.filename).name
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if not imgconv.is_convertible(name):
-        raise HTTPException(400, f"Unsupported file type: {name}")
+        raise HTTPException(400, T(request, "api.file_type_unsupported", name=name))
     if len(data) > 200 * 1024 * 1024:
-        raise HTTPException(400, f"{name} exceeds 200 MB limit")
+        raise HTTPException(400, T(request, "api.file_200mb_limit", name=name))
     return data
 
 
 @app.post("/api/convert")
 def convert(
+    request: Request,
     files: list[UploadFile] = File(...),
     fmt: str = Form("jpeg"),
     quality: int | None = Form(None),
@@ -122,13 +124,11 @@ def convert(
     if fmt_l == "jpg":
         fmt_l = "jpeg"
     if fmt_l not in VALID_OUT:
-        raise HTTPException(400, f"Unsupported output format: {fmt}")
+        raise HTTPException(400, T(request, "api.out_format_unsupported", fmt=fmt))
     if not files:
-        raise HTTPException(400, "No files provided")
+        raise HTTPException(400, T(request, "api.no_files"))
     if len(files) > MAX_BATCH_FILES:
-        raise HTTPException(
-            400, f"Troppi file in un colpo: max {MAX_BATCH_FILES} (ne sono {len(files)})"
-        )
+        raise HTTPException(400, T(request, "api.too_many_files", max=MAX_BATCH_FILES, n=len(files)))
 
     quality = _sanitize_quality(quality)
     max_side = _sanitize_max_side(max_side)
@@ -142,7 +142,7 @@ def convert(
             n += 1
             base = f"{stem}-{n}"
         try:
-            data = _read_upload(uf)
+            data = _read_upload(request, uf)
         except HTTPException as e:
             results.append({"name": uf.filename, "error": str(e.detail)})
             continue
@@ -170,24 +170,24 @@ def convert(
 
     ok = [r for r in results if "error" not in r]
     if not ok:
-        raise HTTPException(422, detail={"message": "All files failed to convert", "results": results})
+        raise HTTPException(422, detail={"message": T(request, "api.all_failed"), "results": results})
     return {"results": results}
 
 
 @app.get("/api/file/{name}")
-def download_file(name: str):
+def download_file(request: Request, name: str):
     p = OUT_DIR / name
     if not p.exists() or not p.is_file():
-        raise HTTPException(404, "File not found")
+        raise HTTPException(404, T(request, "api.file_not_found"))
     return FileResponse(p, filename=p.name)
 
 
 @app.get("/api/download")
-def download_zip(names: str):
+def download_zip(request: Request, names: str):
     """Zip dei file separati da virgola (parametro names)."""
     items = [n.strip() for n in (names or "").split(",") if n.strip()]
     if not items:
-        raise HTTPException(400, "No files specified")
+        raise HTTPException(400, T(request, "api.no_files_specified"))
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for n in items:
@@ -203,16 +203,18 @@ def download_zip(names: str):
 
 @app.post("/api/convert-pdf-to-images")
 def convert_pdf_to_images(
+    request: Request,
     file: UploadFile = File(...),
     fmt: str = Form("jpeg"),
     dpi: int | None = Form(None),
     quality: int | None = Form(None),
 ):
     data = file.file.read()
+    name = Path(file.filename or "").name
     if not data:
-        raise HTTPException(400, "File vuoto")
+        raise HTTPException(400, T(request, "api.file_empty"))
     if len(data) > docconv.MAX_DOC_BYTES:
-        raise HTTPException(400, f"{file.filename} supera il limite di 100 MB")
+        raise HTTPException(400, T(request, "api.file_100mb_limit", name=name))
     try:
         ext = docconv.pdf_to_image_ext(fmt)
     except ValueError as e:
@@ -220,7 +222,7 @@ def convert_pdf_to_images(
     try:
         pages = docconv.pdf_to_images(data, ext, dpi=dpi, quality=quality)
     except Exception as e:  # noqa: BLE001 - PDF corrotto / non supportato
-        raise HTTPException(400, f"PDF non leggibile: {e}")
+        raise HTTPException(400, T(request, "api.pdf_unreadable", detail=str(e)))
 
     results = []
     used: set[str] = set()
@@ -242,29 +244,31 @@ def convert_pdf_to_images(
             "download": f"/api/file/{name}",
         })
     if not results:
-        raise HTTPException(422, "Nessuna pagina trovata nel PDF")
+        raise HTTPException(422, T(request, "api.no_pages_found"))
     return {"results": results, "pages": len(results)}
 
 
 @app.post("/api/convert-images-to-pdf")
 def convert_images_to_pdf(
+    request: Request,
     files: list[UploadFile] = File(...),
     max_side: int | None = Form(None),
 ):
     if not files:
-        raise HTTPException(400, "Nessun file")
+        raise HTTPException(400, T(request, "api.no_files"))
     if len(files) > docconv.MAX_IMAGES_PER_PDF:
-        raise HTTPException(400, f"Max {docconv.MAX_IMAGES_PER_PDF} immagini per PDF (sono {len(files)})")
+        raise HTTPException(400, T(request, "api.max_images_per_pdf", max=docconv.MAX_IMAGES_PER_PDF, n=len(files)))
     payload: list[tuple[str, bytes]] = []
     for f in files:
-        if not docconv.image_is_supported(f.filename):
-            raise HTTPException(400, f"Formato non supportato: {f.filename} (immagini solo jpg/png/webp/bmp/tiff)")
+        fname = Path(f.filename or "").name
+        if not docconv.image_is_supported(fname):
+            raise HTTPException(400, T(request, "api.img_format_unsupported", name=fname))
         raw = f.file.read()
         if not raw:
-            raise HTTPException(400, f"{f.filename} vuoto")
+            raise HTTPException(400, T(request, "api.file_empty_named", name=fname))
         if len(raw) > docconv.MAX_DOC_BYTES:
-            raise HTTPException(400, f"{f.filename} supera il limite di 100 MB")
-        payload.append((f.filename, raw))
+            raise HTTPException(400, T(request, "api.file_100mb_limit", name=fname))
+        payload.append((fname, raw))
     ms = None
     if max_side is not None and max_side != "":
         try:
@@ -277,7 +281,7 @@ def convert_images_to_pdf(
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001 - PDF generation failure
-        raise HTTPException(500, f"Generazione PDF fallita: {e}")
+        raise HTTPException(500, T(request, "api.pdf_gen_failed", detail=str(e)))
     name = "versocon.pdf"
     dst = OUT_DIR / name
     dst.write_bytes(out)
@@ -295,13 +299,15 @@ def convert_images_to_pdf(
 
 @app.post("/api/convert-video")
 def convert_video(
+    request: Request,
     file: UploadFile = File(...),
     fmt: str = Form("mp4"),
     crf: int | None = Form(None),
 ):
     """Transcode base di un video verso mp4 (H.264/AAC) o webm (VP9/Vorbis)."""
-    if not vidconv.video_is_supported(file.filename or ""):
-        raise HTTPException(400, f"Formato video non supportato: {file.filename} (attesi: {', '.join(sorted(vidconv.VIDEO_IN_EXT))})")
+    vname = Path(file.filename or "").name
+    if not vidconv.video_is_supported(vname):
+        raise HTTPException(400, T(request, "api.video_format_unsupported", name=vname, exts=", ".join(sorted(vidconv.VIDEO_IN_EXT))))
     try:
         _ext, _, _ = vidconv._out_container(fmt)
     except ValueError as e:
@@ -309,9 +315,9 @@ def convert_video(
 
     data = file.file.read()
     if not data:
-        raise HTTPException(400, "File vuoto")
+        raise HTTPException(400, T(request, "api.file_empty"))
     if len(data) > vidconv.MAX_VIDEO_BYTES:
-        raise HTTPException(400, f"{file.filename} supera il limite di 2 GB")
+        raise HTTPException(400, T(request, "api.file_2gb_limit", name=vname))
 
     # scrivi sorgente in un file temporaneo per dare a ffmpeg un nome con estensione
     orig_ext = Path(file.filename).suffix.lower() or ".mp4"
@@ -329,13 +335,13 @@ def convert_video(
         try:
             size = vidconv.transcode(str(src), str(dst), fmt=fmt, crf=crf)
         except vidconv.MissingFfmpegError as e:
-            raise HTTPException(503, str(e))
+            raise HTTPException(503, T(request, "api.ffmpeg_missing") + str(e))
         except vidconv.VideoTimeoutError as e:
-            raise HTTPException(504, str(e))
+            raise HTTPException(504, T(request, "api.ffmpeg_timeout") + str(e))
         except ValueError as e:
             raise HTTPException(400, str(e))
         except Exception as e:  # noqa: BLE001 - failure generica di transcode
-            raise HTTPException(500, f"Transcode fallito: {e}")
+            raise HTTPException(500, T(request, "api.transcode_failed", detail=str(e)))
     finally:
         if src.exists():
             src.unlink()
@@ -351,29 +357,29 @@ def convert_video(
     }
 
 
-def _read_pdf_upload(uf: UploadFile) -> bytes:
+def _read_pdf_upload(request: Request, uf: UploadFile) -> bytes:
     name = Path(uf.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
-        raise HTTPException(400, f"File non PDF: {name}")
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
     data = uf.file.read()
     if not data:
-        raise HTTPException(400, f"{name} vuoto")
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if len(data) > toolconv.MAX_DOC_BYTES:
-        raise HTTPException(400, f"{name} supera il limite di 100 MB")
+        raise HTTPException(400, T(request, "api.file_100mb_limit", name=name))
     return data
 
 
 @app.post("/api/merge-pdfs")
-def merge_pdfs(files: list[UploadFile] = File(...)):
+def merge_pdfs(request: Request, files: list[UploadFile] = File(...)):
     """Unisce più PDF in un unico documento (ordine di upload)."""
     if not files:
-        raise HTTPException(400, "Nessun PDF")
+        raise HTTPException(400, T(request, "api.no_pdfs"))
     if len(files) > toolconv.MAX_PDF_FILES:
-        raise HTTPException(400, f"Max {toolconv.MAX_PDF_FILES} PDF (sono {len(files)})")
+        raise HTTPException(400, T(request, "api.max_pdfs", max=toolconv.MAX_PDF_FILES, n=len(files)))
     payload: list[tuple[str, bytes]] = []
     for f in files:
         try:
-            payload.append((Path(f.filename).name, _read_pdf_upload(f)))
+            payload.append((Path(f.filename or "").name, _read_pdf_upload(request, f)))
         except HTTPException:
             raise
     try:
@@ -381,7 +387,7 @@ def merge_pdfs(files: list[UploadFile] = File(...)):
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Fusione PDF fallita: {e}")
+        raise HTTPException(500, T(request, "api.merge_failed", detail=str(e)))
     name = "versocon_merged.pdf"
     dst = OUT_DIR / name
     dst.write_bytes(out)
@@ -399,18 +405,19 @@ def merge_pdfs(files: list[UploadFile] = File(...)):
 
 @app.post("/api/split-pdf")
 def split_pdf(
+    request: Request,
     file: UploadFile = File(...),
     start: int | None = Form(None),
     end: int | None = Form(None),
 ):
     """Estrae le pagine [start, end] (1-based, incluse) in un nuovo PDF."""
-    data = _read_pdf_upload(file)
+    data = _read_pdf_upload(request, file)
     try:
         out, pages, total = toolconv.split_pdf(data, start=start, end=end)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Estrazione pagine fallita: {e}")
+        raise HTTPException(500, T(request, "api.pages_extract_failed", detail=str(e)))
     stem = Path(file.filename).stem or "pdf"
     name = f"{stem}_pag{start}-{end}.pdf"
     dst = OUT_DIR / name
@@ -430,6 +437,7 @@ def split_pdf(
 
 @app.post("/api/rename-preview")
 def rename_preview_endpoint(
+    request: Request,
     names: list[str] = Form(...),
     mode: str = Form("prefix"),
     value: str = Form(""),
@@ -439,9 +447,9 @@ def rename_preview_endpoint(
 ):
     """Anteprima della rinomina: restituisce la corrispondenza vecchio→nuovo."""
     if not names:
-        raise HTTPException(400, "Nessun nome")
+        raise HTTPException(400, T(request, "api.no_names"))
     if len(names) > MAX_BATCH_FILES:
-        raise HTTPException(400, f"Troppi nomi: max {MAX_BATCH_FILES}")
+        raise HTTPException(400, T(request, "api.too_many_names", max=MAX_BATCH_FILES))
     payload = [(n, b"") for n in names]
     try:
         renamed = toolconv.rename_files(payload, mode=mode, value=value, start=start, step=step)
@@ -453,6 +461,7 @@ def rename_preview_endpoint(
 
 @app.post("/api/rename-batch")
 def rename_batch(
+    request: Request,
     files: list[UploadFile] = File(...),
     mode: str = Form("prefix"),
     value: str = Form(""),
@@ -462,13 +471,13 @@ def rename_batch(
 ):
     """Rinomina un batch di file secondo pattern e restituisce uno ZIP."""
     if not files:
-        raise HTTPException(400, "Nessun file")
+        raise HTTPException(400, T(request, "api.no_files"))
     payload: list[tuple[str, bytes]] = []
     for f in files:
         name = Path(f.filename or "").name
         data = f.file.read()
         if not data:
-            raise HTTPException(400, f"{name} vuoto")
+            raise HTTPException(400, T(request, "api.file_empty_named", name=name))
         payload.append((name, data))
     try:
         renamed = toolconv.rename_files(payload, mode=mode, value=value, start=start, step=step)
@@ -494,6 +503,7 @@ def rename_batch(
 # ──────────────────────────────────────────────────────────────────────────────
 @app.post("/api/compress-image")
 def compress_image(
+    request: Request,
     file: UploadFile = File(...),
     fmt: str = Form("jpeg"),
     quality: int | None = Form(None),
@@ -503,12 +513,12 @@ def compress_image(
     """Comprime un'immagine; target_bytes (se presente) vince su quality."""
     name = Path(file.filename or "").name
     if not compconv.image_is_compressible(name):
-        raise HTTPException(400, f"Formato immagine non supportato: {name}")
+        raise HTTPException(400, T(request, "api.img_compress_unsupported", name=name))
     data = file.file.read()
     if not data:
-        raise HTTPException(400, f"{name} vuoto")
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if len(data) > compconv.MAX_BYTES:
-        raise HTTPException(400, f"{name} supera il limite di 100 MB")
+        raise HTTPException(400, T(request, "api.file_100mb_limit", name=name))
     q = _sanitize_quality(quality)
     ms = _sanitize_max_side(max_side)
     tb = None
@@ -526,7 +536,7 @@ def compress_image(
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Compressione fallita: {e}")
+        raise HTTPException(500, T(request, "api.compress_failed", detail=str(e)))
     ext = "jpg" if (fmt or "jpeg") in ("jpeg", "jpg") else (fmt or "jpeg")
     stem = Path(name).stem or "immagine"
     dst_name, n = f"{stem}_c.{ext}", 1
@@ -550,24 +560,25 @@ def compress_image(
 
 @app.post("/api/compress-pdf")
 def compress_pdf(
+    request: Request,
     file: UploadFile = File(...),
     level: str = Form("medium"),
 ):
     """Comprime un PDF (low = min, medium = default, high = max)."""
     name = Path(file.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
-        raise HTTPException(400, f"File non PDF: {name}")
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
     data = file.file.read()
     if not data:
-        raise HTTPException(400, f"{name} vuoto")
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if len(data) > compconv.MAX_BYTES:
-        raise HTTPException(400, f"{name} supera il limite di 100 MB")
+        raise HTTPException(400, T(request, "api.file_100mb_limit", name=name))
     try:
         out, meta = compconv.compress_pdf(data, level=level)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Compressione PDF fallita: {e}")
+        raise HTTPException(500, T(request, "api.pdf_compress_failed", detail=str(e)))
     stem = Path(name).stem or "pdf"
     lvl = (level or "medium").lower()
     dst_name, n = f"{stem}_c-{lvl}.pdf", 1
@@ -591,6 +602,7 @@ def compress_pdf(
 
 @app.post("/api/pdf-to-text")
 def pdf_to_text(
+    request: Request,
     file: UploadFile = File(...),
     ocr: str = Form("auto"),
     lang: str = Form("it"),
@@ -602,20 +614,20 @@ def pdf_to_text(
     """
     name = Path(file.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
-        raise HTTPException(400, f"File non PDF: {name}")
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
     data = file.file.read()
     if not data:
-        raise HTTPException(400, f"{name} vuoto")
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     mode = (ocr or "auto").lower()
     if mode not in ("auto", "on", "off"):
-        raise HTTPException(400, f"Modo OCR non valido: {ocr!r} (attesi auto/on/off)")
+        raise HTTPException(400, T(request, "api.ocr_mode_invalid", mode=ocr))
     lang = (lang or "it").strip() or "eng"
     ocr_available = exconv.ocr_enabled()
     warning = None
     if mode in ("on", "auto") and not ocr_available:
-        warning = "Motore OCR non disponibile (Tesseract mancante): verranno estratte solo le pagine con testo nativo."
+        warning = T(request, "api.ocr_warning")
     if mode == "on" and not ocr_available:
-        raise HTTPException(501, "OCR richiesto ma Tesseract non è installato. Installalo per abilitare OCR.")
+        raise HTTPException(501, T(request, "api.ocr_not_installed"))
     try:
         pages_text = exconv.extract_text(data, mode=mode, lang=lang)
     except exconv.OcrEngineMissingError as e:
@@ -623,11 +635,11 @@ def pdf_to_text(
         if mode == "auto":
             pages_text = exconv.extract_text(data, mode="off", lang=lang)
         else:
-            raise HTTPException(501, str(e)) from e
+            raise HTTPException(501, T(request, "api.ocr_not_installed")) from e
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Estrazione testo fallita: {e}")
+        raise HTTPException(500, T(request, "api.extract_text_failed", detail=str(e)))
 
     stem = Path(name).stem or "pdf"
     dst_name, n = f"{stem}.txt", 1
@@ -674,6 +686,7 @@ def _expand_pages(data: bytes, pages_json: str) -> list[int]:
 
 @app.post("/api/pdf-edit")
 def api_pdf_edit(
+    request: Request,
     file: UploadFile = File(...),
     action: str = Form(...),
     # riordino / eliminazione
@@ -702,14 +715,13 @@ def api_pdf_edit(
     """Editor PDF. `action` ∈ {reorder,delete,rotate,watermark,signature}."""
     name = Path(file.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
-        raise HTTPException(400, f"File non PDF: {name}")
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
     data = file.file.read()
     if not data:
-        raise HTTPException(400, f"{name} vuoto")
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     act = (action or "").strip().lower()
     if act not in ("reorder", "delete", "rotate", "watermark", "signature"):
-        raise HTTPException(400, f"Action non valida: {action!r} "
-                                "(attesi reorder/delete/rotate/watermark/signature)")
+        raise HTTPException(400, T(request, "api.action_invalid", action=action))
 
     import json
     try:
@@ -717,27 +729,27 @@ def api_pdf_edit(
             try:
                 order_list = json.loads(order) if order else None
             except json.JSONDecodeError as e:
-                raise ValueError(f"order non è un JSON valido: {e}") from e
+                raise ValueError(T(request, "api.order_invalid")) from e
             if not order_list:
-                raise ValueError("order mancante")
+                raise ValueError(T(request, "api.order_invalid"))
             out = pdfeditconv.reorder_pages(data, order_list)
         elif act == "delete":
             try:
                 pg = _expand_pages(data, pages)
             except json.JSONDecodeError as e:
-                raise ValueError(f"pages non è un JSON valido: {e}") from e
+                raise ValueError(T(request, "api.pages_invalid")) from e
             out = pdfeditconv.delete_pages(data, pg)
         elif act == "rotate":
             try:
                 pg = _expand_pages(data, pages)
             except json.JSONDecodeError as e:
-                raise ValueError(f"pages non è un JSON valido: {e}") from e
+                raise ValueError(T(request, "api.pages_invalid")) from e
             if not pg:
                 pg = list(range(1, pdfeditconv.page_count(data) + 1))
             out = pdfeditconv.rotate_pages(data, pg, angle=angle)
         elif act == "watermark":
             if not (wm_text or "").strip():
-                raise ValueError("Testo watermark mancante")
+                raise ValueError(T(request, "api.watermark_empty"))
             out = pdfeditconv.watermark_text(
                 data, wm_text, corner=wm_corner.lower(),
                 font_size=wm_size, opacity=wm_opacity, rotate=wm_rotate,
@@ -745,7 +757,7 @@ def api_pdf_edit(
         else:  # signature (nuova: posizionamento libero)
             sig_img = signature.file.read() if signature and signature.filename else b""
             if not sig_img:
-                raise HTTPException(400, "Immagine firma mancante")
+                raise ValueError(T(request, "api.signature_missing"))
             # priorità: sig_pos_x/y + sig_w_pct (nuovi) > sig_corner (legacy) > default
             if (sig_pos_x or "").strip():
                 xp = float(sig_pos_x); yp = float(sig_pos_y or 85); wp = float(sig_w_pct or 30)
@@ -764,7 +776,7 @@ def api_pdf_edit(
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Editor PDF fallito: {e}")
+        raise HTTPException(500, T(request, "api.editor_failed", detail=str(e)))
 
     stem = Path(name).stem or "pdf"
     suffix = {"reorder": "re", "delete": "del", "rotate": "rot",
@@ -787,6 +799,7 @@ def api_pdf_edit(
 
 @app.post("/api/signature-generate")
 def api_signature_generate(
+    request: Request,
     name: str = Form(...),
     style: str = Form("greatvibes"),
     size: int = Form(96),
@@ -798,7 +811,7 @@ def api_signature_generate(
     except ValueError as e:
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
-        raise HTTPException(500, f"Generazione firma fallita: {e}")
+        raise HTTPException(500, T(request, "api.sign_gen_failed", detail=str(e)))
     return Response(content=png, media_type="image/png",
                     headers={"Content-Disposition": 'attachment; filename="firm.png"'})
 
