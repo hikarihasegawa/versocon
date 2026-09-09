@@ -131,6 +131,42 @@ h1 {
   transform: rotate(2deg);
   white-space: nowrap;
 }
+.masthead-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 12px;
+}
+.lang-pick {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 4px 6px 4px 12px;
+  background: var(--paper-2);
+  border: var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  transform: rotate(-1deg);
+}
+.lang-ic { font-size: 16px; line-height: 1; }
+.lang-sel {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  font-family: var(--font-title);
+  font-size: 13px; font-weight: 900;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  padding: 7px 26px 7px 12px;
+  min-width: 118px;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+                    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-size: 9px 9px, 9px 9px;
+  background-position: right 13px top 15px, right 8px top 15px;
+  background-repeat: no-repeat;
+  transition: box-shadow .12s ease, transform .12s ease;
+}
+.lang-sel:hover { box-shadow: 3px 3px 0 var(--red); }
+.lang-sel:focus-visible { box-shadow: 0 0 0 3px var(--red); }
 
 /* ---- Comic burst behind CTA zone (dropzone card) ---- */
 .dropzone-card { position: relative; }
@@ -605,6 +641,7 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
 @media (max-width: 640px) {
   .shell { padding: 30px 14px 44px; }
   .masthead { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .masthead-right { align-items: flex-start; }
   h1 { font-size: 34px; }
   .logo-mark-img { width: 72px; height: 72px; }
   .tabs { gap: 8px; }

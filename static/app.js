@@ -3,6 +3,7 @@
   "use strict";
 
   const $ = (s) => document.querySelector(s);
+  const IC = window.IC || { t: (k) => k };
 
   const dropCard = $("#dropCard");
   const dropzone = $("#dropzone");
@@ -24,6 +25,7 @@
   let files = [];       // [File]
   let results = [];     // [{name, download, ...}]
   let fmt = "jpeg";
+  let bootCfg = null;   // last /api/config, to re-render i18n-dependent status lines
 
   /* ---------- sakura petals ---------- */
   (function petals() {
@@ -71,10 +73,10 @@
   /* ---------- queue ---------- */
   function addFiles(list) {
     for (const f of list) {
-      if (!ACCEPT_RE.test(f.name)) {
-        showToast(`Formato non supportato: ${f.name}`, "err");
-        continue;
-      }
+        if (!ACCEPT_RE.test(f.name)) {
+          showToast(IC.t("dyn.fmt_unsupported", { name: f.name }), "err");
+          continue;
+        }
       if (files.some((x) => x.name === f.name && x.size === f.size)) continue;
       files.push(f);
     }
@@ -98,7 +100,7 @@
         <span class="ficon">🖼</span>
         <span class="fname" title="${esc(f.name)}">${esc(f.name)}</span>
         <span class="fsize">${fmtBytes(f.size)}</span>
-        <button class="rm" title="Rimuovi" aria-label="Rimuovi">✕</button>
+        <button class="rm" data-rm aria-label="${IC.t("list.remove")}">✕</button>
       </li>`
       )
       .join("");
@@ -138,7 +140,7 @@
 
   /* ---------- convert ---------- */
   btnConvert.addEventListener("click", async () => {
-    if (!files.length) return showToast("Nessun file in coda.", "err");
+    if (!files.length) return showToast(IC.t("dyn.no_files"), "err");
     const fd = new FormData();
     files.forEach((f) => fd.append("files", f));
     fd.append("fmt", fmt);
@@ -147,7 +149,7 @@
     if (ms && +ms > 0) fd.append("max_side", ms);
 
     btnConvert.disabled = true;
-    btnConvert.textContent = "Convertendo…";
+    btnConvert.textContent = IC.t("btn.converting");
     try {
       const res = await fetch("/api/convert", { method: "POST", body: fd });
       const data = await res.json();
@@ -158,12 +160,12 @@
       }
       results = data.results;
       renderResults();
-      showToast(`${results.filter((r) => !r.error).length} file convertiti ✓`, "ok");
+      showToast(IC.t("dyn.n_files_converted", { n: results.filter((r) => !r.error).length }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnConvert.disabled = false;
-      btnConvert.textContent = "Converti";
+      btnConvert.textContent = IC.t("btn.convert");
     }
   });
 
@@ -299,7 +301,7 @@
   });
 
   btnPdfConvert.addEventListener("click", async () => {
-    if (!pdfFile) return showToast("Scegli prima un PDF.", "err");
+    if (!pdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
     const fd = new FormData();
     fd.append("file", pdfFile);
     fd.append("fmt", pdfFmt.value);
@@ -307,19 +309,19 @@
     if (pdfDpi.value) fd.append("dpi", pdfDpi.value);
 
     btnPdfConvert.disabled = true;
-    btnPdfConvert.textContent = "Convertendo…";
+    btnPdfConvert.textContent = IC.t("btn.converting");
     try {
       const res = await fetch("/api/convert-pdf-to-images", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast(`${results.length} pagine convertite ✓`, "ok");
+      showToast(IC.t("dyn.n_pages_converted", { n: results.length }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnPdfConvert.disabled = false;
-      btnPdfConvert.textContent = "Converti";
+      btnPdfConvert.textContent = IC.t("btn.convert");
     }
   });
 
@@ -340,7 +342,7 @@
     this.value = "";
     for (const f of added) {
       if (!IMG_PDF_EXT_RE.test(f.name)) {
-        showToast(`Formato non supportato: ${f.name}`, "err");
+        showToast(IC.t("dyn.fmt_unsupported", { name: f.name }), "err");
         continue;
       }
       if (imgToPdfFiles.some((x) => x.name === f.name && x.size === f.size)) continue;
@@ -360,7 +362,7 @@
       .map(
         (f, i) => `<li class="file" data-i="${i}"><span class="ficon">${i + 1}</span>
           <span class="fname">${esc(f.name)}</span><span class="fsize">${fmtBytes(f.size)}</span>
-          <button class="rm" title="Rimuovi">✕</button></li>`
+          <button class="rm" data-rm aria-label="${IC.t("list.remove")}">✕</button></li>`
       )
       .join("");
     imgToPdfListEl.onclick = (e) => {
@@ -373,26 +375,26 @@
   }
 
   btnImgToPdf.addEventListener("click", async () => {
-    if (!imgToPdfFiles.length) return showToast("Nessuna immagine in coda.", "err");
+    if (!imgToPdfFiles.length) return showToast(IC.t("dyn.no_images"), "err");
     const fd = new FormData();
     imgToPdfFiles.forEach((f) => fd.append("files", f));
     const ms = (imgToPdfMaxSide.value || "").trim();
     if (ms && +ms > 0) fd.append("max_side", ms);
 
     btnImgToPdf.disabled = true;
-    btnImgToPdf.textContent = "Creando…";
+    btnImgToPdf.textContent = IC.t("btn.creating");
     try {
       const res = await fetch("/api/convert-images-to-pdf", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast(`PDF creato con ${data.images} pagine ✓`, "ok");
+      showToast(IC.t("dyn.pdf_created", { n: data.images }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnImgToPdf.disabled = false;
-      btnImgToPdf.textContent = "Crea PDF";
+      btnImgToPdf.textContent = IC.t("btn.img2pdf");
     }
   });
 
@@ -415,36 +417,36 @@
   });
 
   btnTxtExtract.addEventListener("click", async () => {
-    if (!txtFile) return showToast("Scegli prima un PDF.", "err");
+    if (!txtFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
     const fd = new FormData();
     fd.append("file", txtFile);
     fd.append("ocr", txtOcrSel.value);
     fd.append("lang", txtLang.value);
 
     btnTxtExtract.disabled = true;
-    btnTxtExtract.textContent = "Estragendo…";
+    btnTxtExtract.textContent = IC.t("btn.extracing");
     try {
       const res = await fetch("/api/pdf-to-text", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       lastText = data.text || "";
-      txtPreview.textContent = lastText || "(nessun testo estratto)";
+      txtPreview.textContent = lastText || IC.t("dyn.no_text");
       txtResult.hidden = false;
       txtDownload.href = data.results[0].download;
-      txtDownload.textContent = `⬇ Scarica ${data.results[0].name}`;
+      txtDownload.textContent = IC.t("dyn.download_named", { name: data.results[0].name });
       if (data.warning) showToast(data.warning, "warn");
-      showToast(`Testo estratto (${(data.pages || []).length} pagine) ✓`, "ok");
+      showToast(IC.t("dyn.text_extracted", { n: (data.pages || []).length }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnTxtExtract.disabled = false;
-      btnTxtExtract.textContent = "Estrai testo";
+      btnTxtExtract.textContent = IC.t("btn.extract");
     }
   });
 
   txtCopy.addEventListener("click", async (e) => {
     e.preventDefault();
-    if (!lastText) return showToast("Niente da copiare.", "err");
+    if (!lastText) return showToast(IC.t("dyn.nothing_to_copy"), "err");
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(lastText);
@@ -458,9 +460,9 @@
         document.execCommand("copy");
         document.body.removeChild(ta);
       }
-      showToast("Testo copiato ✓", "ok");
+      showToast(IC.t("dyn.text_copied"), "ok");
     } catch (err) {
-      showToast("Copia non riuscita.", "err");
+      showToast(IC.t("dyn.copy_failed"), "err");
     }
   });
 
@@ -478,25 +480,25 @@
   });
 
   btnVideoConvert.addEventListener("click", async () => {
-    if (!videoFile) return showToast("Scegli prima un video.", "err");
+    if (!videoFile) return showToast(IC.t("dyn.pick_video_first"), "err");
     const fd = new FormData();
     fd.append("file", videoFile);
     fd.append("fmt", videoFmt.value);
     if (videoCrf.value) fd.append("crf", videoCrf.value);
     btnVideoConvert.disabled = true;
-    btnVideoConvert.textContent = "Trascodando…";
+    btnVideoConvert.textContent = IC.t("btn.transcoding");
     try {
       const res = await fetch("/api/convert-video", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast("Video convertito ✓", "ok");
+      showToast(IC.t("dyn.video_converted"), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnVideoConvert.disabled = false;
-      btnVideoConvert.textContent = "Converti";
+      btnVideoConvert.textContent = IC.t("btn.convert");
     }
   });
 
@@ -524,7 +526,7 @@
   let mergeFiles = [];
   mergeIn.addEventListener("change", function () {
     for (const f of [...this.files]) {
-      if (!f.name.toLowerCase().endsWith(".pdf")) { showToast(`Non è un PDF: ${f.name}`, "err"); continue; }
+      if (!f.name.toLowerCase().endsWith(".pdf")) { showToast(IC.t("dyn.not_pdf", { name: f.name }), "err"); continue; }
       if (mergeFiles.some((x) => x.name === f.name && x.size === f.size)) continue;
       mergeFiles.push(f);
     }
@@ -538,7 +540,7 @@
     mergeListEl.innerHTML = mergeFiles
       .map((f, i) => `<li class="file" data-i="${i}"><span class="ficon">${i + 1}</span>
         <span class="fname">${esc(f.name)}</span><span class="fsize">${fmtBytes(f.size)}</span>
-        <button class="rm" title="Rimuovi">✕</button></li>`)
+        <button class="rm" data-rm aria-label="${IC.t("list.remove")}">✕</button></li>`)
       .join("");
     mergeListEl.onclick = (e) => {
       const btn = e.target.closest(".rm");
@@ -549,21 +551,21 @@
     };
   }
   btnMerge.addEventListener("click", async () => {
-    if (mergeFiles.length < 2) return showToast("Serve almeno 2 PDF da unire.", "err");
+    if (mergeFiles.length < 2) return showToast(IC.t("dyn.need_2_pdfs"), "err");
     const fd = new FormData();
     mergeFiles.forEach((f) => fd.append("files", f));
-    btnMerge.disabled = true; btnMerge.textContent = "Unendo…";
+    btnMerge.disabled = true; btnMerge.textContent = IC.t("btn.merging");
     try {
       const res = await fetch("/api/merge-pdfs", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast(`PDF unito: ${data.pages} pagine da ${data.inputs} file ✓`, "ok");
+      showToast(IC.t("dyn.pdf_merged", { pages: data.pages, inputs: data.inputs }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
-      btnMerge.disabled = false; btnMerge.textContent = "Unisci";
+      btnMerge.disabled = false; btnMerge.textContent = IC.t("btn.merge");
     }
   });
 
@@ -575,23 +577,23 @@
   let splitFile = null;
   splitIn.addEventListener("change", function () { splitFile = this.files[0] || null; this.value = ""; });
   btnSplit.addEventListener("click", async () => {
-    if (!splitFile) return showToast("Scegli prima un PDF.", "err");
+    if (!splitFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
     const fd = new FormData();
     fd.append("file", splitFile);
     if (splitStart.value) fd.append("start", splitStart.value);
     if (splitEnd.value) fd.append("end", splitEnd.value);
-    btnSplit.disabled = true; btnSplit.textContent = "Estraggo…";
+    btnSplit.disabled = true; btnSplit.textContent = IC.t("btn.extracting_pages");
     try {
       const res = await fetch("/api/split-pdf", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast(`Estratto: ${data.pages} di ${data.total_pages_source} pagine ✓`, "ok");
+      showToast(IC.t("dyn.pages_extracted", { n: data.pages, total: data.total_pages_source }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
-      btnSplit.disabled = false; btnSplit.textContent = "Estrai";
+      btnSplit.disabled = false; btnSplit.textContent = IC.t("btn.extract");
     }
   });
 
@@ -623,10 +625,10 @@
     btnRenamePreview.hidden = !renameFiles.length;
   });
   function renameLabelFor(mode) {
-    if (mode === "prefix") return "Prefisso";
-    if (mode === "suffix") return "Suffisso";
-    if (mode === "find") return "Testo da sostituire";
-    return "Base nome";
+    if (mode === "prefix") return IC.t("cp.rn.label_prefix");
+    if (mode === "suffix") return IC.t("cp.rn.label_suffix");
+    if (mode === "find") return IC.t("cp.rn.label_find");
+    return IC.t("cp.rn.label_num");
   }
   renameMode.addEventListener("change", () => {
     renameValueLabel.textContent = renameLabelFor(renameMode.value);
@@ -645,7 +647,7 @@
     return fd;
   }
   btnRenamePreview.addEventListener("click", async () => {
-    if (!renameFiles.length) return showToast("Scegli prima i file.", "err");
+    if (!renameFiles.length) return showToast(IC.t("dyn.pick_files_first"), "err");
     const names = renameFiles.map((f) => f.name);
     const fd = new FormData();
     names.forEach((n) => fd.append("names", n));
@@ -669,8 +671,8 @@
     }
   });
   btnRename.addEventListener("click", async () => {
-    if (!renameFiles.length) return showToast("Scegli prima i file.", "err");
-    btnRename.disabled = true; btnRename.textContent = "Rinominando…";
+    if (!renameFiles.length) return showToast(IC.t("dyn.pick_files_first"), "err");
+    btnRename.disabled = true; btnRename.textContent = IC.t("btn.renaming");
     try {
       const res = await fetch("/api/rename-batch", { method: "POST", body: buildRenameForm() });
       if (!res.ok) {
@@ -679,11 +681,11 @@
         throw new Error(msg);
       }
       await downloadBlobResponse(res, "versocon_renamed.zip");
-      showToast("ZIP rinomina pronto ✓", "ok");
+      showToast(IC.t("dyn.rename_zip_ready"), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
-      btnRename.disabled = false; btnRename.textContent = "Rinomina (ZIP)";
+      btnRename.disabled = false; btnRename.textContent = IC.t("btn.crn");
     }
   });
 
@@ -713,7 +715,7 @@
     this.value = "";
   });
   btnCImg.addEventListener("click", async () => {
-    if (!cImgFile) return showToast("Scegli prima un'immagine.", "err");
+    if (!cImgFile) return showToast(IC.t("dyn.pick_image_first"), "err");
     const fd = new FormData();
     fd.append("file", cImgFile);
     fd.append("fmt", $("#cImgFmt").value);
@@ -725,19 +727,19 @@
     const ms = parseInt(cImgMaxSide.value, 10);
     if (ms > 0) fd.append("max_side", ms);
     btnCImg.disabled = true;
-    btnCImg.textContent = "Comprimendo…";
+    btnCImg.textContent = IC.t("btn.compressing");
     try {
       const res = await fetch("/api/compress-image", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast("Immagine compressa ✓", "ok");
+      showToast(IC.t("dyn.image_compressed"), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnCImg.disabled = false;
-      btnCImg.textContent = "Comprimi immagine";
+      btnCImg.textContent = IC.t("btn.cimg_convert");
     }
   });
 
@@ -750,24 +752,24 @@
     this.value = "";
   });
   btnCPdf.addEventListener("click", async () => {
-    if (!cPdfFile) return showToast("Scegli prima un PDF.", "err");
+    if (!cPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
     const fd = new FormData();
     fd.append("file", cPdfFile);
     fd.append("level", cPdfLevel.value);
     btnCPdf.disabled = true;
-    btnCPdf.textContent = "Comprimendo…";
+    btnCPdf.textContent = IC.t("btn.compressing");
     try {
       const res = await fetch("/api/compress-pdf", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast("PDF compresso ✓", "ok");
+      showToast(IC.t("dyn.pdf_compressed"), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnCPdf.disabled = false;
-      btnCPdf.textContent = "Comprimi PDF";
+      btnCPdf.textContent = IC.t("btn.cpdf");
     }
   });
 
@@ -844,9 +846,9 @@
       await page.render({ canvasContext: ctx, viewport: vp2 }).promise;
     } catch (e) {
       if (token === edRenderToken) {
-        setEmpty("Errore nel render della pagina: " + (e && e.message ? e.message : e));
+        setEmpty(IC.t("dyn.render_err", { msg: (e && e.message ? e.message : e) }));
         edCanvas.hidden = true;
-        showToast("Render pagina fallito", "err");
+        showToast(IC.t("dyn.render_failed"), "err");
       }
     }
   }
@@ -860,19 +862,19 @@
       return;
     }
     if (!window.pdfjsLib) {
-      showToast("pdf.js non caricato", "err");
+      showToast(IC.t("dyn.pdfjs_missing"), "err");
       edPreview.hidden = false;
-      setEmpty("Anteprima non disponibile — pdf.js non caricato");
+      setEmpty(IC.t("dyn.ed_no_preview"));
       edCanvas.hidden = true;
       return;
     }
     edPreview.hidden = false;
     if (edPdfDoc) { try { edPdfDoc.destroy(); } catch (e) {} edPdfDoc = null; }
     bindOverlayOnce();
-    edStatus.textContent = "Anteprima in caricamento…";
+    edStatus.textContent = IC.t("dyn.preview_loading");
     edPageCount = 0; edCurPage = 1;
     edPgSel.innerHTML = "";
-    setEmpty("Caricamento pagina…");
+    setEmpty(IC.t("dyn.ed_page_loading"));
     try {
       const buf = await file.arrayBuffer();
       edPdfDoc = await window.pdfjsLib.getDocument({ data: buf }).promise;
@@ -886,11 +888,11 @@
         edPgSel.appendChild(o);
       }
       edPgSel.value = "1";
-      edStatus.textContent = `Caricato: ${file.name} (${fmtBytes(file.size)} · ${edPageCount} pp.)`;
+      edStatus.textContent = IC.t("dyn.ed_loaded", { name: file.name, size: fmtBytes(file.size), n: edPageCount });
       await renderEdPage();
     } catch (e) {
-      edStatus.textContent = "⚠ Errore anteprima: " + (e.message || e);
-      setEmpty("Errore anteprima: " + (e.message || e));
+      edStatus.textContent = IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) });
+      setEmpty(IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) }));
     }
     applySigBoxToDom();
   }
@@ -1098,18 +1100,18 @@
     });
     const okEl = document.getElementById("inkOk");
     if (okEl) okEl.addEventListener("click", async () => {
-      if (!inkStrokes.length) return showToast("Disegna prima una firma.", "err");
+      if (!inkStrokes.length) return showToast(IC.t("dyn.draw_sign_first"), "err");
       let pngBlob;
       try {
         pngBlob = await new Promise((res, rej) =>
           inkPad.toBlob((b) => (b ? res(b) : rej(new Error("pad vuoto"))), "image/png"));
-      } catch (e) { return showToast("Niente da esportare dal pad.", "err"); }
+      } catch (e) { return showToast(IC.t("dyn.no_pad_export"), "err"); }
       const name = "firma_disegnata_" + Date.now() + ".png";
       edSigFile = new File([pngBlob], name, { type: "image/png" });
       const u = URL.createObjectURL(pngBlob);
       edSigImag.src = u;
       applySigBoxToDom();
-      showToast("Firma creata ✓ — trascinala dove serve.", "ok");
+      showToast(IC.t("dyn.signature_created"), "ok");
     });
   }
   const btnInkOpen = document.getElementById("btnInkOpen");
@@ -1135,7 +1137,7 @@
   if (btnTxtSign) {
     btnTxtSign.addEventListener("click", async () => {
       const name = ((edTxtName && edTxtName.value) || "").trim();
-      if (!name) return showToast("Scrivi il nome da firmare.", "err");
+      if (!name) return showToast(IC.t("dyn.write_name_first"), "err");
       btnTxtSign.disabled = true;
       try {
         const fd = new FormData();
@@ -1144,7 +1146,7 @@
         fd.append("color", (document.getElementById("edTxtColor") || {}).value || "#000000");
         const r = await fetch("/api/signature-generate", { method: "POST", body: fd });
         if (!r.ok) {
-          let msg = "Generazione firma fallita.";
+          let msg = IC.t("dyn.sign_gen_failed");
           try { const d = await r.json(); if (d && d.detail) msg = d.detail; } catch (_) {}
           throw new Error(msg);
         }
@@ -1156,7 +1158,7 @@
           edSigImag.src = u;
         }
         applySigBoxToDom();
-        showToast("Firma creata ✓ — trascinala dove serve.", "ok");
+        showToast(IC.t("dyn.signature_created"), "ok");
       } catch (err) {
         showToast(err.message || String(err), "err");
       } finally {
@@ -1171,22 +1173,22 @@
     if (low === "" || low === "tutte" || low === "all" || low === "*") return v === "" ? "" : low;
     const nums = v.split(",").map((s) => s.trim()).filter(Boolean).map(Number);
     if (nums.some((n) => !Number.isInteger(n) || n < 1)) {
-      throw new Error("Pagine invalide: usa es. 1,3 oppure \"tutte\"");
+      throw new Error(IC.t("dyn.pages_invalid"));
     }
     return JSON.stringify(nums);
   }
   function orderToPayload(raw) {
     const v = (raw || "").trim();
-    if (!v) throw new Error("Indica il nuovo ordine, es. 3,1,2");
+    if (!v) throw new Error(IC.t("dyn.order_required"));
     const nums = v.split(",").map((s) => s.trim()).filter(Boolean).map(Number);
     if (nums.some((n) => !Number.isInteger(n) || n < 1)) {
-      throw new Error("Ordine invalide: usa es. 3,1,2");
+      throw new Error(IC.t("dyn.order_invalid"));
     }
     return JSON.stringify(nums);
   }
 
   btnEdApply.addEventListener("click", async () => {
-    if (!edPdfFile) return showToast("Scegli prima un PDF.", "err");
+    if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
     const act = edAction.value;
     edDownload.hidden = true;
     const fd = new FormData();
@@ -1207,7 +1209,7 @@
         fd.append("wm_opacity", (+$("#edWmOpacity").value) / 100);
         fd.append("wm_rotate", $("#edWmRotate").value);
       } else if (act === "signature") {
-        if (!edSigFile) throw new Error("Carica o disegna prima la firma.");
+        if (!edSigFile) throw new Error(IC.t("dyn.no_signature"));
         fd.append("signature", edSigFile);
         fd.append("sig_page", $("#edSigPage").value);
         // nuovo posizionamento libero (percentuali) + rotazione + opacità
@@ -1221,22 +1223,22 @@
       return showToast(e.message || String(e), "err");
     }
     btnEdApply.disabled = true;
-    btnEdApply.textContent = "Applico…";
+    btnEdApply.textContent = IC.t("btn.applying");
     try {
       const r = await fetch("/api/pdf-edit", { method: "POST", body: fd });
       const data = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error((data && data.detail) || "Errore");
+      if (!r.ok) throw new Error((data && data.detail) || IC.t("dyn.generic_error"));
       const res = data.results && data.results[0];
       edDownload.href = res.download;
       edDownload.download = res.name;
       edDownload.hidden = false;
-      edStatus.textContent = `✓ ${res.name} (${fmtBytes(res.size)})`;
-      showToast("PDF modificato ✓", "ok");
+      edStatus.textContent = IC.t("dyn.ed_saved", { name: res.name, size: fmtBytes(res.size) });
+      showToast(IC.t("dyn.pdf_modified"), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
       btnEdApply.disabled = false;
-      btnEdApply.textContent = "Applica";
+      btnEdApply.textContent = IC.t("btn.apply");
     }
   });
 
@@ -1255,27 +1257,49 @@
         window.open(kofiUrl, "_blank", "noopener,noreferrer");
         return;
       }
-      showToast("Link di supporto non configurato.", "warn");
+      showToast(IC.t("dyn.kofi_unconfigured"), "warn");
     });
   }
 
   /* ---------- boot ---------- */
+  function renderConfigStatus(cfg) {
+    if (!cfg) return;
+    if (cfg.support && cfg.support.kofi_url) kofiUrl = cfg.support.kofi_url;
+    if (videoStatus) {
+      if (cfg.video && cfg.video.ffmpeg_available === false) {
+        videoStatus.textContent = IC.t("dyn.ffmpeg_missing");
+      } else if (cfg.video && cfg.video.ffmpeg_available) {
+        videoStatus.textContent = IC.t("dyn.ffmpeg_ok");
+      }
+    }
+    if (txtOcrStatus) {
+      if (cfg.ocr && cfg.ocr.available) {
+        txtOcrStatus.textContent = IC.t("dyn.ocr_ok", { langs: (cfg.ocr.languages || []).join(", ") });
+      } else {
+        txtOcrStatus.textContent = IC.t("dyn.ocr_off");
+      }
+    }
+  }
   fetch("/api/config")
     .then((r) => r.json())
     .then((cfg) => {
-      if (cfg.support && cfg.support.kofi_url) kofiUrl = cfg.support.kofi_url;
-      if (cfg.video && cfg.video.ffmpeg_available === false) {
-        videoStatus.textContent = "⚠ ffmpeg non rilevato: il transcode video restituirà un errore 503. Installalo per l'uso.";
-      } else if (cfg.video && cfg.video.ffmpeg_available) {
-        videoStatus.textContent = "✓ ffmpeg rilevato.";
-      }
-      if (txtOcrStatus) {
-        if (cfg.ocr && cfg.ocr.available) {
-          txtOcrStatus.textContent = "✓ OCR attivo — lingue: " + (cfg.ocr.languages || []).join(", ");
-        } else {
-          txtOcrStatus.textContent = "⚠ OCR non disponibile (Tesseract mancante). Estrezioni solo testo nativo.";
-        }
-      }
+      bootCfg = cfg;
+      renderConfigStatus(cfg);
     })
     .catch(() => {});
+
+  /* ---------- i18n live refresh ---------- */
+  function refreshDynamicI18n() {
+    try { renderQueue(); } catch (e) {}
+    try { renderImgToPdf(); } catch (e) {}
+    try { renderMergeList(); } catch (e) {}
+    renderConfigStatus(bootCfg);
+    const btn = $("#btnConvert");
+    if (btn && !btn.disabled) btn.textContent = IC.t("btn.convert");
+    if (renameValueLabel) renameValueLabel.textContent = renameLabelFor(renameMode.value);
+    document.querySelectorAll("[data-rm]").forEach((b) => {
+      b.setAttribute("aria-label", IC.t("list.remove"));
+    });
+  }
+  document.addEventListener("vscon:lang", refreshDynamicI18n);
 })();

@@ -9,6 +9,7 @@
 <title>VersoCon — Convertitore</title>
 <link rel="stylesheet" href="style.css" />
   <script src="vendor/pdfjs/pdf.min.js"></script>
+  <script src="i18n.js"></script>
   </head>
 <body>
 <div id="petals" aria-hidden="true"></div>
@@ -19,30 +20,36 @@
       <img class="logo-mark-img" src="logo.png" alt="VersoCon" width="88" height="88" />
       <div>
         <h1>VersoCon</h1>
-        <p class="tagline">Convert everything · 何でも変換</p>
+        <p class="tagline" data-i18n="tagline">Convert everything · 何でも変換</p>
       </div>
     </div>
-    <div class="badge">Foto · PDF · Video · Comprimi · Arcade</div>
+    <div class="masthead-right">
+      <div class="badge" data-i18n="badge">Foto · PDF · Video · Comprimi</div>
+      <div class="lang-pick" role="group" aria-label="Language / Lingua">
+        <span class="lang-ic" aria-hidden="true">🌐</span>
+        <select id="langSel" class="lang-sel" aria-label="Language / Lingua"></select>
+      </div>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Tipo di conversione">
-    <button class="tab active" data-tab="photos" role="tab" aria-selected="true">🖼 Foto</button>
-    <button class="tab" data-tab="pdf" role="tab" aria-selected="false">📄 PDF</button>
-    <button class="tab" data-tab="compress" role="tab" aria-selected="false">🗜 Comprimi</button>
-    <button class="tab" data-tab="video" role="tab" aria-selected="false">🎬 Video</button>
+    <button class="tab active" data-tab="photos" role="tab" aria-selected="true" data-i18n="nav.photos">🖼 Foto</button>
+    <button class="tab" data-tab="pdf" role="tab" aria-selected="false" data-i18n="nav.pdf">📄 PDF</button>
+    <button class="tab" data-tab="compress" role="tab" aria-selected="false" data-i18n="nav.compress">🗜 Comprimi</button>
+    <button class="tab" data-tab="video" role="tab" aria-selected="false" data-i18n="nav.video">🎬 Video</button>
   </nav>
 
   <div id="tabPhotos">
   <section class="card dropzone-card" id="dropCard">
-    <div id="dropzone" tabindex="0" role="button" aria-label="Zona drag and drop">
+    <div id="dropzone" tabindex="0" role="button" aria-label="Zona drag and drop" data-i18n-attr="aria-label:dropzone.aria">
       <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 16V4m0 0-4 4m4-4 4 4"/>
         <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
       </svg>
-      <h2>Trascina qui le foto</h2>
-      <p>HEIC · HEIF · JPG · PNG · WebP — multi-file</p>
-      <label class="btn btn-pick">
+      <h2 data-i18n="drop.title">Trascina qui le foto</h2>
+      <p data-i18n="drop.hint">HEIC · HEIF · JPG · PNG · WebP — multi-file</p>
+      <label class="btn btn-pick" data-i18n-text="drop.pick">
         Scegli file
         <input type="file" id="fileInput" multiple accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.gif" />
       </label>
@@ -53,8 +60,8 @@
 
   <section class="card controls" id="controlsCard" hidden>
     <div class="ctl">
-      <label for="fmt">Formato di uscita</label>
-      <div class="seg" role="radiogroup" aria-label="Formato di uscita">
+      <label for="fmt" data-i18n="ctl.format">Formato di uscita</label>
+      <div class="seg" role="radiogroup" aria-label="Formato di uscita" data-i18n-attr="aria-label:ctl.format">
         <button class="seg-btn active" data-fmt="jpeg" role="radio" aria-checked="true">JPEG</button>
         <button class="seg-btn" data-fmt="png" role="radio" aria-checked="false">PNG</button>
         <button class="seg-btn" data-fmt="webp" role="radio" aria-checked="false">WebP</button>
@@ -62,134 +69,137 @@
       </div>
     </div>
     <div class="ctl">
-      <label for="quality">Qualità <span class="ctl-val" id="qualityVal">90</span></label>
+      <label for="quality" data-i18n-text="ctl.quality">Qualità <span class="ctl-val" id="qualityVal">90</span></label>
       <input type="range" id="quality" min="1" max="100" value="90" step="1" class="slider" />
     </div>
     <div class="ctl">
-      <label for="maxSide">Max lato (px)</label>
+      <label for="maxSide" data-i18n="ctl.maxside">Max lato (px)</label>
       <input type="number" id="maxSide" min="0" step="1" placeholder="nessuno" class="numin"
-             title="Lato massimo in pixel, proporzionale; 0 o vuoto = nessuna ridimensionatura" />
+             title="Lato massimo in pixel, proporzionale; 0 o vuoto = nessuna ridimensionatura"
+             data-i18n-attr="placeholder:ctl.maxside_ph;title:ctl.maxside_title" />
     </div>
     <div class="ctl grow">
-      <label>Output</label>
+      <label data-i18n="ctl.out">Output</label>
       <div class="outrow">
-        <button class="btn btn-ghost" id="btnZip" hidden>⬇ Scarica ZIP</button>
-        <button class="btn btn-primary" id="btnConvert">Converti</button>
+        <button class="btn btn-ghost" id="btnZip" hidden data-i18n="btn.zip">⬇ Scarica ZIP</button>
+        <button class="btn btn-primary" id="btnConvert" data-i18n="btn.convert">Converti</button>
       </div>
     </div>
   </section>
   </div>
 
   <section class="card" id="tabPdf" hidden>
-    <h3 class="panel-title">PDF</h3>
+    <h3 class="panel-title" data-i18n="pdf.title">PDF</h3>
     <div class="subtabs">
-      <button class="subtab active" data-sub="pdf-images">PDF → immagini</button>
-      <button class="subtab" data-sub="images-pdf">Immagini → PDF</button>
-      <button class="subtab" data-sub="pdf-text">PDF → testo</button>
-      <button class="subtab" data-sub="pdf-merge">Unisci PDF</button>
-      <button class="subtab" data-sub="pdf-split">Estrai pagine</button>
-      <button class="subtab" data-sub="pdf-edit">Editor PDF</button>
+      <button class="subtab active" data-sub="pdf-images" data-i18n="pdf.sub.images">PDF → immagini</button>
+      <button class="subtab" data-sub="images-pdf" data-i18n="pdf.sub.impdf">Immagini → PDF</button>
+      <button class="subtab" data-sub="pdf-text" data-i18n="pdf.sub.text">PDF → testo</button>
+      <button class="subtab" data-sub="pdf-merge" data-i18n="pdf.sub.merge">Unisci PDF</button>
+      <button class="subtab" data-sub="pdf-split" data-i18n="pdf.sub.split">Estrai pagine</button>
+      <button class="subtab" data-sub="pdf-edit" data-i18n="pdf.sub.edit">Editor PDF</button>
     </div>
 
     <div class="subpane" id="subpdf-images">
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.pdf">
         <input type="file" id="pdfIn" accept="application/pdf,.pdf" hidden />
         Scegli PDF
       </label>
       <div class="ctlrow">
-        <label>Formato
+        <label data-i18n="pdf.fmt">Formato
           <select id="pdfFmt">
             <option value="jpeg" selected>JPEG</option>
             <option value="png">PNG</option>
             <option value="webp">WebP</option>
           </select>
         </label>
-        <label>Qualità <span id="pdfQVal" class="ctl-val">90</span></label>
+        <label data-i18n-text="pdf.q">Qualità <span id="pdfQVal" class="ctl-val">90</span></label>
         <input type="range" id="pdfQ" min="1" max="100" value="90" step="1" class="slider grow" />
-        <label>DPI <span id="pdfDpiVal" class="ctl-val">150</span></label>
+        <label data-i18n-text="pdf.dpi">DPI <span id="pdfDpiVal" class="ctl-val">150</span></label>
         <input type="number" id="pdfDpi" min="72" max="600" value="150" step="8" class="numin" />
       </div>
       <div class="outrow">
-        <button class="btn btn-ghost" id="btnPdfZip" hidden>⬇ Scarica ZIP</button>
-        <button class="btn btn-primary" id="btnPdfConvert">Converti</button>
+        <button class="btn btn-ghost" id="btnPdfZip" hidden data-i18n="btn.zip">⬇ Scarica ZIP</button>
+        <button class="btn btn-primary" id="btnPdfConvert" data-i18n="btn.convert">Converti</button>
       </div>
-      <p class="hint">Una foto per pagina, max 60 pagine.</p>
+      <p class="hint" data-i18n="pdf.pages_hint">Una foto per pagina, max 60 pagine.</p>
     </div>
 
     <div class="subpane" id="subimages-pdf" hidden>
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.images">
         <input type="file" id="imgToPdfIn" multiple
                accept=".jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.gif" hidden />
         Scegli immagini (in ordine)
       </label>
       <div class="ctlrow">
-        <label>Max lato (px)</label>
-        <input type="number" id="imgToPdfMaxSide" min="0" step="1" placeholder="nessuno" class="numin" />
-        <span class="hint">0 o vuoto = niente ridimensionamento</span>
+        <label data-i18n="pdf.maxside">Max lato (px)</label>
+        <input type="number" id="imgToPdfMaxSide" min="0" step="1" placeholder="nessuno" class="numin"
+               data-i18n-attr="placeholder:ctl.maxside_ph" />
+        <span class="hint" data-i18n="pdf.maxside_hint">0 o vuoto = niente ridimensionamento</span>
       </div>
       <ul class="filelist" id="imgToPdfList" hidden></ul>
       <div class="outrow">
-        <button class="btn btn-primary" id="btnImgToPdf">Crea PDF</button>
+        <button class="btn btn-primary" id="btnImgToPdf" data-i18n="btn.img2pdf">Crea PDF</button>
       </div>
-      <p class="hint">Max 50 immagini per PDF.</p>
+      <p class="hint" data-i18n="pdf.img2pdf_hint">Max 50 immagini per PDF.</p>
     </div>
 
     <div class="subpane" id="subpdf-text" hidden>
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.pdf">
         <input type="file" id="txtPdfIn" accept="application/pdf,.pdf" hidden />
         Scegli PDF
       </label>
       <div class="ctlrow">
-        <label>OCR</label>
+        <label data-i18n="pdf.ocr">OCR</label>
         <select id="txtOcr">
-          <option value="auto" selected>Automatico (solo pagine senza testo)</option>
-          <option value="on">Forza OCR su tutte le pagine</option>
-          <option value="off">Niente OCR (solo testo nativo)</option>
+          <option value="auto" selected data-i18n="pdf.ocr_auto">Automatico (solo pagine senza testo)</option>
+          <option value="on" data-i18n="pdf.ocr_on">Forza OCR su tutte le pagine</option>
+          <option value="off" data-i18n="pdf.ocr_off">Niente OCR (solo testo nativo)</option>
         </select>
-        <label>Lingua</label>
+        <label data-i18n="pdf.ocr_lang">Lingua</label>
         <select id="txtLang">
-          <option value="ita" selected>Italiano</option>
-          <option value="eng">Inglese</option>
-          <option value="ita+eng">Italiano + Inglese</option>
+          <option value="ita" selected data-i18n="pdf.ocr_lang_it">Italiano</option>
+          <option value="eng" data-i18n="pdf.ocr_lang_en">Inglese</option>
+          <option value="ita+eng" data-i18n="pdf.ocr_lang_iten">Italiano + Inglese</option>
         </select>
       </div>
-      <p class="hint" id="txtOcrStatus">Stato OCR: rilevamento…</p>
+      <p class="hint" id="txtOcrStatus" data-i18n="pdf.ocr_status_pending">Stato OCR: rilevamento…</p>
       <div class="outrow">
-        <button class="btn btn-primary" id="btnTxtExtract">Estrai testo</button>
+        <button class="btn btn-primary" id="btnTxtExtract" data-i18n="btn.extract">Estrai testo</button>
       </div>
       <div id="txtResult" class="txtbox" hidden>
         <pre id="txtPreview"></pre>
-        <a class="btn btn-ghost" id="txtCopy" href="#">⧉ Copia testo</a>
-        <a class="btn btn-ghost" id="txtDownload" href="#" download>⬇ Scarica .txt</a>
+        <a class="btn btn-ghost" id="txtCopy" href="#" data-i18n="btn.copy">⧉ Copia testo</a>
+        <a class="btn btn-ghost" id="txtDownload" href="#" download data-i18n="btn.dl_txt">⬇ Scarica .txt</a>
       </div>
     </div>
 
     <div class="subpane" id="subpdf-merge" hidden>
-      <p class="hint">Unisci 2–40 PDF in un unico documento, nell'ordine scelto.</p>
-      <label class="btn btn-ghost">
+      <p class="hint" data-i18n="pdf.merge_hint">Unisci 2–40 PDF in un unico documento, nell'ordine scelto.</p>
+      <label class="btn btn-ghost" data-i18n-text="btn.pdfs">
         <input type="file" id="mergeIn" multiple accept="application/pdf,.pdf" hidden />
         Scegli PDF (in ordine)
       </label>
       <ul class="filelist" id="mergeList" hidden></ul>
       <div class="outrow">
-        <button class="btn btn-primary" id="btnMerge">Unisci</button>
+        <button class="btn btn-primary" id="btnMerge" data-i18n="btn.merge">Unisci</button>
       </div>
     </div>
 
     <div class="subpane" id="subpdf-split" hidden>
-      <p class="hint">Estrae le pagine dall'intervallo indicato (1-based, incluse) in un nuovo PDF.</p>
-      <label class="btn btn-ghost">
+      <p class="hint" data-i18n="pdf.split_hint">Estrae le pagine dall'intervallo indicato (1-based, incluse) in un nuovo PDF.</p>
+      <label class="btn btn-ghost" data-i18n-text="btn.pdf">
         <input type="file" id="splitIn" accept="application/pdf,.pdf" hidden />
         Scegli PDF
       </label>
       <div class="ctlrow">
-        <label>Da pagina</label>
+        <label data-i18n="pdf.split_from">Da pagina</label>
         <input type="number" id="splitStart" min="1" step="1" class="numin" placeholder="1" />
-        <label>A pagina</label>
-        <input type="number" id="splitEnd" min="1" step="1" class="numin" placeholder="tutte" />
+        <label data-i18n="pdf.split_to">A pagina</label>
+        <input type="number" id="splitEnd" min="1" step="1" class="numin" placeholder="tutte"
+               data-i18n-attr="placeholder:ctl.all" />
       </div>
       <div class="outrow">
-        <button class="btn btn-primary" id="btnSplit">Estrai</button>
+        <button class="btn btn-primary" id="btnSplit" data-i18n="btn.split">Estrai</button>
       </div>
     </div>
 
@@ -197,62 +207,65 @@
       <div class="ed-work">
 
       <div class="ed-left">
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.pdf">
         <input type="file" id="edPdfIn" accept="application/pdf,.pdf" hidden />
         Scegli PDF
       </label>
       <div class="ctlrow">
-        <label>Azione</label>
+        <label data-i18n="pdf.edit.action">Azione</label>
         <select id="edAction" class="grow">
-          <option value="rotate" selected>🔄 Ruota pagine</option>
-          <option value="delete">🗑 Elimina pagine</option>
-          <option value="reorder">⇅ Riordina pagine</option>
-          <option value="watermark">💧 Watermark testo</option>
-          <option value="signature">✍ Firma in immagine</option>
+          <option value="rotate" selected data-i18n="pdf.edit.rotate">🔄 Ruota pagine</option>
+          <option value="delete" data-i18n="pdf.edit.delete">🗑 Elimina pagine</option>
+          <option value="reorder" data-i18n="pdf.edit.reorder">⇅ Riordina pagine</option>
+          <option value="watermark" data-i18n="pdf.edit.wm">💧 Watermark testo</option>
+          <option value="signature" data-i18n="pdf.edit.sig">✍ Firma in immagine</option>
         </select>
       </div>
 
       <div class="ctlrow" id="edBlock-reorder" hidden>
-        <label>Nuovo ordine</label>
-        <input type="text" id="edReOrder" placeholder="es. 3,1,2" class="numin grow" />
-        <span class="hint">Permutazione 1-based dei N° pagina, nella nuova sequenza (es. 3 pagine: 3,1,2).</span>
+        <label data-i18n="pdf.edit.reorder_label">Nuovo ordine</label>
+        <input type="text" id="edReOrder" placeholder="es. 3,1,2" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.reorder_ph" />
+        <span class="hint" data-i18n="pdf.edit.reorder_hint">Permutazione 1-based dei N° pagina, nella nuova sequenza (es. 3 pagine: 3,1,2).</span>
       </div>
 
       <div class="ctlrow" id="edBlock-rotate">
-        <label>Pagine</label>
-        <input type="text" id="edRotPages" value="tutte" placeholder="tutte | 1 | 1,3,5" class="numin grow" />
-        <label>Angolo</label>
+        <label data-i18n="pdf.edit.pages">Pagine</label>
+        <input type="text" id="edRotPages" value="" placeholder="tutte | 1 | 1,3,5" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+        <label data-i18n="pdf.edit.angle">Angolo</label>
         <select id="edRotAngle">
-          <option value="90" selected>90° (destra)</option>
-          <option value="270">270° (sinistra)</option>
-          <option value="180">180° (capovolgi)</option>
+          <option value="90" selected data-i18n="pdf.edit.ang_90">90° (destra)</option>
+          <option value="270" data-i18n="pdf.edit.ang_270">270° (sinistra)</option>
+          <option value="180" data-i18n="pdf.edit.ang_180">180° (capovolgi)</option>
         </select>
       </div>
 
       <div class="ctlrow" id="edBlock-delete" hidden>
-        <label>Pagine da eliminare</label>
-        <input type="text" id="edDelPages" placeholder="es. 2 o 1,3" class="numin grow" />
-        <span class="hint">N° pagina 1-based; separa le virgole senza spazi.</span>
+        <label data-i18n="pdf.edit.del_pages">Pagine da eliminare</label>
+        <input type="text" id="edDelPages" placeholder="es. 2 o 1,3" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.del_ph" />
+        <span class="hint" data-i18n="pdf.edit.del_hint">N° pagina 1-based; separa le virgole senza spazi.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-watermark" hidden>
-        <label>Testo</label>
+        <label data-i18n="pdf.edit.wm_text">Testo</label>
         <input type="text" id="edWmText" value="CONFIDENZIALE" class="numin grow" />
-        <label>Posizione</label>
+        <label data-i18n="pdf.edit.wm_pos">Posizione</label>
         <select id="edWmCorner">
-          <option value="center" selected>Centro</option>
-          <option value="br">In basso a destra</option>
-          <option value="bl">In basso a sinistra</option>
-          <option value="tl">In alto a sinistra</option>
-          <option value="tr">In alto a destra</option>
+          <option value="center" selected data-i18n="pdf.edit.wm_center">Centro</option>
+          <option value="br" data-i18n="pdf.edit.wm_br">In basso a destra</option>
+          <option value="bl" data-i18n="pdf.edit.wm_bl">In basso a sinistra</option>
+          <option value="tl" data-i18n="pdf.edit.wm_tl">In alto a sinistra</option>
+          <option value="tr" data-i18n="pdf.edit.wm_tr">In alto a destra</option>
         </select>
-        <label>Grandezza <span id="edWmSizeVal" class="ctl-val">48</span></label>
+        <label data-i18n-text="pdf.edit.wm_size">Grandezza <span id="edWmSizeVal" class="ctl-val">48</span></label>
         <input type="range" id="edWmSize" min="10" max="160" value="48" step="4" class="slider grow" />
-        <label>Opacità <span id="edWmOpVal" class="ctl-val">20</span></label>
+        <label data-i18n-text="pdf.edit.wm_op">Opacità <span id="edWmOpVal" class="ctl-val">20</span></label>
         <input type="range" id="edWmOpacity" min="5" max="100" value="20" step="5" class="slider grow" />
-        <label>Rotazione</label>
+        <label data-i18n="pdf.edit.wm_rot">Rotazione</label>
         <select id="edWmRotate">
-          <option value="0" selected>Nessuna</option>
+          <option value="0" selected data-i18n="pdf.edit.wm_rot0">Nessuna</option>
           <option value="90">90°</option>
           <option value="180">180°</option>
           <option value="-90">−90°</option>
@@ -260,44 +273,46 @@
       </div>
 
       <div class="ctlrow" id="edBlock-signature" hidden>
-        <label class="btn btn-ghost">
+        <label class="btn btn-ghost" data-i18n-text="pdf.edit.sig_load">
           <input type="file" id="edSigImg" accept=".png,.jpg,.jpeg,.gif,.webp" hidden />
           Carica firma (immagine)
         </label>
-        <button class="btn btn-ghost" id="btnInkOpen" type="button">✍ Firma disegnata</button>
+        <button class="btn btn-ghost" id="btnInkOpen" type="button" data-i18n="pdf.edit.sig_ink_btn">✍ Firma disegnata</button>
         <div class="ctlrow" id="edTxtSignRow">
-          <label>Nome</label>
-          <input type="text" id="edTxtName" placeholder="es. Alessandro Rossi" class="numin grow" maxlength="240" />
-          <label>Stile</label>
+          <label data-i18n="pdf.edit.txt_name">Nome</label>
+          <input type="text" id="edTxtName" placeholder="es. Alessandro Rossi" class="numin grow" maxlength="240"
+                 data-i18n-attr="placeholder:pdf.edit.txt_name_ph" />
+          <label data-i18n="pdf.edit.txt_style">Stile</label>
           <select id="edTxtStyle" class="grow"></select>
-          <label>Inchiostro</label>
-          <input type="color" id="edTxtColor" value="#000000" title="Colore della firma" />
-          <button class="btn btn-ghost" id="btnTxtSign" type="button">✒️ Genera firma</button>
+          <label data-i18n="pdf.edit.txt_ink">Inchiostro</label>
+          <input type="color" id="edTxtColor" value="#000000" title="Colore della firma" data-i18n-attr="title:pdf.edit.txt_ink_title" />
+          <button class="btn btn-ghost" id="btnTxtSign" type="button" data-i18n="pdf.edit.txt_gen">✒️ Genera firma</button>
         </div>
-        <label>Pagina</label>
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
         <input type="number" id="edSigPage" min="1" value="1" class="numin" />
-        <label>Angolo <span id="edSigRotVal" class="ctl-val">0°</span></label>
+        <label data-i18n-text="pdf.edit.sig_angle">Angolo <span id="edSigRotVal" class="ctl-val">0°</span></label>
         <input type="range" id="edSigRot" min="-45" max="45" value="0" step="1" class="slider grow" />
-        <label>Opacità <span id="edSigOpVal" class="ctl-val">100</span></label>
+        <label data-i18n-text="pdf.edit.sig_op">Opacità <span id="edSigOpVal" class="ctl-val">100</span></label>
         <input type="range" id="edSigOpacity" min="10" max="100" value="100" step="5" class="slider grow" />
-        <button class="btn btn-ghost" id="btnSigResetPos" type="button">↺ Riposiziona</button>
+        <button class="btn btn-ghost" id="btnSigResetPos" type="button" data-i18n="pdf.edit.sig_reset">↺ Riposiziona</button>
       </div>
 
       <div class="ctlrow" id="edSignPad" hidden>
-        <h4>Firma disegnatrice</h4>
+        <h4 data-i18n="pdf.edit.ink_title">Firma disegnatrice</h4>
         <canvas id="inkPad" width="480" height="160"></canvas>
         <div class="outrow">
           <input type="color" id="inkColor" value="#1a1a2e" />
-          <input type="range" id="inkSize" min="2" max="12" value="4" step="1" class="slider" title="Spessore pennello" />
-          <button class="btn btn-ghost" id="inkClear" type="button">Cancella</button>
-          <button class="btn btn-ghost" id="inkUndo" type="button">↶ Annulla</button>
-          <button class="btn btn-primary" id="inkOk" type="button">Usa come firma</button>
+          <input type="range" id="inkSize" min="2" max="12" value="4" step="1" class="slider" title="Spessore pennello"
+                 data-i18n-attr="title:pdf.edit.ink_size_title" />
+          <button class="btn btn-ghost" id="inkClear" type="button" data-i18n="pdf.edit.ink_clear">Cancella</button>
+          <button class="btn btn-ghost" id="inkUndo" type="button" data-i18n="pdf.edit.ink_undo">↶ Annulla</button>
+          <button class="btn btn-primary" id="inkOk" type="button" data-i18n="pdf.edit.ink_use">Usa come firma</button>
         </div>
       </div>
 
       <div class="outrow">
-        <button class="btn btn-primary" id="btnEdApply">Applica</button>
-        <a class="btn btn-ghost" id="edDownload" href="#" download hidden>⬇ Scarica PDF modificato</a>
+        <button class="btn btn-primary" id="btnEdApply" data-i18n="btn.apply">Applica</button>
+        <a class="btn btn-ghost" id="edDownload" href="#" download hidden data-i18n="pdf.edit.dl">⬇ Scarica PDF modificato</a>
       </div>
       <p class="hint" id="edStatus"></p>
       </div>
@@ -305,17 +320,17 @@
       <div class="ed-right">
         <div id="edPreview" class="ed-preview" hidden>
           <div class="ed-preview-toolbar">
-            <button class="btn btn-ghost" id="edPgPrev" type="button" disabled title="Pagina precedente">◀</button>
+            <button class="btn btn-ghost" id="edPgPrev" type="button" disabled title="Pagina precedente" data-i18n-attr="title:pdf.edit.pg_prev_title">◀</button>
             <span id="edPgLabel" class="ed-pg-label">—</span>
-            <button class="btn btn-ghost" id="edPgNext" type="button" disabled title="Pagina successiva">▶</button>
-            <select id="edPgSel" class="numin ed-pg-sel" title="Vai a pagina"><option value="">—</option></select>
+            <button class="btn btn-ghost" id="edPgNext" type="button" disabled title="Pagina successiva" data-i18n-attr="title:pdf.edit.pg_next_title">▶</button>
+            <select id="edPgSel" class="numin ed-pg-sel" title="Vai a pagina" data-i18n-attr="title:pdf.edit.pg_goto_title"><option value="">—</option></select>
           </div>
           <div class="ed-page-wrap">
             <div class="ed-page-card" id="edPage">
               <canvas id="edCanvas" hidden></canvas>
               <div class="ed-page-empty" id="edPageEmpty">
                 <span class="ed-page-empty-ic">📄</span>
-                <p>Caricamento pagina…</p>
+                <p data-i18n="pdf.edit.loading">Caricamento pagina…</p>
               </div>
               <div class="ed-overlay" id="edSigOverlay" hidden>
                 <img id="edSigImag" alt="" draggable="false" />
@@ -324,7 +339,7 @@
               </div>
             </div>
           </div>
-          <p class="hint ed-hint-sig">Trascina la firma dove vuoi · angoli per ridimensionare</p>
+          <p class="hint ed-hint-sig" data-i18n="pdf.edit.hint_sig">Trascina la firma dove vuoi · angoli per ridimensionare</p>
         </div>
       </div>
 
@@ -333,146 +348,149 @@
   </section>
 
   <section class="card" id="tabCompress" hidden>
-    <h3 class="panel-title">Comprimi — riduci peso file</h3>
+    <h3 class="panel-title" data-i18n="cp.title">Comprimi — riduci peso file</h3>
     <div class="subtabs">
-      <button class="subtab active" data-csub="image">Immagine</button>
-      <button class="subtab" data-csub="pdf">PDF</button>
-      <button class="subtab" data-csub="rename">Rinomina batch</button>
+      <button class="subtab active" data-csub="image" data-i18n="cp.sub.image">Immagine</button>
+      <button class="subtab" data-csub="pdf" data-i18n="cp.sub.pdf">PDF</button>
+      <button class="subtab" data-csub="rename" data-i18n="cp.sub.name">Rinomina batch</button>
     </div>
 
     <div class="subpane" id="cimg">
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.cimg">
         <input type="file" id="cImgIn"
                accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.gif" hidden />
         Scegli immagine
       </label>
       <div class="ctlrow">
-        <label>Formato</label>
+        <label data-i18n="cp.fmt">Formato</label>
         <select id="cImgFmt">
           <option value="jpeg" selected>JPEG</option>
           <option value="webp">WebP</option>
           <option value="png">PNG</option>
         </select>
-        <label>Modalità</label>
+        <label data-i18n="cp.mode">Modalità</label>
         <select id="cImgMode">
-          <option value="target" selected>Target dimensioni</option>
-          <option value="quality">Qualità fissa</option>
+          <option value="target" selected data-i18n="cp.mode_target">Target dimensioni</option>
+          <option value="quality" data-i18n="cp.mode_quality">Qualità fissa</option>
         </select>
       </div>
       <div class="ctlrow" id="cImgTargetRow">
-        <label>Target (KB) <span id="cImgTargetVal" class="ctl-val">500</span></label>
+        <label data-i18n-text="cp.target">Target (KB) <span id="cImgTargetVal" class="ctl-val">500</span></label>
         <input type="number" id="cImgTarget" min="1" max="100000" value="500" step="10" class="numin grow" />
       </div>
       <div class="ctlrow" id="cImgQualityRow" hidden>
-        <label>Qualità <span id="cImgQVal" class="ctl-val">80</span></label>
+        <label data-i18n-text="cp.q">Qualità <span id="cImgQVal" class="ctl-val">80</span></label>
         <input type="number" id="cImgQ" min="1" max="100" value="80" step="1" class="numin grow" />
       </div>
       <div class="ctlrow">
-        <label>Max lato (px)</label>
-        <input type="number" id="cImgMaxSide" min="0" step="1" placeholder="0 = niente" class="numin" />
-        <span class="hint">0 o vuoto = niente ridimensionamento</span>
+        <label data-i18n="cp.maxside">Max lato (px)</label>
+        <input type="number" id="cImgMaxSide" min="0" step="1" placeholder="0 = niente" class="numin"
+               data-i18n-attr="placeholder:cp.maxside_ph" />
+        <span class="hint" data-i18n="cp.maxside_hint">0 o vuoto = niente ridimensionamento</span>
       </div>
       <div class="outrow">
-        <button class="btn btn-primary" id="btnCImg">Comprimi immagine</button>
+        <button class="btn btn-primary" id="btnCImg" data-i18n="btn.cimg_convert">Comprimi immagine</button>
       </div>
-      <p class="hint">Modalità Target: binaria search sulla qualità, in fallback ridimensionamento.</p>
+      <p class="hint" data-i18n="cp.hint_target">Modalità Target: binaria search sulla qualità, in fallback ridimensionamento.</p>
     </div>
 
     <div class="subpane" id="cpdf" hidden>
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.pdf">
         <input type="file" id="cPdfIn" accept="application/pdf,.pdf" hidden />
         Scegli PDF
       </label>
       <div class="ctlrow">
-        <label>Livello</label>
+        <label data-i18n="cp.level">Livello</label>
         <select id="cPdfLevel">
-          <option value="low">Basso — minime modifiche</option>
-          <option value="medium" selected>Medio — bilanciato (default)</option>
-          <option value="high">Alto — massima compressione (qualità minore)</option>
+          <option value="low" data-i18n="cp.level_low">Basso — minime modifiche</option>
+          <option value="medium" selected data-i18n="cp.level_med">Medio — bilanciato (default)</option>
+          <option value="high" data-i18n="cp.level_high">Alto — massima compressione (qualità minore)</option>
         </select>
       </div>
       <div class="outrow">
-        <button class="btn btn-primary" id="btnCPdf">Comprimi PDF</button>
+        <button class="btn btn-primary" id="btnCPdf" data-i18n="btn.cpdf">Comprimi PDF</button>
       </div>
-      <p class="hint">Deflazione stream, immagini e font; nessun cambio di contenuto.</p>
+      <p class="hint" data-i18n="cp.hint_pdf">Deflazione stream, immagini e font; nessun cambio di contenuto.</p>
     </div>
 
     <div class="subpane" id="crename" hidden>
-      <p class="hint">Rinomina un gruppo di file; ricevi uno ZIP con i nuovi nomi.</p>
+      <p class="hint" data-i18n="cp.rn_hint">Rinomina un gruppo di file; ricevi uno ZIP con i nuovi nomi.</p>
       <div class="ctlrow">
-        <label>Modalità</label>
+        <label data-i18n="cp.rn.mode">Modalità</label>
         <select id="renameMode">
-          <option value="prefix">Prefisso (es. "viaggio")</option>
-          <option value="suffix">Suffisso (es. "_scan")</option>
-          <option value="find">Sostituisci testo</option>
-          <option value="number">Numerata (base-1, base-2…)</option>
+          <option value="prefix" data-i18n="cp.rn_prefix">Prefisso (es. "viaggio")</option>
+          <option value="suffix" data-i18n="cp.rn_suffix">Suffisso (es. "_scan")</option>
+          <option value="find" data-i18n="cp.rn_find">Sostituisci testo</option>
+          <option value="number" data-i18n="cp.rn_num">Numerata (base-1, base-2…)</option>
         </select>
       </div>
       <div class="ctlrow">
         <label id="renameValueLabel">Valore</label>
-        <input type="text" id="renameValue" class="numin" placeholder="prefisso/suffisso/testo/base" />
+        <input type="text" id="renameValue" class="numin" placeholder="prefisso/suffisso/testo/base"
+               data-i18n-attr="placeholder:cp.rn.value_ph" />
       </div>
       <div class="ctlrow" id="renameNumRow" hidden>
-        <label>Inizia da</label>
+        <label data-i18n="cp.rn.start">Inizia da</label>
         <input type="number" id="renameStart" min="0" value="1" class="numin" />
-        <label>Passo</label>
+        <label data-i18n="cp.rn.step">Passo</label>
         <input type="number" id="renameStep" min="1" value="1" class="numin" />
-        <label>Separatore</label>
+        <label data-i18n="cp.rn.sep">Separatore</label>
         <input type="text" id="renameSep" value="-" maxlength="2" class="numin" />
       </div>
-      <label class="btn btn-ghost">
+      <label class="btn btn-ghost" data-i18n-text="btn.crn_pick">
         <input type="file" id="renameIn" multiple hidden />
         Scegli file
       </label>
       <ul class="filelist" id="renameList" hidden></ul>
       <div class="outrow">
-        <button class="btn btn-ghost" id="btnRenamePreview" hidden>💾 Anteprima nomi</button>
-        <button class="btn btn-primary" id="btnRename">Rinomina (ZIP)</button>
+        <button class="btn btn-ghost" id="btnRenamePreview" hidden data-i18n="btn.crn_preview">💾 Anteprima nomi</button>
+        <button class="btn btn-primary" id="btnRename" data-i18n="btn.crn">Rinomina (ZIP)</button>
       </div>
       <ul class="filelist" id="renamePreview" hidden></ul>
     </div>
   </section>
 
   <section class="card" id="tabVideo" hidden>
-    <h3 class="panel-title">Video — transcode</h3>
-    <p class="hint">Converte un video in <b>MP4</b> (H.264/AAC) o <b>WebM</b> (VP9/Vorbis).</p>
-    <label class="btn btn-ghost">
+    <h3 class="panel-title" data-i18n="vid.title">Video — transcode</h3>
+    <p class="hint" data-i18n-html="vid.hint">Converte un video in <b>MP4</b> (H.264/AAC) o <b>WebM</b> (VP9/Vorbis).</p>
+    <label class="btn btn-ghost" data-i18n-text="btn.vid">
       <input type="file" id="videoIn" accept=".mp4,.m4v,.mov,.avi,.mkv,.webm,.wmv,.flv,.mpg,.mpeg,.3gp,.3g2,.ogg,video/*" hidden />
       Scegli video
     </label>
     <div class="ctlrow">
-      <label>Formato</label>
+      <label data-i18n="vid.fmt">Formato</label>
       <select id="videoFmt">
-        <option value="mp4">MP4 — H.264/AAC (max compatibilità)</option>
-        <option value="webm">WebM — VP9/Vorbis (open)</option>
+        <option value="mp4" data-i18n="vid.fmt_mp4">MP4 — H.264/AAC (max compatibilità)</option>
+        <option value="webm" data-i18n="vid.fmt_webm">WebM — VP9/Vorbis (open)</option>
       </select>
-      <label>Qualità (CRF)</label>
-      <input type="number" id="videoCrf" min="0" max="63" value="23" class="numin" title="minore = qualità più alta / file più grande" />
+      <label data-i18n="vid.crf">Qualità (CRF)</label>
+      <input type="number" id="videoCrf" min="0" max="63" value="23" class="numin" title="minore = qualità più alta / file più grande"
+             data-i18n-attr="title:vid.crf_title" />
     </div>
     <div class="outrow">
-      <button class="btn btn-primary" id="btnVideoConvert">Converti</button>
+      <button class="btn btn-primary" id="btnVideoConvert" data-i18n="btn.convert">Converti</button>
     </div>
     <p class="hint" id="videoStatus"></p>
   </section>
 
   <section class="card results" id="resultsCard" hidden>
-    <h3>Risultati</h3>
+    <h3 data-i18n="res.title">Risultati</h3>
     <ul id="resultsList" class="filelist"></ul>
     <div class="outrow" style="margin-top:14px">
-      <button class="btn btn-ghost" id="btnResultsZip" hidden>⬇ Scarica ZIP</button>
+      <button class="btn btn-ghost" id="btnResultsZip" hidden data-i18n="btn.zip">⬇ Scarica ZIP</button>
     </div>
   </section>
 
   <footer class="foot">
     <span class="foot-ver">versacon <i>v0.2</i></span>
-    <button class="kofi-btn" id="btnKofi" type="button" title="Supporta su Ko-fi">
+    <button class="kofi-btn" id="btnKofi" type="button" title="Supporta su Ko-fi" data-i18n-attr="title:foot.kofi_title">
       <svg class="kofi-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M17 8h1a4 4 0 1 1 0 8h-1"/>
         <path d="M3 8h14v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/>
         <path d="M7 2v2M11 2v2M15 2v2"/>
       </svg>
-      <span>Offrimi un caffè</span>
+      <span data-i18n="foot.kofi">Offrimi un caffè</span>
     </button>
   </footer>
 </main>
