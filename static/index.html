@@ -22,7 +22,7 @@
         <p class="tagline">Convert everything · 何でも変換</p>
       </div>
     </div>
-    <div class="badge">Foto · PDF · Video · Comprimi · Extra</div>
+    <div class="badge">Foto · PDF · Video · Comprimi · Arcade</div>
   </header>
 
   <nav class="tabs" role="tablist" aria-label="Tipo di conversione">
@@ -30,7 +30,6 @@
     <button class="tab" data-tab="pdf" role="tab" aria-selected="false">📄 PDF</button>
     <button class="tab" data-tab="compress" role="tab" aria-selected="false">🗜 Comprimi</button>
     <button class="tab" data-tab="video" role="tab" aria-selected="false">🎬 Video</button>
-    <button class="tab" data-tab="extra" role="tab" aria-selected="false">🧰 Extra</button>
   </nav>
 
   <div id="tabPhotos">
@@ -87,6 +86,8 @@
       <button class="subtab active" data-sub="pdf-images">PDF → immagini</button>
       <button class="subtab" data-sub="images-pdf">Immagini → PDF</button>
       <button class="subtab" data-sub="pdf-text">PDF → testo</button>
+      <button class="subtab" data-sub="pdf-merge">Unisci PDF</button>
+      <button class="subtab" data-sub="pdf-split">Estrai pagine</button>
       <button class="subtab" data-sub="pdf-edit">Editor PDF</button>
     </div>
 
@@ -160,6 +161,35 @@
         <pre id="txtPreview"></pre>
         <a class="btn btn-ghost" id="txtCopy" href="#">⧉ Copia testo</a>
         <a class="btn btn-ghost" id="txtDownload" href="#" download>⬇ Scarica .txt</a>
+      </div>
+    </div>
+
+    <div class="subpane" id="subpdf-merge" hidden>
+      <p class="hint">Unisci 2–40 PDF in un unico documento, nell'ordine scelto.</p>
+      <label class="btn btn-ghost">
+        <input type="file" id="mergeIn" multiple accept="application/pdf,.pdf" hidden />
+        Scegli PDF (in ordine)
+      </label>
+      <ul class="filelist" id="mergeList" hidden></ul>
+      <div class="outrow">
+        <button class="btn btn-primary" id="btnMerge">Unisci</button>
+      </div>
+    </div>
+
+    <div class="subpane" id="subpdf-split" hidden>
+      <p class="hint">Estrae le pagine dall'intervallo indicato (1-based, incluse) in un nuovo PDF.</p>
+      <label class="btn btn-ghost">
+        <input type="file" id="splitIn" accept="application/pdf,.pdf" hidden />
+        Scegli PDF
+      </label>
+      <div class="ctlrow">
+        <label>Da pagina</label>
+        <input type="number" id="splitStart" min="1" step="1" class="numin" placeholder="1" />
+        <label>A pagina</label>
+        <input type="number" id="splitEnd" min="1" step="1" class="numin" placeholder="tutte" />
+      </div>
+      <div class="outrow">
+        <button class="btn btn-primary" id="btnSplit">Estrai</button>
       </div>
     </div>
 
@@ -307,6 +337,7 @@
     <div class="subtabs">
       <button class="subtab active" data-csub="image">Immagine</button>
       <button class="subtab" data-csub="pdf">PDF</button>
+      <button class="subtab" data-csub="rename">Rinomina batch</button>
     </div>
 
     <div class="subpane" id="cimg">
@@ -365,68 +396,8 @@
       </div>
       <p class="hint">Deflazione stream, immagini e font; nessun cambio di contenuto.</p>
     </div>
-  </section>
 
-  <section class="card" id="tabVideo" hidden>
-    <h3 class="panel-title">Video — transcode</h3>
-    <p class="hint">Converte un video in <b>MP4</b> (H.264/AAC) o <b>WebM</b> (VP9/Vorbis).</p>
-    <label class="btn btn-ghost">
-      <input type="file" id="videoIn" accept=".mp4,.m4v,.mov,.avi,.mkv,.webm,.wmv,.flv,.mpg,.mpeg,.3gp,.3g2,.ogg,video/*" hidden />
-      Scegli video
-    </label>
-    <div class="ctlrow">
-      <label>Formato</label>
-      <select id="videoFmt">
-        <option value="mp4">MP4 — H.264/AAC (max compatibilità)</option>
-        <option value="webm">WebM — VP9/Vorbis (open)</option>
-      </select>
-      <label>Qualità (CRF)</label>
-      <input type="number" id="videoCrf" min="0" max="63" value="23" class="numin" title="minore = qualità più alta / file più grande" />
-    </div>
-    <div class="outrow">
-      <button class="btn btn-primary" id="btnVideoConvert">Converti</button>
-    </div>
-    <p class="hint" id="videoStatus"></p>
-  </section>
-
-  <section class="card" id="tabExtra" hidden>
-    <h3 class="panel-title">Extra — PDF & batch</h3>
-    <div class="subtabs">
-      <button class="subtab active" data-xsub="merge">Unisci PDF</button>
-      <button class="subtab" data-xsub="split">Estrai pagine</button>
-      <button class="subtab" data-xsub="rename">Rinomina</button>
-    </div>
-
-    <div class="subpane" id="xmerge">
-      <p class="hint">Unisci 2–40 PDF in un unico documento, nell'ordine scelto.</p>
-      <label class="btn btn-ghost">
-        <input type="file" id="mergeIn" multiple accept="application/pdf,.pdf" hidden />
-        Scegli PDF (in ordine)
-      </label>
-      <ul class="filelist" id="mergeList" hidden></ul>
-      <div class="outrow">
-        <button class="btn btn-primary" id="btnMerge">Unisci</button>
-      </div>
-    </div>
-
-    <div class="subpane" id="xsplit" hidden>
-      <p class="hint">Estrae le pagine dall'intervallo indicato (1-based, incluse) in un nuovo PDF.</p>
-      <label class="btn btn-ghost">
-        <input type="file" id="splitIn" accept="application/pdf,.pdf" hidden />
-        Scegli PDF
-      </label>
-      <div class="ctlrow">
-        <label>Da pagina</label>
-        <input type="number" id="splitStart" min="1" step="1" class="numin" placeholder="1" />
-        <label>A pagina</label>
-        <input type="number" id="splitEnd" min="1" step="1" class="numin" placeholder="tutte" />
-      </div>
-      <div class="outrow">
-        <button class="btn btn-primary" id="btnSplit">Estrai</button>
-      </div>
-    </div>
-
-    <div class="subpane" id="xrename" hidden>
+    <div class="subpane" id="crename" hidden>
       <p class="hint">Rinomina un gruppo di file; ricevi uno ZIP con i nuovi nomi.</p>
       <div class="ctlrow">
         <label>Modalità</label>
@@ -460,6 +431,28 @@
       </div>
       <ul class="filelist" id="renamePreview" hidden></ul>
     </div>
+  </section>
+
+  <section class="card" id="tabVideo" hidden>
+    <h3 class="panel-title">Video — transcode</h3>
+    <p class="hint">Converte un video in <b>MP4</b> (H.264/AAC) o <b>WebM</b> (VP9/Vorbis).</p>
+    <label class="btn btn-ghost">
+      <input type="file" id="videoIn" accept=".mp4,.m4v,.mov,.avi,.mkv,.webm,.wmv,.flv,.mpg,.mpeg,.3gp,.3g2,.ogg,video/*" hidden />
+      Scegli video
+    </label>
+    <div class="ctlrow">
+      <label>Formato</label>
+      <select id="videoFmt">
+        <option value="mp4">MP4 — H.264/AAC (max compatibilità)</option>
+        <option value="webm">WebM — VP9/Vorbis (open)</option>
+      </select>
+      <label>Qualità (CRF)</label>
+      <input type="number" id="videoCrf" min="0" max="63" value="23" class="numin" title="minore = qualità più alta / file più grande" />
+    </div>
+    <div class="outrow">
+      <button class="btn btn-primary" id="btnVideoConvert">Converti</button>
+    </div>
+    <p class="hint" id="videoStatus"></p>
   </section>
 
   <section class="card results" id="resultsCard" hidden>

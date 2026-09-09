@@ -2,6 +2,7 @@
 PackageIdentifier: HikariHasegawa.VersoCon
 PackageVersion: 0.2.1
 PackageLocale: en-US
+PackageName: VersoCon
 Publisher: HikariHasegawa
 PublisherUrl: https://github.com/HikariHasegawa
 PublisherSupportUrl: https://github.com/HikariHasegawa/versocon/issues

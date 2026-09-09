@@ -231,8 +231,7 @@
   const tabPdf = $("#tabPdf");
   const tabCompress = $("#tabCompress");
   const tabVideo = $("#tabVideo");
-  const tabExtra = $("#tabExtra");
-  const TABS = { photos: tabPhotos, pdf: tabPdf, compress: tabCompress, video: tabVideo, extra: tabExtra };
+  const TABS = { photos: tabPhotos, pdf: tabPdf, compress: tabCompress, video: tabVideo };
   document.querySelectorAll(".tabs .tab").forEach((b) => {
     b.addEventListener("click", () => {
       document.querySelectorAll(".tabs .tab").forEach((x) => {
@@ -260,16 +259,18 @@
     });
   });
 
-  /* ---------- Compress: sub-tabs (Immagine / PDF) ---------- */
-  const cImgPane = $("#cimg");
-  const cPdfPane = $("#cpdf");
+  /* ---------- Compress: sub-tabs (Immagine / PDF / Rinomina) ---------- */
+  const cPanes = {
+    image: $("#cimg"),
+    pdf: $("#cpdf"),
+    rename: $("#crename"),
+  };
   document.querySelectorAll("#tabCompress .subtabs .subtab").forEach((b) => {
     b.addEventListener("click", () => {
       document.querySelectorAll("#tabCompress .subtabs .subtab").forEach((x) => x.classList.remove("active"));
       b.classList.add("active");
       const s = b.dataset.csub;
-      cImgPane.hidden = s !== "image";
-      cPdfPane.hidden = s !== "pdf";
+      for (const k in cPanes) cPanes[k].hidden = s !== k;
     });
   });
 
@@ -514,16 +515,7 @@
     });
   }
 
-  /* ---------- Extra: merge / split / rename ---------- */
-  const xsubs = { merge: $("#xmerge"), split: $("#xsplit"), rename: $("#xrename") };
-  document.querySelectorAll('[data-xsub]').forEach((b) => {
-    b.addEventListener("click", () => {
-      document.querySelectorAll('[data-xsub]').forEach((x) => x.classList.remove("active"));
-      b.classList.add("active");
-      const t = b.dataset.xsub;
-      for (const k in xsubs) xsubs[k].hidden = k !== t;
-    });
-  });
+  /* ---------- Extra: merge / split / rename (pannelli ora dentro PDF / Comprimi; i binding restano per-id) ---------- */
 
   /* --- Unisci PDF --- */
   const mergeIn = $("input#mergeIn");
