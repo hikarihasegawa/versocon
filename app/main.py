@@ -23,7 +23,7 @@ from converters import video as vidconv
 
 from app import constants
 
-app = FastAPI(title="VersoCon", version="0.2.3")
+app = FastAPI(title="VersoCon", version="0.2.4")
 
 BASE_DIR = constants.ROOT
 OUT_DIR = Path(tempfile.gettempdir()) / "versocon"

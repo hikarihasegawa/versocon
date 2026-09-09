@@ -3,6 +3,7 @@ uvicorn[standard]
 pillow
 pillow-heif
 pymupdf
+pytesseract
 python-multipart
 pywebview
 pytest

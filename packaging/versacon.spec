@@ -47,6 +47,7 @@ a = Analysis(
         "PIL.ImageFont",
         "heif",
         "fitz",
+        "pytesseract",
     ],
     hookspath=[],
     hooksconfig={},
