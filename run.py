@@ -8,31 +8,46 @@ browser predefinito. Uso:
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
+import socket
 import threading
 import time
 import traceback
 import urllib.request
 import webbrowser
 
-import uvicorn
+# --- FIX radice (v0.2.3) ----------------------------------------------------
+# In una build PyInstaller "windowed" (senza console) sys.stdout/stderr sono
+# None. uvicorn istanzia un formatter (ColourizedFormatter) che chiama
+# sys.stdout.isatty() INDIPENDENTEMENTE da log_level -> AttributeError('NoneType'
+# has no attribute 'isatty') avvolto da logging in
+#   ValueError: Unable to configure formatter 'default'
+# -> crash al primo avvio dell'EXE (v0.2.2). Mettiamo stdout/stderr a devnull
+# PRIMA che uvicorn configuri il logging. In dev (console) i stream esistono e
+# questo blocco è un no-op.
+_devnull = open(os.devnull, "w")
+for _name in ("stdout", "stderr"):
+    if getattr(sys, _name) is None:
+        setattr(sys, _name, _devnull)
+# -----------------------------------------------------------------------------
 
-from app.main import app  # noqa: F401  (verifica import)
+import uvicorn  # noqa: E402  (dopo la guardia su sys.stdout/stderr)
+
+from app.main import app  # noqa: E402,F401
 
 HOST = "127.0.0.1"
-# 0 = il SO sceglie una porta libera garantita: l'app funziona anche se 8321
-# (o qualsiasi altra) è già occupata su quella macchina.
-PORT = 0
 
 _CRASH_LOG = os.path.join(os.environ.get("LOCALAPPDATA") or os.path.expanduser("~"),
                           "Temp", "VersoCon", "crash.log")
 
 
 def _crash(msg: str) -> None:
-    """Logga su console E %LOCALAPPDATA%\\Temp\\VersoCon\\crash.log."""
-    print(msg)
+    """Logga su file %LOCALAPPDATA%\\Temp\\VersoCon\\crash.log (e console se esiste)."""
+    try:
+        print(msg, file=sys.stderr)
+    except Exception:  # noqa: BLE001
+        pass
     try:
         os.makedirs(os.path.dirname(_CRASH_LOG), exist_ok=True)
         with open(_CRASH_LOG, "a", encoding="utf-8") as f:
@@ -41,33 +56,27 @@ def _crash(msg: str) -> None:
         pass
 
 
-def _sys_excepthook(exc_type, exc, tb) -> None:
+def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
+    _crash("Uncaught exception in thread %s:\n%s" % (
+        args.thread,
+        "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback)),
+    ))
+
+
+def _main_excepthook(exc_type, exc, tb) -> None:
     _crash("Uncaught exception:\n" + "".join(traceback.format_exception(exc_type, exc, tb)))
 
 
-def _start_server(port: int):
-    """Avvia uvicorn in un daemon-thread su 127.0.0.1.
-
-    `port==0` → il SO sceglie una porta libera garantita (nessuna collisione
-    possibile, nessun ri-bind esterno = nessun race). Ritorna l'istanza Server.
-    """
-    config = uvicorn.Config(app, host=HOST, port=port, log_level="warning", lifespan="on")
-    server = uvicorn.Server(config)
-    server.handle_signals = lambda: None  # serve() in un thread non-main deve ignorare i segnali
-    loop = asyncio.new_event_loop()
-    threading.Thread(target=loop.run_until_complete, args=(server.serve(),), daemon=True).start()
-    deadline = time.monotonic() + 60.0
-    while time.monotonic() < deadline:
-        if server.should_exit:
-            raise RuntimeError("uvicorn si è chiuso in fase di avvio")
-        if server.started:
-            return server
-        time.sleep(0.1)
-    raise TimeoutError("uvicorn non è entrato in stato 'started' in 60 s")
+def _pick_free_port() -> int:
+    """Chiede al SO una porta libera garantita (bind su porta 0)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind((HOST, 0))
+        return s.getsockname()[1]
 
 
-def _actual_port(server: "uvicorn.Server") -> int:
-    return int(server.servers[0].sockets[0].getsockname()[1])
+def _serve(host: str, port: int) -> None:
+    # Pattern 0.2.1, provato e stabile. log_level=warning silenzia i log access.
+    uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
 def _wait_until_ready(host: str, port: int, timeout: float = 60.0) -> None:
@@ -108,27 +117,26 @@ def _open_ui(url: str, force_browser: bool) -> int:
 
 
 def main() -> int:
-    sys.excepthook = _sys_excepthook
+    sys.excepthook = _main_excepthook
+    threading.excepthook = _thread_excepthook
     args = sys.argv[1:]
     force_browser = "--browser" in args or os.environ.get("VERSOCON_BROWSER") == "1"
-    port = PORT
+
+    # 0 = il SO sceglie una porta libera garantita: l'app funziona anche se 8321
+    # (o qualsiasi altra) è già occupata su quella macchina.
+    port = _pick_free_port()
     if "--port" in args:
         port = int(args[args.index("--port") + 1])
 
+    # Avvia il server in un daemon thread e attendi finché risponde davvero.
+    threading.Thread(target=_serve, args=(HOST, port), daemon=True).start()
     try:
-        server = _start_server(port)
-        real = _actual_port(server)
-    except Exception as e:  # noqa: BLE001
-        _crash(f"AVVIO FALLITO: {e!r}")
-        return 1
-
-    try:
-        _wait_until_ready(HOST, real)
+        _wait_until_ready(HOST, port)
     except TimeoutError as e:
-        _crash(str(e))
+        _crash(f"AVVIO FALLITO: {e}")
         return 1
 
-    url = f"http://{HOST}:{real}/"
+    url = f"http://{HOST}:{port}/"
     # Memo persistente dell'istanza attiva (utile per riaprirne l'URL, e per
     # tool di verifica). Non critico se la scrittura fallisce.
     try:
