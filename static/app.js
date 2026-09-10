@@ -784,6 +784,7 @@
   const edStatus = $("#edStatus");
   const btnEdApply = $("#btnEdApply");
   const edDownload = $("#edDownload");
+  const edSessionNote = $("#edSessionNote");
   const edPreview = document.getElementById("edPreview");
   const edPageEl = document.getElementById("edPage");
   const edCanvas = document.getElementById("edCanvas");
@@ -1191,6 +1192,7 @@
     if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
     const act = edAction.value;
     edDownload.hidden = true;
+    edSessionNote.hidden = true;
     const fd = new FormData();
     fd.append("file", edPdfFile);
     fd.append("action", act);
@@ -1232,6 +1234,7 @@
       edDownload.href = res.download;
       edDownload.download = res.name;
       edDownload.hidden = false;
+      edSessionNote.hidden = false;
       edStatus.textContent = IC.t("dyn.ed_saved", { name: res.name, size: fmtBytes(res.size) });
       showToast(IC.t("dyn.pdf_modified"), "ok");
     } catch (err) {

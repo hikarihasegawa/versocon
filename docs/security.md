@@ -17,7 +17,7 @@ It runs entirely on your machine (`127.0.0.1`); nothing ever goes online.
 > 1. **SHA-256** — compare the hash of your downloaded file with the one on this release page
 >    (Windows: `Get-FileHash versocon-setup-*.exe -Algorithm SHA256`).
 > 2. **VirusTotal** (optional) — upload your copy at
->    [virustotal.com](https://www.virustotal.com/gui/home/url); expect ~0/70+ detections.
+>    [virustotal.com](https://www.virustotal.com/gui/home/url) and check the result.
 > 3. **Source code** — the code that built this file is on
 >    [github.com/hikarihasegawa/versocon](https://github.com/hikarihasegawa/versocon).
 >
@@ -26,7 +26,7 @@ It runs entirely on your machine (`127.0.0.1`); nothing ever goes online.
 > ### Prefer an installer that never asks?
 > Install through a curated public channel:
 > ```
-> winget install HikariHasegawa.VersoCon    # Microsoft-validated channel (PR pending)
+> winget install HikariHasegawa.VersoCon    # official Windows package manager (submission under review)
 > scoop install versocon                     # curated community bucket (live now)
 > ```
 
@@ -42,7 +42,7 @@ Ogni cosa gira sulla tua macchina (`127.0.0.1`); nessuno file va mai online.
 > 1. **SHA-256** — confronta l'hash del file scaricato con quello della pagina della release
 >    (Windows: `Get-FileHash versocon-setup-*.exe -Algorithm SHA256`).
 > 2. **VirusTotal** (facoltativo) — carica la tua copia su
->    [virustotal.com](https://www.virustotal.com/gui/home/url); aspettati ~0/70+ rilevazioni.
+>    [virustotal.com](https://www.virustotal.com/gui/home/url) e controlla il risultato.
 > 3. **Codice sorgente** — chi ha costruito questo file è su
 >    [github.com/hikarihasegawa/versocon](https://github.com/hikarihasegawa/versocon).
 >

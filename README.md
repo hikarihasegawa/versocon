@@ -67,13 +67,13 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 >    `DCC198FCC79A65675097B56A275B782F846DC7251766FC43D2CC9008AD6641A5`
 >    (full hash on the [Releases page](https://github.com/hikarihasegawa/versocon/releases)).
 > 2. *(Optional)* Upload the installer to
->    [VirusTotal](https://www.virustotal.com/gui/home/url) (~0/70+ engines).
+>    [VirusTotal](https://www.virustotal.com/gui/home/url), and check the result.
 >
 > If OK → click **More info → Run anyway / Esegui comunque**.
 >
 > Prefer no warning at all? Install via:
 > ```
-> winget install HikariHasegawa.VersoCon    # Microsoft-validated channel (PR pending)
+> winget install HikariHasegawa.VersoCon    # official Windows package manager (submission under review)
 > scoop install versocon                     # curated community bucket (live)
 > ```
 > Both channels are reviewed and eliminate SmartScreen alerts over time.

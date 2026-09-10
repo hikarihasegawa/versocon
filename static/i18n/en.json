@@ -169,6 +169,7 @@
   "vid.crf_title": "lower = higher quality / larger file",
 
   "res.title": "Results",
+  "res.session_note": "🔒 Files stay on this PC only and are deleted when VersoCon closes: download them before quitting.",
 
   "foot.kofi_title": "Support on Ko-fi",
   "foot.kofi": "Buy me a coffee",

@@ -487,6 +487,9 @@ input[type="color"] { padding: 2px 4px; }
 .ctlrow select:focus { border-color: var(--red); }
 .grow { flex: 1; }
 .hint { color: var(--ink-soft); font-size: 12px; margin: 10px 2px 0; font-weight: 600; letter-spacing: .02em; }
+.session-note { margin-top: 12px; }
+.session-note[hidden] { display: none; }
+.txtbox .session-note { margin-top: 0; }
 
 /* ---- Footer ---- */
 .foot {

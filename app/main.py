@@ -1,11 +1,15 @@
 """VersoCon — convertitore di file, GUI web stile anime."""
 from __future__ import annotations
 
+import atexit
 import io
 import os
+import shutil
 import tempfile
+import time
 import urllib.parse
 import zipfile
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -23,12 +27,65 @@ from converters import video as vidconv
 
 from app import constants
 from app.i18n import t as T
+from app.security import LocalOnlyMiddleware, safe_child
 
-app = FastAPI(title="VersoCon", version="0.2.4")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    yield
+    # Avvio via `uvicorn` CLI: su SIGTERM uvicorn ri-solleva il segnale e
+    # atexit non gira, quindi puliamo qui. Nell'app desktop provvede atexit.
+    shutil.rmtree(OUT_DIR, ignore_errors=True)
+
+
+app = FastAPI(title="VersoCon", version="0.2.4", lifespan=_lifespan)
+app.add_middleware(LocalOnlyMiddleware)
 
 BASE_DIR = constants.ROOT
-OUT_DIR = Path(tempfile.gettempdir()) / "versocon"
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+_TMP_ROOT = Path(tempfile.gettempdir())
+_STALE_AFTER_S = 72 * 3600
+_KEEP_IN_LEGACY = frozenset({"crash.log", "current_url.txt"})
+
+
+def _purge_stale_outputs() -> None:
+    """Rimuove output di sessioni precedenti (crash/kill) e la vecchia cartella
+    condivisa `versocon/` delle versioni <= 0.2.4. Best-effort, mai bloccante.
+
+    Su Windows `%TEMP%\\versocon` e `%LOCALAPPDATA%\\Temp\\VersoCon` (usata da
+    run.py per crash.log e current_url.txt) sono la STESSA cartella (filesystem
+    case-insensitive): quei due file vanno preservati."""
+    legacy = _TMP_ROOT / "versocon"
+    if legacy.is_dir():
+        for item in legacy.iterdir():
+            if item.name.lower() in _KEEP_IN_LEGACY:
+                continue
+            try:
+                if item.is_dir() and not item.is_symlink():
+                    shutil.rmtree(item, ignore_errors=True)
+                else:
+                    item.unlink(missing_ok=True)
+            except OSError:
+                pass
+    now = time.time()
+    for d in _TMP_ROOT.glob("versocon-*"):
+        try:
+            if d.is_dir() and now - d.stat().st_mtime > _STALE_AFTER_S:
+                shutil.rmtree(d, ignore_errors=True)
+        except OSError:
+            pass
+
+
+_purge_stale_outputs()
+# Cartella privata per questa sessione (mkdtemp: nome univoco, permessi 0700).
+# Viene cancellata alla chiusura: i file convertiti vivono solo finché l'app è aperta.
+OUT_DIR = Path(tempfile.mkdtemp(prefix="versocon-"))
+atexit.register(shutil.rmtree, OUT_DIR, ignore_errors=True)
+
+
+def _read_capped(uf: UploadFile, limit: int) -> bytes:
+    """Legge al massimo limit+1 byte: il chiamante vede comunque len > limit e
+    rifiuta, ma un file enorme non viene mai caricato per intero in RAM."""
+    return uf.file.read(limit + 1)
 
 VALID_OUT = ("jpeg", "png", "webp", "gif")
 MAX_BATCH_FILES = 500
@@ -101,7 +158,7 @@ def _image_size(data: bytes) -> tuple[int, int] | None:
 
 
 def _read_upload(request: Request, uf: UploadFile) -> bytes:
-    data = uf.file.read()
+    data = _read_capped(uf, 200 * 1024 * 1024)
     name = Path(uf.filename or "").name
     if not data:
         raise HTTPException(400, T(request, "api.file_empty_named", name=name))
@@ -176,8 +233,8 @@ def convert(
 
 @app.get("/api/file/{name}")
 def download_file(request: Request, name: str):
-    p = OUT_DIR / name
-    if not p.exists() or not p.is_file():
+    p = safe_child(OUT_DIR, name)
+    if p is None or not p.is_file():
         raise HTTPException(404, T(request, "api.file_not_found"))
     return FileResponse(p, filename=p.name)
 
@@ -191,8 +248,8 @@ def download_zip(request: Request, names: str):
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for n in items:
-            p = OUT_DIR / Path(n).name
-            if p.exists() and p.is_file():
+            p = safe_child(OUT_DIR, n)
+            if p is not None and p.is_file():
                 zf.write(p, p.name)
     return Response(
         buf.getvalue(),
@@ -209,7 +266,7 @@ def convert_pdf_to_images(
     dpi: int | None = Form(None),
     quality: int | None = Form(None),
 ):
-    data = file.file.read()
+    data = _read_capped(file, docconv.MAX_DOC_BYTES)
     name = Path(file.filename or "").name
     if not data:
         raise HTTPException(400, T(request, "api.file_empty"))
@@ -263,7 +320,7 @@ def convert_images_to_pdf(
         fname = Path(f.filename or "").name
         if not docconv.image_is_supported(fname):
             raise HTTPException(400, T(request, "api.img_format_unsupported", name=fname))
-        raw = f.file.read()
+        raw = _read_capped(f, docconv.MAX_DOC_BYTES)
         if not raw:
             raise HTTPException(400, T(request, "api.file_empty_named", name=fname))
         if len(raw) > docconv.MAX_DOC_BYTES:
@@ -313,16 +370,23 @@ def convert_video(
     except ValueError as e:
         raise HTTPException(400, str(e))
 
-    data = file.file.read()
-    if not data:
-        raise HTTPException(400, T(request, "api.file_empty"))
-    if len(data) > vidconv.MAX_VIDEO_BYTES:
+    # Copia a blocchi su disco (mai l'intero video in RAM). Nome univoco:
+    # due conversioni in parallelo non si sovrascrivono il sorgente.
+    orig_ext = Path(vname).suffix.lower() or ".mp4"
+    fd, src_name = tempfile.mkstemp(prefix=".src-", suffix=orig_ext, dir=str(OUT_DIR))
+    src = Path(src_name)
+    written = 0
+    with os.fdopen(fd, "wb") as out_f:
+        while chunk := file.file.read(1024 * 1024):
+            written += len(chunk)
+            if written > vidconv.MAX_VIDEO_BYTES:
+                break
+            out_f.write(chunk)
+    if written == 0 or written > vidconv.MAX_VIDEO_BYTES:
+        src.unlink(missing_ok=True)
+        if written == 0:
+            raise HTTPException(400, T(request, "api.file_empty"))
         raise HTTPException(400, T(request, "api.file_2gb_limit", name=vname))
-
-    # scrivi sorgente in un file temporaneo per dare a ffmpeg un nome con estensione
-    orig_ext = Path(file.filename).suffix.lower() or ".mp4"
-    src = OUT_DIR / f".src{orig_ext}"
-    src.write_bytes(data)
 
     stem = Path(file.filename).stem or "video"
     out_ext = vidconv._out_container(fmt)[0]
@@ -361,7 +425,7 @@ def _read_pdf_upload(request: Request, uf: UploadFile) -> bytes:
     name = Path(uf.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
         raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
-    data = uf.file.read()
+    data = _read_capped(uf, toolconv.MAX_DOC_BYTES)
     if not data:
         raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if len(data) > toolconv.MAX_DOC_BYTES:
@@ -514,7 +578,7 @@ def compress_image(
     name = Path(file.filename or "").name
     if not compconv.image_is_compressible(name):
         raise HTTPException(400, T(request, "api.img_compress_unsupported", name=name))
-    data = file.file.read()
+    data = _read_capped(file, compconv.MAX_BYTES)
     if not data:
         raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if len(data) > compconv.MAX_BYTES:
@@ -568,7 +632,7 @@ def compress_pdf(
     name = Path(file.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
         raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
-    data = file.file.read()
+    data = _read_capped(file, compconv.MAX_BYTES)
     if not data:
         raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     if len(data) > compconv.MAX_BYTES:
