@@ -65,7 +65,7 @@ jobs:
         with:
           draft: false
           prerelease: false
-          generate_release_notes: true
+          body_file: docs/security.md
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           fail_on_unmatched_files: true
           files: |

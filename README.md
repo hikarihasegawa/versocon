@@ -77,6 +77,8 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 > scoop install versocon                     # curated community bucket (live)
 > ```
 > Both channels are reviewed and eliminate SmartScreen alerts over time.
+>
+> 📄 [Full "Is it safe?" guide (EN/IT) → docs/security.md](docs/security.md)
 
 ### From source
 
