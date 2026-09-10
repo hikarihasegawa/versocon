@@ -25,7 +25,7 @@
   would be a lovely thank-you — <i>zero strings, full support</i>.
 </p>
 
-VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handles HEIC photos, PDFs (edit, sign, merge, compress, extract text), and video transcode — **all locally**. The UI is currently in Italian; English i18n is on the roadmap.
+VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handles HEIC photos, PDFs (edit, sign, merge, compress, extract text), and video transcode — **all locally**. Available in **Italian and English** (switchable via the in-app language selector); more languages are on the roadmap.
 
 ## ⚡ Why VersoCon
 
