@@ -50,10 +50,33 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 ## 🚀 Installation
 
 ### From installer / store (recommended)
-- **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or, when available: `winget install VersoCon` / `scoop install versocon`.
+- **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or, when available: `winget install HikariHasegawa.VersoCon` / `scoop install versocon`.
 - **Linux**: `.deb` for apt or portable `AppImage` from [Releases](https://github.com/hikarihasegawa/versocon/releases).
 
 > Every platform: local install, no account required.
+
+> ### 🛡️ "Windows protected your PC" (SmartScreen)
+>
+> On first launch Windows may show a SmartScreen warning because VersoCon is not yet
+> **code-signed** — normal for unsigned open-source software.
+>
+> **VersoCon is 100% local, open-source, no telemetry, no account required.**
+>
+> Before you proceed:
+> 1. Verify the **SHA-256** checksum (v0.2.4):
+>    `DCC198FCC79A65675097B56A275B782F846DC7251766FC43D2CC9008AD6641A5`
+>    (full hash on the [Releases page](https://github.com/hikarihasegawa/versocon/releases)).
+> 2. *(Optional)* Upload the installer to
+>    [VirusTotal](https://www.virustotal.com/gui/home/url) (~0/70+ engines).
+>
+> If OK → click **More info → Run anyway / Esegui comunque**.
+>
+> Prefer no warning at all? Install via:
+> ```
+> winget install HikariHasegawa.VersoCon    # Microsoft-validated channel (PR pending)
+> scoop install versocon                     # curated community bucket (live)
+> ```
+> Both channels are reviewed and eliminate SmartScreen alerts over time.
 
 ### From source
 
