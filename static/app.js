@@ -187,7 +187,7 @@
           ${r.src_size ? `<span class="fsize muted">${fmtBytes(r.src_size)} → </span>` : ""}
           <span class="fsize">${fmtBytes(r.size)}</span>
           ${r.saved_pct != null ? `<span class="fsaved">-${r.saved_pct}%</span>` : ""}
-          <a href="${r.download}" download>Scarica</a></li>`;
+          <a href="${r.download}" download>${esc(IC.t("dyn.download"))}</a></li>`;
       })
       .join("");
     btnZip.hidden = ok.length < 2;
@@ -1296,6 +1296,7 @@
     try { renderQueue(); } catch (e) {}
     try { renderImgToPdf(); } catch (e) {}
     try { renderMergeList(); } catch (e) {}
+    try { renderResults(); } catch (e) {}
     renderConfigStatus(bootCfg);
     const btn = $("#btnConvert");
     if (btn && !btn.disabled) btn.textContent = IC.t("btn.convert");
