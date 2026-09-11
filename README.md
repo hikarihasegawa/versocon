@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-4dabf7?logo=mit&logoColor=white)](LICENSE.md)
 [![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](requirements.txt)
 [![Windows](https://img.shields.io/badge/Windows-Setup-0078d6?logo=windows&logoColor=white)](#)
-[![Linux](https://img.shields.io/badge/Linux-Deb-__AppImage-2b8a3e?logo=linux&logoColor=white)](#)
+[![Linux](https://img.shields.io/badge/Linux-from%20source-2b8a3e?logo=linux&logoColor=white)](#)
 [![Support the project](https://img.shields.io/badge/Ko--fi-Support-ff5f5f?logo=ko-fi&logoColor=white)](https://ko-fi.com/hikari22)
 
 <p align="center">
@@ -51,7 +51,7 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 
 ### From installer / store (recommended)
 - **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or, when available: `winget install HikariHasegawa.VersoCon` / `scoop install versocon`.
-- **Linux**: `.deb` for apt or portable `AppImage` from [Releases](https://github.com/hikarihasegawa/versocon/releases).
+- **Linux / macOS**: run from source with `bash install.sh` (see [From source](#from-source)) — Windows is the primary platform today (ready-made installer); native `.deb`/`.AppImage` build is on the roadmap.
 
 > Every platform: local install, no account required.
 
