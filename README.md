@@ -64,8 +64,8 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 > **VersoCon is 100% local, open-source, no telemetry, no account required.**
 >
 > Before you proceed:
-> 1. Verify the **SHA-256** checksum (v0.2.5):
->    `5E7A03FB41C8CCFE6987424B15E4A2B341ADA8AE27E621E8279D6E506BA7532D`
+> 1. Verify the **SHA-256** checksum (v0.2.6):
+>    `E6DC07DEC430171D418A90ABF7E444188EAB53736415E6D6E4A5F17DA93D0EB3`
 >    (full hash on the [Releases page](https://github.com/hikarihasegawa/versocon/releases)).
 > 2. *(Optional)* Upload the installer to
 >    [VirusTotal](https://www.virustotal.com/gui/home/url), and check the result.
