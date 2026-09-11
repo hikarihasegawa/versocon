@@ -66,8 +66,15 @@ jobs:
           [xml]$report = Get-Content out\wack-report.xml
           $overall = $report.REPORT.OVERALL_RESULT
           Write-Output "WACK OVERALL_RESULT: $overall"
-          Select-String -Path out\wack-report.xml -Pattern 'FAIL' -Context 2,0 | Select-Object -First 20 | Out-String | Write-Output
-          if ($overall -ne 'PASS') { throw "WACK: $overall" }
+          foreach ($t in $report.SelectNodes('//TEST')) {
+            $res = $t.SelectSingleNode('RESULT').InnerText
+            if ($res -and $res -ne 'PASS') {
+              Write-Output ("[{0}] {1} (optional={2})" -f $res, $t.GetAttribute('NAME'), $t.GetAttribute('OPTIONAL'))
+              foreach ($m in $t.SelectNodes('.//MESSAGE')) { Write-Output ("    - " + $m.GetAttribute('TEXT')) }
+            }
+          }
+          # PASS e WARNING (solo test opzionali per le app desktop) sono accettati dallo Store; FAIL no.
+          if ($overall -notin @('PASS', 'WARNING')) { throw "WACK: $overall" }
 
       - uses: actions/upload-artifact@v4
         if: always()
