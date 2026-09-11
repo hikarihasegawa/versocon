@@ -50,7 +50,7 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 ## 🚀 Installation
 
 ### From installer / store (recommended)
-- **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or, when available: `winget install HikariHasegawa.VersoCon` / `scoop install versocon`.
+- **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or with [Scoop](https://scoop.sh): `scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket`, then `scoop install versocon`. winget (`winget install HikariHasegawa.VersoCon`) is under review.
 - **Linux / macOS**: run from source with `bash install.sh` (see [From source](#from-source)) — Windows is the primary platform today (ready-made installer); native `.deb`/`.AppImage` build is on the roadmap.
 
 > Every platform: local install, no account required.
@@ -74,9 +74,10 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 > Prefer no warning at all? Install via:
 > ```
 > winget install HikariHasegawa.VersoCon    # official Windows package manager (submission under review)
-> scoop install versocon                     # curated community bucket (live)
+> scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket
+> scoop install versocon                     # Scoop, from the author's bucket above (live)
 > ```
-> Both channels are reviewed and eliminate SmartScreen alerts over time.
+> Both channels eliminate SmartScreen alerts over time; winget packages are also reviewed by Microsoft.
 >
 > 📄 [Full "Is it safe?" guide (EN/IT) → docs/security.md](docs/security.md)
 

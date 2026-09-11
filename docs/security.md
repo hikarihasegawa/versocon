@@ -24,10 +24,11 @@ It runs entirely on your machine (`127.0.0.1`); nothing ever goes online.
 > If everything checks out, click **More info → Run anyway / Esegui comunque**.
 >
 > ### Prefer an installer that never asks?
-> Install through a curated public channel:
+> Install through a package manager:
 > ```
 > winget install HikariHasegawa.VersoCon    # official Windows package manager (submission under review)
-> scoop install versocon                     # curated community bucket (live now)
+> scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket
+> scoop install versocon                     # Scoop, from the author's bucket above (live now)
 > ```
 
 <!-- Italiano -->
@@ -49,10 +50,11 @@ Ogni cosa gira sulla tua macchina (`127.0.0.1`); nessuno file va mai online.
 > Se tutto è OK → **Altre informazioni → Esegui comunque**.
 >
 > ### Preferisci un canale che non chiede nulla?
-> Installa da un canale pubblico curato:
+> Installa con un package manager:
 > ```
 > winget install HikariHasegawa.VersoCon    # canale Microsoft (PR in attesa)
-> scoop install versocon                     # bucket curato community (già attivo)
+> scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket
+> scoop install versocon                     # Scoop, dal bucket dell'autore qui sopra (già attivo)
 > ```
 
 ## FAQ
