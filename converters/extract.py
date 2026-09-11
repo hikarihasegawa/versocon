@@ -14,11 +14,16 @@ from __future__ import annotations
 
 import io
 import os
+import re
 import shutil
+import subprocess
+import threading
 from pathlib import Path
 
 import pymupdf
 from PIL import Image
+
+from .proc import NO_WINDOW
 
 MAX_PAGES = 500
 OCR_MIN_SIDE = 300
@@ -128,47 +133,59 @@ def _try_import_pytesseract():
         return None
 
 
+_PROBE: dict | None = None
+_PROBE_LOCK = threading.Lock()
+
+
+def _run_quiet(cmd: list[str]) -> str:
+    """Esegue un comando senza finestra console; restituisce stdout + stderr."""
+    r = subprocess.run(cmd, capture_output=True, timeout=20, **NO_WINDOW)
+    return (r.stdout + r.stderr).decode("utf-8", "replace")
+
+
+def _tesseract_probe() -> dict:
+    """Versione e lingue di Tesseract, lette una volta sola per processo.
+
+    Sostituisce get_tesseract_version()/get_languages() di pytesseract: lanciano
+    tesseract senza nascondere la console e senza memorizzare il risultato, così
+    nell'exe comparivano finestre cmd all'avvio e a ogni estrazione.
+    """
+    global _PROBE
+    with _PROBE_LOCK:
+        if _PROBE is None:
+            version, langs = None, []
+            tess = _get_tesseract_cmd()
+            if tess:
+                try:
+                    m = re.search(r"tesseract\s+v?(\d+(?:\.\d+)*)", _run_quiet([tess, "--version"]), re.I)
+                    version = m.group(1) if m else None
+                    if version:
+                        for ln in _run_quiet([tess, "--list-langs"]).splitlines():
+                            ln = ln.strip()
+                            if ln and " " not in ln and not ln.endswith(":") and ln not in langs:
+                                langs.append(ln)
+                except (OSError, subprocess.SubprocessError):
+                    version, langs = None, []
+            _PROBE = {"version": version, "languages": langs}
+        return _PROBE
+
+
 def ocr_enabled() -> bool:
-    """True se il binary tesseract è nel PATH con almeno una lingua."""
-    pyt = _try_import_pytesseract()
-    if pyt is None:
+    """True se Tesseract risponde e ha almeno una delle lingue usate (eng/ita)."""
+    if _try_import_pytesseract() is None:
         return False
-    try:
-        ver = pyt.get_tesseract_version()
-    except Exception:  # noqa: BLE001
-        return False
-    try:
-        langs = pyt.get_languages()
-    except Exception:  # noqa: BLE001
-        return False
-    if not langs:
-        return False
-    if not (set(langs) & set(FALLBACK_LANGS)):
-        return False
-    return True
+    info = _tesseract_probe()
+    return bool(info["version"]) and bool(set(info["languages"]) & set(FALLBACK_LANGS))
 
 
 def ocr_info() -> dict:
-    """Stato OCR per /api/config e CLI: { available, version, languages }.
-    Lento solo alla prima chiamata (cache a livello di chiamata).
-    """
-    pyt = _try_import_pytesseract()
-    if pyt is None:
+    """Stato OCR per /api/config e CLI: { available, version, languages }."""
+    if _try_import_pytesseract() is None:
         return {"available": False, "version": None, "languages": []}
-    version = None
-    langs: list[str] = []
-    try:
-        version = pyt.get_tesseract_version()
-    except Exception:  # noqa: BLE001
-        pass
-    if version is None:
-        # tesseract non raggiungibile
+    info = _tesseract_probe()
+    if not info["version"]:
         return {"available": False, "version": None, "languages": []}
-    try:
-        langs = list(pyt.get_languages())
-    except Exception:  # noqa: BLE001
-        pass
-    return {"available": True, "version": str(version), "languages": langs}
+    return {"available": True, "version": info["version"], "languages": list(info["languages"])}
 
 
 def _render_pixmap(doc: "pymupdf.Document", page_no: int, dpi: int) -> bytes:
@@ -193,6 +210,46 @@ def _clamp_dpi(dpi: int | None) -> int:
     return max(50, min(600, v))
 
 
+def _same_row(a: dict, b: dict) -> bool:
+    """La riga `b` prosegue la riga `a`: testo orizzontale, stessa linea, subito a destra."""
+    (ax0, ay0, ax1, ay1), (bx0, by0, bx1, by1) = a["bbox"], b["bbox"]
+    horizontal = all(abs(ln["dir"][0] - 1) < 1e-3 and abs(ln["dir"][1]) < 1e-3 for ln in (a, b))
+    overlap = min(ay1, by1) - max(ay0, by0)
+    return horizontal and overlap > 0.5 * min(ay1 - ay0, by1 - by0) and bx0 >= ax1 - 1
+
+
+def _native_text(page: "pymupdf.Page") -> str:
+    """Testo nativo di una pagina, con le righe spezzate ricomposte.
+
+    Nei PDF con testo giustificato ogni parola può essere scritta da sola e
+    get_text("text") la mette su una riga a sé ("ricerca,\\nla\\nmetrica…").
+    Qui le righe dello stesso blocco che stanno sulla stessa linea, una dopo
+    l'altra da sinistra a destra, vengono riunite; ordine e caratteri restano
+    quelli di get_text("text").
+    """
+    rows: list[str] = []
+    for block in page.get_text("dict", flags=pymupdf.TEXTFLAGS_TEXT)["blocks"]:
+        if block.get("type") != 0:
+            continue
+        prev, row = None, ""
+        for line in block["lines"]:
+            text = "".join(span["text"] for span in line["spans"])
+            if prev is not None and _same_row(prev, line):
+                gap = line["bbox"][0] - prev["bbox"][2]
+                height = line["bbox"][3] - line["bbox"][1]
+                if gap > 0.15 * height and not row.endswith((" ", "\t")) and not text.startswith((" ", "\t")):
+                    row += " "
+                row += text
+            else:
+                if prev is not None:
+                    rows.append(row)
+                row = text
+            prev = line
+        if prev is not None:
+            rows.append(row)
+    return "".join(r + "\n" for r in rows)
+
+
 def page_texts(data: bytes, max_pages: int | None = None) -> list[str]:
     """Estrae il testo nativo da ogni pagina del PDF.
     Ritorna una lista di stringhe (una per pagina).
@@ -208,7 +265,7 @@ def page_texts(data: bytes, max_pages: int | None = None) -> list[str]:
         n = doc.page_count
         if max_pages and n > max_pages:
             raise ValueError(f"PDF con {n} pagine (max {max_pages} supportate)")
-        return [page.get_text("text") for page in doc]
+        return [_native_text(page) for page in doc]
     finally:
         doc.close()
 
@@ -290,7 +347,7 @@ def extract_text(
             raise ValueError(f"PDF con {n} pagine (max {MAX_PAGES} supportate)")
         out: list[str] = []
         for i in range(n):
-            txt = doc[i].get_text("text")
+            txt = _native_text(doc[i])
             use_ocr = mode == "on" or (mode == "auto" and not txt.strip())
             if use_ocr:
                 txt = ocr_image_bytes(_page_png(doc, i, dpi), lang=lang)

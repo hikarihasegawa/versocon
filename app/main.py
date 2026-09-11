@@ -704,6 +704,11 @@ def pdf_to_text(
         raise HTTPException(400, str(e))
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, T(request, "api.extract_text_failed", detail=str(e)))
+    if mode == "on" and warning is None:
+        # OCR forzato su pagine che hanno già testo: quello nativo è esatto, l'OCR no.
+        native = sum(1 for t in exconv.page_texts(data) if t.strip())
+        if native:
+            warning = T(request, "api.ocr_forced_native", n=native, total=len(pages_text))
 
     stem = Path(name).stem or "pdf"
     dst_name, n = f"{stem}.txt", 1

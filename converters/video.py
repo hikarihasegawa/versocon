@@ -12,6 +12,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from .proc import NO_WINDOW
+
 MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB di input
 FFMPEG_TIMEOUT = 300  # secondi
 
@@ -68,7 +70,7 @@ def _find_ffmpeg() -> str | None:
         if not p:
             continue
         try:
-            r = subprocess.run([p, "-version"], capture_output=True, timeout=8)
+            r = subprocess.run([p, "-version"], capture_output=True, timeout=8, **NO_WINDOW)
         except Exception:  # noqa: BLE001 - stub, timeout, permessi
             continue
         if r.returncode == 0:
@@ -116,7 +118,7 @@ def transcode(src_path: str, dst_path: str, fmt: str = "mp4", crf: int | None = 
             "-c:a", acodec, "-movflags", "+faststart", "-loglevel", "error", str(tmp),
         ]
         try:
-            r = subprocess.run(cmd, capture_output=True, timeout=FFMPEG_TIMEOUT)
+            r = subprocess.run(cmd, capture_output=True, timeout=FFMPEG_TIMEOUT, **NO_WINDOW)
         except subprocess.TimeoutExpired as e:
             raise VideoTimeoutError(f"Transcode superato il timeout di {FFMPEG_TIMEOUT}s") from e
         if r.returncode != 0:

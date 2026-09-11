@@ -196,3 +196,70 @@ def test_api_config_has_ocr(client):
     res = client.get("/api/config")
     assert res.status_code == 200
     assert "ocr" in res.json()
+
+
+@pytest.mark.skipif(not ENABLED, reason="OCR non disponibile")
+def test_api_forced_ocr_on_native_pdf_warns(client):
+    """OCR forzato su un PDF che ha già testo: l'utente viene indirizzato ad «Automatico»."""
+    res = client.post(
+        "/api/pdf-to-text",
+        data={"ocr": "on", "lang": "eng"},
+        files=[("file", ("a.pdf", _text_pdf(n=2), "application/pdf"))],
+    )
+    assert res.status_code == 200, res.text
+    assert "2" in res.json().get("warning", "")
+
+
+def test_api_auto_on_native_pdf_has_no_warning(client):
+    res = client.post(
+        "/api/pdf-to-text",
+        data={"ocr": "auto", "lang": "ita"},
+        files=[("file", ("a.pdf", _text_pdf(), "application/pdf"))],
+    )
+    assert res.status_code == 200, res.text
+    if ENABLED:
+        assert "warning" not in res.json()
+
+
+# ---------- testo nativo: righe spezzate (PDF con testo giustificato) ----------
+_WORDS = "Questo documento descrive la metrica adottata per misurare".split()
+
+
+def _split_words_pdf() -> bytes:
+    """Parole scritte una a una sulla stessa linea con spazi larghi, come nel testo
+    giustificato: get_text("text") le restituisce su righe separate."""
+    doc = pymupdf.Document()
+    page = doc.new_page()
+    x = 72.0
+    for w in _WORDS:
+        page.insert_text((x, 100), w + " ", fontsize=11)
+        x += pymupdf.get_text_length(w + " ", fontsize=11) * 1.4
+    page.insert_text((72, 130), "Seconda riga normale.", fontsize=11)
+    out = doc.tobytes()
+    doc.close()
+    return out
+
+
+def test_native_split_words_are_rejoined():
+    data = _split_words_pdf()
+    raw = pymupdf.Document(stream=data, filetype="pdf")[0].get_text("text")
+    assert raw.splitlines()[0].strip() == "Questo"  # il PDF riproduce il difetto
+    lines = [ln.strip() for ln in ex.page_texts(data)[0].splitlines()]
+    assert lines == [" ".join(_WORDS), "Seconda riga normale."]
+
+
+def test_extract_auto_rejoins_split_words():
+    assert " ".join(_WORDS) in ex.extract_text(_split_words_pdf(), mode="auto")[0]
+
+
+def test_native_text_keeps_every_character():
+    for data in (_split_words_pdf(), _text_pdf(n=2)):
+        doc = pymupdf.Document(stream=data, filetype="pdf")
+        expected = ["".join(p.get_text("text").split()) for p in doc]
+        assert ["".join(t.split()) for t in ex.page_texts(data)] == expected
+
+
+def test_native_text_unchanged_without_split_lines():
+    data = _text_pdf(n=2)
+    doc = pymupdf.Document(stream=data, filetype="pdf")
+    assert ex.page_texts(data) == [p.get_text("text") for p in doc]

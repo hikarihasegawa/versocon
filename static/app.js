@@ -55,7 +55,9 @@
     if (kind) toast.classList.add(kind);
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toast.classList.remove("show"), 3200);
+    // i messaggi lunghi (avvisi) restano visibili il tempo di leggerli
+    const ms = Math.min(12000, Math.max(3200, String(msg).length * 55));
+    toastTimer = setTimeout(() => toast.classList.remove("show"), ms);
   }
 
   const fmtBytes = (n) => {
@@ -434,8 +436,9 @@
       txtResult.hidden = false;
       txtDownload.href = data.results[0].download;
       txtDownload.textContent = IC.t("dyn.download_named", { name: data.results[0].name });
+      // un toast solo: l'avviso, se c'è, non va coperto da quello di successo
       if (data.warning) showToast(data.warning, "warn");
-      showToast(IC.t("dyn.text_extracted", { n: (data.pages || []).length }), "ok");
+      else showToast(IC.t("dyn.text_extracted", { n: (data.pages || []).length }), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
