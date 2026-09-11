@@ -1,9 +1,9 @@
-# VersoCon — v0.2.4 — Release notes
+# VersoCon — v0.2.5 — Release notes
 
 ## ✨ What's new
-- 🌍 **i18n**: Italian + English (swappable in-app via `⚙️ Language`).
-- 📦 **Installer fixes**: Inno compressed, smaller download, no AV false-positive.
-- 🔐 **Security section** for non-technical users: this page covers SHA-256 / VirusTotal / winget / Scoop.
+- 🛡️ **Security fix — update recommended**: the local server no longer serves files outside its own output folder (Windows path traversal) and rejects requests coming from other websites (DNS-rebinding / CSRF protection).
+- 🧹 **Privacy**: converted files now live in a private per-session folder and are deleted when VersoCon closes — download them before quitting. Leftovers from older versions are removed on first launch.
+- 🌍 The results "Download" link is now translated.
 
 ## 🔒 Is it safe? / È sicuro?
 

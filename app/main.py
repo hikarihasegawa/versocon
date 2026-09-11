@@ -38,7 +38,7 @@ async def _lifespan(_app: FastAPI):
     shutil.rmtree(OUT_DIR, ignore_errors=True)
 
 
-app = FastAPI(title="VersoCon", version="0.2.4", lifespan=_lifespan)
+app = FastAPI(title="VersoCon", version="0.2.5", lifespan=_lifespan)
 app.add_middleware(LocalOnlyMiddleware)
 
 BASE_DIR = constants.ROOT
