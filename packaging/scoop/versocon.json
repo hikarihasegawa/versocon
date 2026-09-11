@@ -3,25 +3,20 @@
     "description": "Free, 100% offline file converter: HEIC photos, PDFs (edit, sign, merge, compress, OCR) and video. No cloud, no account, no telemetry.",
     "homepage": "https://github.com/HikariHasegawa/versocon",
     "license": "MIT",
-    "notes": "VersoCon is installed for the current user (Start Menu shortcut). Optional extras: `scoop install ffmpeg` (video) and a Tesseract install (OCR) if you want to use video / OCR features.",
-    "suggests": {
-        "ffmpeg": "ffmpeg"
+    "notes": "Optional extras: `scoop install ffmpeg` (video) and a Tesseract install (OCR) for the video / OCR features.",
+    "suggest": {
+        "ffmpeg": "main/ffmpeg"
     },
-    "installer": {
-        "args": [
-            "/VERYSILENT",
-            "/NORESTART"
-        ],
-            "url": "https://github.com/HikariHasegawa/versocon/releases/download/v0.2.5/versocon-setup-0.2.5.exe",
-        "hash": "5E7A03FB41C8CCFE6987424B15E4A2B341ADA8AE27E621E8279D6E506BA7532D",
-        "checksumType": "sha256",
-        "installerType": "innosetup"
-    },
-    "checkver": {
-        "url": "https://api.github.com/repos/HikariHasegawa/versocon/releases/latest",
-        "jsonpath": "tag_name",
-        "regex": "v?(.+)"
-    },
+    "url": "https://github.com/HikariHasegawa/versocon/releases/download/v0.2.5/versocon-setup-0.2.5.exe",
+    "hash": "5e7a03fb41c8ccfe6987424b15e4a2b341ada8ae27e621e8279d6e506ba7532d",
+    "innosetup": true,
+    "shortcuts": [
+        [
+            "Versocon.exe",
+            "VersoCon"
+        ]
+    ],
+    "checkver": "github",
     "autoupdate": {
         "url": "https://github.com/HikariHasegawa/versocon/releases/download/v$version/versocon-setup-$version.exe"
     }
