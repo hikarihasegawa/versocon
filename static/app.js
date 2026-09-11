@@ -1270,6 +1270,8 @@
   /* ---------- boot ---------- */
   function renderConfigStatus(cfg) {
     if (!cfg) return;
+    const appVersion = $("#appVersion");
+    if (appVersion && cfg.version) appVersion.textContent = "v" + cfg.version;
     if (cfg.support && cfg.support.kofi_url) kofiUrl = cfg.support.kofi_url;
     if (videoStatus) {
       if (cfg.video && cfg.video.ffmpeg_available === false) {

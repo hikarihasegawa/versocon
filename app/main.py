@@ -38,7 +38,7 @@ async def _lifespan(_app: FastAPI):
     shutil.rmtree(OUT_DIR, ignore_errors=True)
 
 
-app = FastAPI(title="VersoCon", version="0.2.5", lifespan=_lifespan)
+app = FastAPI(title="VersoCon", version="0.2.6", lifespan=_lifespan)
 app.add_middleware(LocalOnlyMiddleware)
 
 BASE_DIR = constants.ROOT
@@ -94,6 +94,7 @@ MAX_BATCH_FILES = 500
 @app.get("/api/config")
 def config():
     return {
+        "version": app.version,
         "supported_in": sorted(imgconv.ACCEPTED_EXT),
         "supported_out": list(VALID_OUT),
         "documents": {

@@ -1,9 +1,10 @@
-# VersoCon — v0.2.5 — Release notes
+# VersoCon — v0.2.6 — Release notes
 
 ## ✨ What's new
-- 🛡️ **Security fix — update recommended**: the local server no longer serves files outside its own output folder (Windows path traversal) and rejects requests coming from other websites (DNS-rebinding / CSRF protection).
-- 🧹 **Privacy**: converted files now live in a private per-session folder and are deleted when VersoCon closes — download them before quitting. Leftovers from older versions are removed on first launch.
-- 🌍 The results "Download" link is now translated.
+- 🪟 **No more flashing console windows**: Tesseract and ffmpeg now run hidden — no command-prompt windows at startup, during PDF text extraction or video conversion.
+- 📄 **Cleaner PDF → text**: justified paragraphs and table rows are no longer split one word per line. If you force OCR on a PDF that already contains text, VersoCon now tells you that "Automatic" gives the exact text.
+- 🇮🇹 **Italian translation fixes** (e.g. "Estrazione in corso…") and the correct version number in the footer.
+- 🛡️ Includes the v0.2.5 security fix (path traversal, DNS-rebinding / CSRF protection) — update recommended if you are on v0.2.4 or older.
 
 ## 🔒 Is it safe? / È sicuro?
 
