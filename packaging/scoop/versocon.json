@@ -1,5 +1,5 @@
 {
-    "version": "0.2.4",
+    "version": "0.2.5",
     "description": "Free, 100% offline file converter: HEIC photos, PDFs (edit, sign, merge, compress, OCR) and video. No cloud, no account, no telemetry.",
     "homepage": "https://github.com/HikariHasegawa/versocon",
     "license": "MIT",
@@ -12,8 +12,8 @@
             "/VERYSILENT",
             "/NORESTART"
         ],
-            "url": "https://github.com/HikariHasegawa/versocon/releases/download/v0.2.4/versocon-setup-0.2.4.exe",
-        "hash": "DCC198FCC79A65675097B56A275B782F846DC7251766FC43D2CC9008AD6641A5",
+            "url": "https://github.com/HikariHasegawa/versocon/releases/download/v0.2.5/versocon-setup-0.2.5.exe",
+        "hash": "5E7A03FB41C8CCFE6987424B15E4A2B341ADA8AE27E621E8279D6E506BA7532D",
         "checksumType": "sha256",
         "installerType": "innosetup"
     },
