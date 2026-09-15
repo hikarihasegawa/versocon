@@ -42,6 +42,18 @@ async def _lifespan(_app: FastAPI):
 app = FastAPI(title="VersoCon", version=__version__, lifespan=_lifespan)
 app.add_middleware(LocalOnlyMiddleware)
 
+
+@app.middleware("http")
+async def _no_stale_assets(request, call_next):
+    """Gli asset locali vanno sempre rivalidati (ETag → 304 se invariati).
+
+    Senza `Cache-Control` i browser applicano la cache euristica e possono
+    servire style.css/app.js vecchi dopo un aggiornamento dell'app."""
+    response = await call_next(request)
+    if request.method == "GET" and "cache-control" not in response.headers:
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
 BASE_DIR = constants.ROOT
 _TMP_ROOT = Path(tempfile.gettempdir())
 _STALE_AFTER_S = 72 * 3600
