@@ -25,6 +25,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-font-smoothing: antialiased; }
+/* entrambi i temi sono scuri: menu nativi (select/checkbox/scrollbar) coerenti */
+:root { color-scheme: dark; }
 
 /* ---- Paper canvas ---- */
 body {
@@ -726,3 +728,248 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
 @media (prefers-reduced-motion: reduce) {
   .petal, .dropzone-card::after, .card { animation: none !important; }
 }
+
+/* ===================================================================
+   Tema "Pro" — dashboard sobria (superfici neutre, piatto, font di sistema)
+   Attivo con la classe `theme-pro` su <html>. Il tema manga resta la
+   variante alternativa; qui si spengono decorazioni e stile fumetto.
+   =================================================================== */
+:root { --accent-on: #111111; }
+
+html.theme-pro {
+  --paper:      #181818;
+  --paper-2:    #232323;
+  --paper-3:    #2e2e2e;
+  --ink:        #f2f2f2;
+  --ink-soft:   #a6a6a6;
+  --red:        #ff6b2c;
+  --red-deep:   #ffa06b;
+  --gold:       #2e2e2e;
+  --ok:         #6ee7a8;
+  --ok-soft:    rgba(110, 231, 168, .14);
+  --err:        #ff8f7a;
+  --border:     1px solid #333333;
+  --shadow:     none;
+  --shadow-sm:  none;
+  --radius:     12px;
+  --font-title: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+}
+
+/* decorazioni fumetto spente */
+html.theme-pro body::before,
+html.theme-pro body::after,
+html.theme-pro #petals,
+html.theme-pro .dropzone-card::after { display: none; }
+html.theme-pro .petal { animation: none; }
+html.theme-pro .card { animation: none; }
+html.theme-pro .file { animation: none; }
+
+/* masthead */
+html.theme-pro h1 {
+  font-family: var(--font-title);
+  font-size: 26px; font-weight: 600; font-style: normal;
+  text-transform: none; letter-spacing: 0; line-height: 1.2;
+  text-shadow: none; transform: none;
+}
+html.theme-pro .logo-mark-img { width: 44px; height: 44px; transform: none; filter: none; }
+html.theme-pro .tagline { font-weight: 400; letter-spacing: .01em; }
+html.theme-pro .badge {
+  font-family: var(--font); font-size: 12px; font-weight: 500; font-style: normal;
+  letter-spacing: .02em; text-transform: none; transform: none;
+  color: #d4d4d4; background: #2b2b2b; border: 1px solid #3a3a3a;
+  border-radius: 999px; padding: 7px 14px; box-shadow: none;
+}
+html.theme-pro .lang-pick {
+  background: var(--paper-2); border: var(--border); box-shadow: none;
+  transform: none; padding: 3px 4px 3px 10px;
+}
+html.theme-pro .lang-sel,
+html.theme-pro .theme-btn {
+  font-family: var(--font); font-size: 13px; font-weight: 500; font-style: normal;
+  letter-spacing: 0; text-transform: none;
+  color: var(--ink); background-color: var(--paper-2); border: 1px solid #3a3a3a;
+  border-radius: 8px; box-shadow: none;
+}
+html.theme-pro .lang-sel {
+  background-image: linear-gradient(45deg, transparent 50%, var(--ink-soft) 50%),
+                    linear-gradient(135deg, var(--ink-soft) 50%, transparent 50%);
+  background-size: 9px 9px, 9px 9px;
+  background-position: right 13px top 17px, right 8px top 17px;
+  background-repeat: no-repeat;
+}
+html.theme-pro .lang-sel:hover,
+html.theme-pro .theme-btn:hover { border-color: #4a4a4a; box-shadow: none; background: #2b2b2b; }
+html.theme-pro .lang-sel:focus-visible,
+html.theme-pro .theme-btn:focus-visible { outline: 3px solid rgba(255, 107, 44, .45); outline-offset: 2px; box-shadow: none; }
+
+/* tab e card */
+html.theme-pro .tab {
+  font-family: var(--font); font-size: 14px; font-weight: 600; font-style: normal;
+  letter-spacing: 0; text-transform: none;
+  background: var(--paper-2); border: 1px solid #333333; border-radius: 10px;
+  box-shadow: none; padding: 10px 18px;
+}
+html.theme-pro .tab:hover { transform: none; box-shadow: none; background: #2b2b2b; border-color: #3d3d3d; }
+html.theme-pro .tab:active { transform: none; box-shadow: none; }
+html.theme-pro .tab.active { background: var(--paper-3); color: #ffffff; border-color: #3d3d3d; box-shadow: none; }
+html.theme-pro .tab.active::after { display: none; }
+html.theme-pro .card {
+  background: var(--paper-2); border: 1px solid #2c2c2c;
+  border-radius: var(--radius); box-shadow: none; padding: 20px;
+}
+html.theme-pro h3 {
+  font-family: var(--font); font-size: 16px; font-weight: 600; font-style: normal;
+  text-transform: none; letter-spacing: 0;
+}
+html.theme-pro .panel-title {
+  font-family: var(--font); font-size: 18px; font-weight: 600; font-style: normal;
+  text-transform: none; letter-spacing: 0; text-shadow: none;
+}
+
+/* dropzone */
+html.theme-pro #dropzone {
+  background-color: #1e1e1e; background-image: none;
+  border: 1px dashed #3a3a3a; border-radius: 12px;
+}
+html.theme-pro #dropzone:hover,
+html.theme-pro #dropzone:focus-visible { background-color: #242424; border-style: dashed; border-color: #4a4a4a; }
+html.theme-pro #dropCard.dragover #dropzone {
+  background-color: #2a2119; border-style: dashed; border-color: var(--red);
+  transform: none; box-shadow: none;
+}
+html.theme-pro #dropzone h2 {
+  font-family: var(--font); font-size: 20px; font-weight: 600; font-style: normal;
+  text-transform: none; letter-spacing: 0; text-shadow: none;
+}
+html.theme-pro #dropzone p { font-weight: 400; letter-spacing: 0; }
+html.theme-pro .dz-icon { width: 40px; height: 40px; margin-bottom: 8px; }
+
+/* bottoni */
+html.theme-pro .btn {
+  font-family: var(--font); font-size: 14px; font-weight: 500; font-style: normal;
+  letter-spacing: 0; text-transform: none;
+  color: var(--ink); background: var(--paper-2); border: 1px solid #3a3a3a;
+  border-radius: 8px; box-shadow: none; padding: 11px 20px;
+}
+html.theme-pro .btn:hover { transform: none; box-shadow: none; background: #2b2b2b; border-color: #4a4a4a; }
+html.theme-pro .btn:active { transform: none; box-shadow: none; }
+html.theme-pro .btn[disabled] { box-shadow: none; opacity: .45; }
+html.theme-pro .btn-primary {
+  background: #ffffff; background-image: none; color: var(--accent-on);
+  border-color: #ffffff; text-shadow: none; font-weight: 600;
+}
+html.theme-pro .btn-primary:hover { background: #e8e8e8; border-color: #e8e8e8; }
+html.theme-pro .btn-pick:hover,
+html.theme-pro .btn-ghost:hover { background: #2b2b2b; }
+
+/* segmenti e controlli */
+html.theme-pro .seg { background: #1e1e1e; border: 1px solid #333333; border-radius: 10px; }
+html.theme-pro .seg-btn {
+  font-family: var(--font); font-size: 13px; font-weight: 500; font-style: normal;
+  text-transform: none; letter-spacing: 0; color: var(--ink-soft);
+}
+html.theme-pro .seg-btn:hover { background: #2b2b2b; }
+html.theme-pro .seg-btn.active { background: var(--paper-3); color: #ffffff; border-color: transparent; box-shadow: none; }
+html.theme-pro .ctl-val { color: var(--red-deep); font-family: var(--font); font-weight: 600; font-style: normal; }
+html.theme-pro .numin,
+html.theme-pro select,
+html.theme-pro input[type="color"],
+html.theme-pro .ctlrow select {
+  background: #1e1e1e; border: 1px solid #333333; border-radius: 8px;
+  color: var(--ink); box-shadow: none;
+}
+html.theme-pro .numin:focus,
+html.theme-pro .ctlrow select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(255, 107, 44, .25); }
+html.theme-pro .slider {
+  background: #333333; border: 1px solid #3a3a3a; border-radius: 999px; height: 8px;
+}
+html.theme-pro .slider::-webkit-slider-thumb,
+html.theme-pro .slider::-moz-range-thumb {
+  background: #f2f2f2; border: 2px solid #171717; box-shadow: none;
+}
+html.theme-pro .txtbox pre { background: #141414; color: #e8e8e8; border: 1px solid #333333; }
+html.theme-pro .sep { border-top: 1px solid #2c2c2c; }
+
+/* liste file */
+html.theme-pro .file {
+  background: #1e1e1e; border: 1px solid #2f2f2f; border-radius: 10px;
+  box-shadow: none;
+}
+html.theme-pro .file .ficon {
+  background: #2b2b2b; border: 1px solid #3a3a3a; border-radius: 8px;
+  color: #d4d4d4; font-family: var(--font); font-weight: 600;
+}
+html.theme-pro .file a {
+  font-family: var(--font); font-style: normal; font-weight: 600;
+  color: var(--red-deep); border-bottom: none;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+html.theme-pro .file a:hover { color: #ffc9a8; }
+html.theme-pro .file .fsaved { background: rgba(110, 231, 168, .14); color: #8ef0b4; }
+html.theme-pro .file .rm:hover { color: #171717; background: var(--err); border-color: var(--err); }
+
+/* subtab, footer, toast */
+html.theme-pro .subtab {
+  font-family: var(--font); font-size: 13px; font-weight: 500; font-style: normal;
+  text-transform: none; letter-spacing: 0;
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  color: var(--ink-soft); padding: 8px 14px;
+}
+html.theme-pro .subtab:hover { background: #2b2b2b; color: var(--ink); }
+html.theme-pro .subtab.active { background: var(--paper-3); color: #ffffff; border-color: transparent; box-shadow: none; }
+html.theme-pro .foot { font-weight: 500; letter-spacing: .04em; text-transform: none; }
+html.theme-pro .foot i { font-family: var(--font); font-style: normal; font-weight: 600; color: var(--red-deep); }
+html.theme-pro .kofi-btn {
+  font-family: var(--font); font-size: 12px; font-weight: 500; font-style: normal;
+  text-transform: none; letter-spacing: 0;
+  background: var(--paper-2); color: var(--ink-soft); border: 1px solid #3a3a3a; box-shadow: none;
+}
+html.theme-pro .kofi-btn:hover { background: #2b2b2b; transform: none; box-shadow: none; }
+html.theme-pro .kofi-cup { color: var(--red); }
+html.theme-pro .toast {
+  font-family: var(--font); font-size: 14px; font-weight: 500; font-style: normal;
+  letter-spacing: 0; background: #242424; border: 1px solid #3a3a3a;
+  border-radius: 10px; box-shadow: none; transform: translate(-50%, 16px);
+}
+html.theme-pro .toast.show { transform: translate(-50%, 0); }
+html.theme-pro .toast.ok { background: #16281d; color: #8ef0b4; border-color: #2b4a37; }
+html.theme-pro .toast.err { background: #2c1a18; color: #ffb3a7; border-color: #4a2b28; }
+html.theme-pro .toast.warn { background: #2a2416; color: #f0d38a; border-color: #4a3f24; }
+
+/* editor PDF v2 (usa in gran parte le variabili) */
+html.theme-pro .ed-head { border-bottom: 1px solid #2c2c2c; }
+html.theme-pro .ed-left .ed-foot { border-top: 1px solid #2c2c2c; }
+html.theme-pro .ed-tools h5 { font-family: var(--font); opacity: .55; }
+html.theme-pro .ed-tool {
+  background: var(--paper-2); border: 1px solid #333333; border-radius: 8px;
+  box-shadow: none; font-size: .82rem;
+}
+html.theme-pro .ed-tool:hover { transform: none; box-shadow: none; background: #2b2b2b; border-color: #4a4a4a; }
+html.theme-pro .ed-tool:active { transform: none; box-shadow: none; }
+html.theme-pro .ed-tool:focus-visible { outline: 3px solid rgba(255, 107, 44, .45); outline-offset: 2px; }
+html.theme-pro .ed-tool[aria-pressed="true"] { background: var(--paper-3); color: #ffffff; border-color: #3d3d3d; }
+html.theme-pro .ed-pg-label,
+html.theme-pro .ed-zoom-label { font-family: var(--font); font-weight: 600; }
+html.theme-pro .ed-page-wrap {
+  background: #141414; border-style: solid; border-width: 1px; border-color: #2c2c2c;
+}
+html.theme-pro .ed-page-card { background: #ffffff; border: 1px solid #333333; box-shadow: none; border-radius: 4px; }
+html.theme-pro .ed-page-empty { color: rgba(0, 0, 0, .45); }
+html.theme-pro .ed-overlay {
+  outline: 2px dashed var(--red-deep); background: rgba(255, 107, 44, .08);
+}
+html.theme-pro .ed-h { background: var(--red); border: 2px solid #ffffff; box-shadow: 0 0 0 1px var(--red); }
+html.theme-pro #inkPad { background: #ffffff; border: 1px solid #333333; }
+
+/* selettore tema (base, vale in tutti i temi) */
+.theme-btn {
+  appearance: none; cursor: pointer;
+  font-family: var(--font-title);
+  font-size: 13px; font-weight: 900; font-style: italic;
+  letter-spacing: .05em; text-transform: uppercase;
+  color: var(--ink); background: var(--gold);
+  border: 2px solid var(--ink); border-radius: 6px;
+  padding: 7px 12px; white-space: nowrap;
+}
+.theme-btn:hover { border-color: var(--red); }
+

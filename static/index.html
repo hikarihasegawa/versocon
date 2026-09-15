@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="style.css" />
   <script src="vendor/pdfjs/pdf.min.js"></script>
   <script src="i18n.js"></script>
+  <script src="theme.js"></script>
   </head>
 <body>
 <div id="petals" aria-hidden="true"></div>
@@ -28,6 +29,13 @@
       <div class="lang-pick" role="group" aria-label="Language / Lingua">
         <span class="lang-ic" aria-hidden="true">🌐</span>
         <select id="langSel" class="lang-sel" aria-label="Language / Lingua"></select>
+      </div>
+      <div class="lang-pick">
+        <span class="lang-ic" aria-hidden="true">◐</span>
+        <button type="button" id="themeToggle" class="theme-btn" aria-pressed="true"
+                data-i18n-attr="title:theme.title;aria-label:theme.title" title="Tema">
+          <span id="themeLabel">Pro</span>
+        </button>
       </div>
     </div>
   </header>
