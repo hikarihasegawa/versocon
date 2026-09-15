@@ -1686,7 +1686,6 @@
         fd.append("needle", needle);
         fd.append("replacement", $("#edReplWith").value);
         fd.append("pages", pagesToPayload($("#edReplPages").value));
-        fd.append("replace_fill", $("#edReplFill").value);
       } else if (act === "number") {
         fd.append("num_start", $("#edNumStart").value);
         fd.append("num_prefix", $("#edNumPrefix").value);
