@@ -13,6 +13,8 @@ from pathlib import Path
 import pymupdf
 from PIL import Image, ImageOps
 
+from .report import check_cancelled, report
+
 try:  # motore opzionale: senza OpenCV la funzione «Scansione» resta spenta
     import cv2
     import numpy as np
@@ -218,9 +220,11 @@ def clean_bytes(
     corners=None,
     fmt: str = "png",
     quality: int = 85,
+    cancel=None,
 ) -> bytes:
     """Pulisce un'immagine (EXIF/HEIC inclusi) e la ricodifica in PNG o JPEG."""
     _require()
+    check_cancelled(cancel)
     img = decode_image(data)
     out = _pipeline(
         img,
@@ -240,11 +244,14 @@ def clean_pdf(
     binarize: bool = False,
     corners=None,
     dpi: int = 200,
+    progress=None,
+    cancel=None,
 ) -> bytes:
     """Pulisce un PDF scansionato: ogni pagina è rasterizzata, pulita e ricomposta.
 
     Le pagine restano della stessa dimensione; il testo diventa un'immagine.
-    ``corners`` (percentuali) si applica a ogni pagina.
+    ``corners`` (percentuali) si applica a ogni pagina. ``progress``/``cancel``
+    opzionali: avanzamento per pagina e annullo tra una pagina e l'altra.
     """
     _require()
     zoom = max(0.5, min(6.0, (dpi or 200) / 72.0))
@@ -253,9 +260,11 @@ def clean_pdf(
     try:
         if src.page_count > MAX_PAGES:
             raise ValueError(f"troppe pagine: {src.page_count} (max {MAX_PAGES})")
+        report(progress, 0, src.page_count, "pages")
         out = pymupdf.open()
         try:
-            for page in src:
+            for i, page in enumerate(src):
+                check_cancelled(cancel)
                 pix = page.get_pixmap(matrix=mat, alpha=False, colorspace=pymupdf.csRGB)
                 arr = np.frombuffer(pix.samples, dtype=np.uint8)
                 arr = arr.reshape(pix.height, pix.stride)[:, : pix.width * 3]
@@ -269,6 +278,7 @@ def clean_pdf(
                 )
                 new = out.new_page(width=page.rect.width, height=page.rect.height)
                 new.insert_image(new.rect, stream=encode_image(bgr, "png"))
+                report(progress, i + 1, src.page_count, "pages")
             return out.tobytes()
         finally:
             out.close()

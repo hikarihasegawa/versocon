@@ -430,4 +430,16 @@
   "api.signature_missing": "缺少签名图片",
   "api.editor_failed": "PDF 编辑器操作失败：{detail}",
   "api.sign_gen_failed": "签名生成失败：{detail}"
+,
+  "api.job_not_found": "操作未找到或已过期。",
+  "job.running": "正在处理…",
+  "job.video": "正在转换视频…",
+  "job.audio": "正在提取音频…",
+  "job.gif": "正在创建 GIF…",
+  "job.scan": "正在清理扫描件…",
+  "job.scan_page": "正在清理页面…",
+  "job.cancel": "取消",
+  "job.cancelling": "正在取消…",
+  "job.cancelled": "操作已取消。",
+  "job.busy": "另一项操作正在进行：请等待或取消。"
 }

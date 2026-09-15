@@ -98,9 +98,24 @@ def t(
     I parametri possono essere passati come dict posizionale o come keyword
     (``t(request, "api.x", name="a.png")``).
     """
+    return t_lang(_pick_lang(request), key, params, **kw)
+
+
+def lang_of(request: Request) -> str:
+    """Lingua scelta per la richiesta (stessa logica di ``t``), esposta ai job."""
+    return _pick_lang(request)
+
+
+def t_lang(
+    lang: str,
+    key: str,
+    params: dict[str, object] | None = None,
+    **kw: object,
+) -> str:
+    """Come ``t`` ma con la lingua esplicita (usata dai worker in background)."""
     all_params: dict[str, object] = dict(params or {})
     all_params.update(kw)
-    best = _pick_lang(request)
+    best = lang if lang in SUPPORTED else "it"
     chain = list(dict.fromkeys([best, "en", "it"])) if best in SUPPORTED else ["it"]
     for lang in chain:
         d = _load(lang)

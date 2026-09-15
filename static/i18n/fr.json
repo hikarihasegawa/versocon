@@ -430,4 +430,16 @@
   "api.signature_missing": "Image de signature manquante",
   "api.editor_failed": "Échec de l'éditeur PDF : {detail}",
   "api.sign_gen_failed": "Échec de la génération de la signature : {detail}"
+,
+  "api.job_not_found": "Opération introuvable ou expirée.",
+  "job.running": "Opération en cours…",
+  "job.video": "Conversion vidéo en cours…",
+  "job.audio": "Extraction audio en cours…",
+  "job.gif": "Création du GIF…",
+  "job.scan": "Nettoyage des scans…",
+  "job.scan_page": "Nettoyage de la page…",
+  "job.cancel": "Annuler",
+  "job.cancelling": "Annulation…",
+  "job.cancelled": "Opération annulée.",
+  "job.busy": "Une autre opération est en cours : attendez ou annulez-la."
 }

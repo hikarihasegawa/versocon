@@ -430,4 +430,16 @@
   "api.signature_missing": "署名画像がありません",
   "api.editor_failed": "PDFエディターに失敗しました: {detail}",
   "api.sign_gen_failed": "署名の生成に失敗しました: {detail}"
+,
+  "api.job_not_found": "操作が見つからないか期限切れです。",
+  "job.running": "処理中…",
+  "job.video": "動画を変換中…",
+  "job.audio": "音声を抽出中…",
+  "job.gif": "GIF を作成中…",
+  "job.scan": "スキャンを補正中…",
+  "job.scan_page": "ページを補正中…",
+  "job.cancel": "キャンセル",
+  "job.cancelling": "キャンセル中…",
+  "job.cancelled": "操作をキャンセルしました。",
+  "job.busy": "別の操作が実行中です。待つかキャンセルしてください。"
 }

@@ -430,4 +430,16 @@
   "api.signature_missing": "Signaturbild fehlt",
   "api.editor_failed": "PDF-Editor fehlgeschlagen: {detail}",
   "api.sign_gen_failed": "Signaturerstellung fehlgeschlagen: {detail}"
+,
+  "api.job_not_found": "Vorgang nicht gefunden oder abgelaufen.",
+  "job.running": "Vorgang läuft…",
+  "job.video": "Video wird konvertiert…",
+  "job.audio": "Audio wird extrahiert…",
+  "job.gif": "GIF wird erstellt…",
+  "job.scan": "Scans werden bereinigt…",
+  "job.scan_page": "Seite wird bereinigt…",
+  "job.cancel": "Abbrechen",
+  "job.cancelling": "Wird abgebrochen…",
+  "job.cancelled": "Vorgang abgebrochen.",
+  "job.busy": "Ein anderer Vorgang läuft: warten oder abbrechen."
 }

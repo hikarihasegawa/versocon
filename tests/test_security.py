@@ -99,7 +99,7 @@ def test_read_capped_never_reads_everything():
 def test_video_source_is_unique_and_removed(client, monkeypatch):
     seen = []
 
-    def fake_transcode(src, dst, fmt="mp4", crf=None):
+    def fake_transcode(src, dst, fmt="mp4", crf=None, *, progress=None, cancel=None):
         seen.append(Path(src))
         assert Path(src).is_file()
         Path(dst).write_bytes(b"out")

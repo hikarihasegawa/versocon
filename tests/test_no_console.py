@@ -23,6 +23,21 @@ class _Done:
         self.returncode, self.stdout, self.stderr = 0, stdout, b""
 
 
+class _FakeProc:
+    """Processo finto di subprocess.Popen (ffmpeg che emette progresso)."""
+
+    def __init__(self, stdout_lines=()):
+        self.stdout = iter([line.encode() for line in stdout_lines])
+        self.returncode = 0
+        self.killed = False
+
+    def wait(self, timeout=None):
+        return self.returncode
+
+    def kill(self):
+        self.killed = True
+
+
 def test_no_window_flag():
     if sys.platform == "win32":
         assert NO_WINDOW == {"creationflags": subprocess.CREATE_NO_WINDOW}
@@ -66,7 +81,14 @@ def test_transcode_no_console(monkeypatch, tmp_path):
     src = tmp_path / "in.mp4"
     src.write_bytes(b"x")
     calls = []
+
+    def fake_popen(cmd, **kw):
+        calls.append(kw.get("creationflags", 0))
+        return _FakeProc(["out_time_us=1000\n", "progress=end\n"])
+
     monkeypatch.setattr(vid, "_find_ffmpeg", lambda: "ffmpeg")
-    monkeypatch.setattr(vid.subprocess, "run", lambda cmd, **kw: calls.append(kw.get("creationflags", 0)) or _Done())
-    vid.transcode(str(src), str(tmp_path / "out.mp4"))
+    monkeypatch.setattr(vid, "_probe_duration", lambda ff, p: None)
+    monkeypatch.setattr(vid.subprocess, "Popen", fake_popen)
+    size = vid.transcode(str(src), str(tmp_path / "out.mp4"))
     assert calls == [FLAG]
+    assert size >= 0

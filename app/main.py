@@ -25,9 +25,11 @@ from converters import scan as scanconv
 from converters import sign as sconv
 from converters import tools as toolconv
 from converters import video as vidconv
+from converters.report import OperationCancelled, check_cancelled, report
 
 from app import constants
-from app.i18n import t as T
+from app.i18n import lang_of, t as T, t_lang
+from app.jobs import JobError, JobManager
 from app.security import LocalOnlyMiddleware, safe_child
 from app.version import __version__
 
@@ -94,6 +96,8 @@ _purge_stale_outputs()
 # Viene cancellata alla chiusura: i file convertiti vivono solo finché l'app è aperta.
 OUT_DIR = Path(tempfile.mkdtemp(prefix="versocon-"))
 atexit.register(shutil.rmtree, OUT_DIR, ignore_errors=True)
+# Job in background (progresso + annullo): stato in memoria, file in OUT_DIR.
+JOBS = JobManager(OUT_DIR / "jobs")
 
 
 def _read_capped(uf: UploadFile, limit: int) -> bytes:
@@ -388,7 +392,7 @@ def convert_images_to_pdf(
 
 
 
-def _save_video_upload(request: Request, file: UploadFile) -> tuple[Path, str]:
+def _save_video_upload(request: Request, file: UploadFile, dest_dir: Path | None = None) -> tuple[Path, str]:
     """Copia un upload video su disco a blocchi (mai l'intero file in RAM).
 
     Restituisce (percorso del temp, nome originale). Il chiamante rimuove il temp.
@@ -399,7 +403,7 @@ def _save_video_upload(request: Request, file: UploadFile) -> tuple[Path, str]:
 
     # Nome univoco: due conversioni in parallelo non si sovrascrivono il sorgente.
     orig_ext = Path(vname).suffix.lower() or ".mp4"
-    fd, src_name = tempfile.mkstemp(prefix=".src-", suffix=orig_ext, dir=str(OUT_DIR))
+    fd, src_name = tempfile.mkstemp(prefix=".src-", suffix=orig_ext, dir=str(dest_dir or OUT_DIR))
     src = Path(src_name)
     written = 0
     with os.fdopen(fd, "wb") as out_f:
@@ -438,6 +442,93 @@ def _video_result(dst_name: str, src_name: str, dst: Path, size: int) -> dict:
     }
 
 
+def _video_run(src_name: str, src: Path, out_ext: str, task) -> dict:
+    """Esegue un'operazione video con uscita univoca e pulizia del sorgente."""
+    stem = Path(src_name).stem or "video"
+    dst_name, dst = _video_out_path(stem, out_ext)
+    try:
+        size = task(dst)
+    finally:
+        if src.exists():
+            src.unlink()
+    return _video_result(dst_name, src_name, dst, size)
+
+
+def _video_convert_run(lang: str, src: Path, src_name: str, fmt: str, crf,
+                       *, progress=None, cancel=None) -> dict:
+    """Transcode mp4/webm, condiviso tra endpoint sincrono e job."""
+    try:
+        out_ext = vidconv._out_container(fmt)[0]
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    def task(dst):
+        try:
+            return vidconv.transcode(str(src), str(dst), fmt=fmt, crf=crf,
+                                     progress=progress, cancel=cancel)
+        except OperationCancelled:
+            raise
+        except vidconv.MissingFfmpegError as e:
+            raise HTTPException(503, t_lang(lang, "api.ffmpeg_missing") + str(e))
+        except vidconv.VideoTimeoutError as e:
+            raise HTTPException(504, t_lang(lang, "api.ffmpeg_timeout") + str(e))
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except Exception as e:  # noqa: BLE001 - failure generica di transcode
+            raise HTTPException(500, t_lang(lang, "api.transcode_failed", detail=str(e)))
+
+    return _video_run(src_name, src, out_ext, task)
+
+
+def _video_audio_run(lang: str, src: Path, src_name: str, fmt: str,
+                     *, progress=None, cancel=None) -> dict:
+    """Estrazione audio mp3/m4a, condivisa tra endpoint sincrono e job."""
+    out_ext = (fmt or "mp3").lower().lstrip(".")
+    if out_ext not in vidconv._AUDIO_OUT:
+        raise HTTPException(400, f"Formato audio di uscita non supportato: {fmt}")
+
+    def task(dst):
+        try:
+            return vidconv.extract_audio(str(src), str(dst), fmt=fmt,
+                                         progress=progress, cancel=cancel)
+        except OperationCancelled:
+            raise
+        except vidconv.MissingFfmpegError as e:
+            raise HTTPException(503, t_lang(lang, "api.ffmpeg_missing") + str(e))
+        except vidconv.VideoTimeoutError as e:
+            raise HTTPException(504, t_lang(lang, "api.ffmpeg_timeout") + str(e))
+        except vidconv.NoAudioTrackError as e:
+            raise HTTPException(400, t_lang(lang, "api.video_no_audio")) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except Exception as e:  # noqa: BLE001 - failure generica di estrazione
+            raise HTTPException(500, t_lang(lang, "api.audio_extract_failed", detail=str(e)))
+
+    return _video_run(src_name, src, out_ext, task)
+
+
+def _video_gif_run(lang: str, src: Path, src_name: str, fps, width, start, duration,
+                   *, progress=None, cancel=None) -> dict:
+    """GIF animata, condivisa tra endpoint sincrono e job."""
+    def task(dst):
+        try:
+            return vidconv.video_to_gif(str(src), str(dst), fps=fps, width=width,
+                                        start=start, duration=duration,
+                                        progress=progress, cancel=cancel)
+        except OperationCancelled:
+            raise
+        except vidconv.MissingFfmpegError as e:
+            raise HTTPException(503, t_lang(lang, "api.ffmpeg_missing") + str(e))
+        except vidconv.VideoTimeoutError as e:
+            raise HTTPException(504, t_lang(lang, "api.ffmpeg_timeout") + str(e))
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except Exception as e:  # noqa: BLE001 - failure generica GIF
+            raise HTTPException(500, t_lang(lang, "api.gif_create_failed", detail=str(e)))
+
+    return _video_run(src_name, src, "gif", task)
+
+
 @app.post("/api/convert-video")
 def convert_video(
     request: Request,
@@ -446,29 +537,12 @@ def convert_video(
     crf: int | None = Form(None),
 ):
     """Transcode di un video verso mp4 (H.264/AAC) o webm (VP9/Vorbis)."""
-    try:
-        out_ext = vidconv._out_container(fmt)[0]
-    except ValueError as e:
-        raise HTTPException(400, str(e))
-
     src, src_name = _save_video_upload(request, file)
-    stem = Path(src_name).stem or "video"
-    dst_name, dst = _video_out_path(stem, out_ext)
     try:
-        try:
-            size = vidconv.transcode(str(src), str(dst), fmt=fmt, crf=crf)
-        except vidconv.MissingFfmpegError as e:
-            raise HTTPException(503, T(request, "api.ffmpeg_missing") + str(e))
-        except vidconv.VideoTimeoutError as e:
-            raise HTTPException(504, T(request, "api.ffmpeg_timeout") + str(e))
-        except ValueError as e:
-            raise HTTPException(400, str(e))
-        except Exception as e:  # noqa: BLE001 - failure generica di transcode
-            raise HTTPException(500, T(request, "api.transcode_failed", detail=str(e)))
-    finally:
-        if src.exists():
-            src.unlink()
-    return _video_result(dst_name, src_name, dst, size)
+        return _video_convert_run(lang_of(request), src, src_name, fmt, crf)
+    except HTTPException:
+        src.unlink(missing_ok=True)
+        raise
 
 
 @app.post("/api/video-audio")
@@ -478,29 +552,12 @@ def video_audio(
     fmt: str = Form("mp3"),
 ):
     """Estrae la traccia audio di un video in mp3 (libmp3lame) o m4a (AAC)."""
-    out_ext = (fmt or "mp3").lower().lstrip(".")
-    if out_ext not in vidconv._AUDIO_OUT:
-        raise HTTPException(400, f"Formato audio di uscita non supportato: {fmt}")
     src, src_name = _save_video_upload(request, file)
-    stem = Path(src_name).stem or "audio"
-    dst_name, dst = _video_out_path(stem, out_ext)
     try:
-        try:
-            size = vidconv.extract_audio(str(src), str(dst), fmt=fmt)
-        except vidconv.MissingFfmpegError as e:
-            raise HTTPException(503, T(request, "api.ffmpeg_missing") + str(e))
-        except vidconv.VideoTimeoutError as e:
-            raise HTTPException(504, T(request, "api.ffmpeg_timeout") + str(e))
-        except vidconv.NoAudioTrackError as e:
-            raise HTTPException(400, T(request, "api.video_no_audio"))
-        except ValueError as e:
-            raise HTTPException(400, str(e))
-        except Exception as e:  # noqa: BLE001 - failure generica di estrazione
-            raise HTTPException(500, T(request, "api.audio_extract_failed", detail=str(e)))
-    finally:
-        if src.exists():
-            src.unlink()
-    return _video_result(dst_name, src_name, dst, size)
+        return _video_audio_run(lang_of(request), src, src_name, fmt)
+    except HTTPException:
+        src.unlink(missing_ok=True)
+        raise
 
 
 @app.post("/api/video-gif")
@@ -514,23 +571,11 @@ def video_gif(
 ):
     """Crea una GIF animata in loop da un video (palette ottimizzata)."""
     src, src_name = _save_video_upload(request, file)
-    stem = Path(src_name).stem or "video"
-    dst_name, dst = _video_out_path(stem, "gif")
     try:
-        try:
-            size = vidconv.video_to_gif(str(src), str(dst), fps=fps, width=width, start=start, duration=duration)
-        except vidconv.MissingFfmpegError as e:
-            raise HTTPException(503, T(request, "api.ffmpeg_missing") + str(e))
-        except vidconv.VideoTimeoutError as e:
-            raise HTTPException(504, T(request, "api.ffmpeg_timeout") + str(e))
-        except ValueError as e:
-            raise HTTPException(400, str(e))
-        except Exception as e:  # noqa: BLE001 - failure generica GIF
-            raise HTTPException(500, T(request, "api.gif_create_failed", detail=str(e)))
-    finally:
-        if src.exists():
-            src.unlink()
-    return _video_result(dst_name, src_name, dst, size)
+        return _video_gif_run(lang_of(request), src, src_name, fps, width, start, duration)
+    except HTTPException:
+        src.unlink(missing_ok=True)
+        raise
 
 
 def _read_pdf_upload(request: Request, uf: UploadFile) -> bytes:
@@ -930,6 +975,110 @@ def _read_scan_upload(request: Request, uf: UploadFile) -> bytes:
     return data
 
 
+def _scan_fmt(lang: str, fmt: str) -> str:
+    """Valida il formato immagine di uscita della pulizia scansioni."""
+    fmt_l = (fmt or "png").lower().lstrip(".")
+    if fmt_l == "jpeg":
+        fmt_l = "jpg"
+    if fmt_l not in ("png", "jpg"):
+        raise HTTPException(400, t_lang(lang, "api.out_format_unsupported", fmt=fmt))
+    return fmt_l
+
+
+def _save_scan_upload(uf: UploadFile, dest: Path, lang: str) -> str | None:
+    """Salva su disco un input della scansione; errore già tradotto o None."""
+    name = Path(uf.filename or "").name
+    written = 0
+    too_big = False
+    with dest.open("wb") as out_f:
+        while chunk := uf.file.read(1024 * 1024):
+            written += len(chunk)
+            if written > compconv.MAX_BYTES:
+                too_big = True
+                break
+            out_f.write(chunk)
+    if too_big:
+        dest.unlink(missing_ok=True)
+        return t_lang(lang, "api.file_100mb_limit", name=name)
+    if written == 0:
+        dest.unlink(missing_ok=True)
+        return t_lang(lang, "api.file_empty_named", name=name)
+    return None
+
+
+def _scan_clean_core(
+    lang: str,
+    payload,
+    *,
+    deskew: bool,
+    antishadow: bool,
+    binarize: bool,
+    corners,
+    fmt_l: str,
+    quality: int,
+    dpi_v: int,
+    progress=None,
+    cancel=None,
+) -> dict:
+    """Pulisce ogni input e ritorna { results: [...] }.
+
+    ``payload`` = [(nome, load() -> bytes | None, errore già tradotto | None)].
+    Errore per-file dentro i results; 422 se nessun file riesce.
+    """
+    results = []
+    used: set[str] = set()
+    total = len(payload)
+    for i, (name, load, err) in enumerate(payload):
+        check_cancelled(cancel)
+        report(progress, i, total, "files")
+        if err:
+            results.append({"name": name, "error": err})
+            continue
+        if not scanconv.is_scan_input(name):
+            results.append({"name": name, "error": t_lang(lang, "api.file_type_unsupported", name=name)})
+            continue
+        stem = Path(name).stem or f"scan{i + 1}"
+        try:
+            data = load()
+            if Path(name).suffix.lower() == ".pdf":
+                out = scanconv.clean_pdf(
+                    data, deskew=deskew, antishadow=antishadow, binarize=binarize,
+                    corners=corners, dpi=dpi_v, progress=progress, cancel=cancel,
+                )
+                ext = ".pdf"
+            else:
+                out = scanconv.clean_bytes(
+                    data, deskew=deskew, antishadow=antishadow, binarize=binarize,
+                    corners=corners, fmt=fmt_l, quality=quality, cancel=cancel,
+                )
+                ext = scanconv.output_ext(fmt_l)
+        except OperationCancelled:
+            raise
+        except HTTPException as e:
+            results.append({"name": name, "error": str(e.detail)})
+            continue
+        except Exception as e:  # noqa: BLE001 - errore per-file riportato alla UI
+            results.append({"name": name, "error": t_lang(lang, "api.scan_clean_failed", detail=str(e))})
+            continue
+        dst_name, n = f"{stem}_clean{ext}", 1
+        while (OUT_DIR / dst_name).exists() or dst_name in used:
+            n += 1
+            dst_name = f"{stem}_clean-{n}{ext}"
+        dst = OUT_DIR / dst_name
+        dst.write_bytes(out)
+        used.add(dst_name)
+        results.append({
+            "name": dst_name, "src": name, "size": len(out),
+            "path": str(dst), "download": f"/api/file/{dst_name}",
+        })
+        report(progress, i + 1, total, "files")
+
+    ok = [r for r in results if "error" not in r]
+    if not ok:
+        raise HTTPException(422, detail={"message": t_lang(lang, "api.all_failed"), "results": results})
+    return {"results": results}
+
+
 @app.post("/api/scan-clean")
 def scan_clean(
     request: Request,
@@ -949,68 +1098,210 @@ def scan_clean(
     applicata a ogni file. Ritorna { results: [...] } con un file per input:
     PDF pulito per i PDF, PNG/JPEG (`fmt`) per le immagini.
     """
+    lang = lang_of(request)
     if not scanconv.available():
-        raise HTTPException(501, T(request, "api.scan_engine_missing"))
+        raise HTTPException(501, t_lang(lang, "api.scan_engine_missing"))
     if not files:
-        raise HTTPException(400, T(request, "api.no_files"))
+        raise HTTPException(400, t_lang(lang, "api.no_files"))
     if len(files) > MAX_BATCH_FILES:
-        raise HTTPException(400, T(request, "api.too_many_files", max=MAX_BATCH_FILES, n=len(files)))
-    fmt_l = (fmt or "png").lower().lstrip(".")
-    if fmt_l == "jpeg":
-        fmt_l = "jpg"
-    if fmt_l not in ("png", "jpg"):
-        raise HTTPException(400, T(request, "api.out_format_unsupported", fmt=fmt))
+        raise HTTPException(400, t_lang(lang, "api.too_many_files", max=MAX_BATCH_FILES, n=len(files)))
+    fmt_l = _scan_fmt(lang, fmt)
     quality = _sanitize_quality(quality)
     dpi_v = max(72, min(600, dpi)) if dpi else 200
     try:
         corner_list = scanconv.parse_corners(_json_or_none(corners, "corners"))
     except ValueError as e:
-        raise HTTPException(400, T(request, "api.scan_corners_invalid")) from e
+        raise HTTPException(400, t_lang(lang, "api.scan_corners_invalid")) from e
 
-    results = []
-    used: set[str] = set()
-    for i, uf in enumerate(files):
-        name = Path(uf.filename or "").name
-        if not scanconv.is_scan_input(name):
-            results.append({"name": name, "error": T(request, "api.file_type_unsupported", name=name)})
-            continue
-        stem = Path(name).stem or f"scan{i + 1}"
-        try:
-            data = _read_scan_upload(request, uf)
-            if Path(name).suffix.lower() == ".pdf":
-                out = scanconv.clean_pdf(
-                    data, deskew=deskew, antishadow=antishadow, binarize=binarize,
-                    corners=corner_list, dpi=dpi_v,
-                )
-                ext = ".pdf"
-            else:
-                out = scanconv.clean_bytes(
-                    data, deskew=deskew, antishadow=antishadow, binarize=binarize,
-                    corners=corner_list, fmt=fmt_l, quality=quality or 85,
-                )
-                ext = scanconv.output_ext(fmt_l)
-        except HTTPException as e:
-            results.append({"name": name, "error": str(e.detail)})
-            continue
-        except Exception as e:  # noqa: BLE001 - errore per-file riportato alla UI
-            results.append({"name": name, "error": T(request, "api.scan_clean_failed", detail=str(e))})
-            continue
-        dst_name, n = f"{stem}_clean{ext}", 1
-        while (OUT_DIR / dst_name).exists() or dst_name in used:
-            n += 1
-            dst_name = f"{stem}_clean-{n}{ext}"
-        dst = OUT_DIR / dst_name
-        dst.write_bytes(out)
-        used.add(dst_name)
-        results.append({
-            "name": dst_name, "src": name, "size": len(out),
-            "path": str(dst), "download": f"/api/file/{dst_name}",
-        })
+    payload = [
+        (Path(uf.filename or "").name, _scan_loader(request, uf), None)
+        for uf in files
+    ]
+    return _scan_clean_core(
+        lang, payload, deskew=deskew, antishadow=antishadow, binarize=binarize,
+        corners=corner_list, fmt_l=fmt_l, quality=quality, dpi_v=dpi_v,
+    )
 
-    ok = [r for r in results if "error" not in r]
-    if not ok:
-        raise HTTPException(422, detail={"message": T(request, "api.all_failed"), "results": results})
-    return {"results": results}
+
+def _scan_loader(request: Request, uf: UploadFile):
+    """Ritorna una funzione che legge l'upload al momento dell'uso (uno alla volta)."""
+    return lambda: _read_scan_upload(request, uf)
+
+
+def _file_loader(path: Path):
+    """Legge il file salvato al momento dell'uso (mai tutti gli input in RAM)."""
+    return lambda: path.read_bytes()
+
+
+# ── Job in background: progresso reale e annullamento ────────────────────────
+
+def _job_progress(job, key: str, unit: str | None):
+    """Adattatore converter→job: la fase del converter sceglie etichetta e unità."""
+    def cb(done, total, phase=None):
+        k, u = key, unit
+        if phase == "files":
+            k, u = "job.scan", "file"
+        elif phase == "pages":
+            k, u = "job.scan_page", "page"
+        job.progress(done=done, total=total, key=k, unit=u)
+    return cb
+
+
+def _job_http(fn):
+    """Esegue il corpo di un job convertendo le HTTPException in JobError."""
+    try:
+        return fn()
+    except HTTPException as e:
+        detail = e.detail
+        result = None
+        if isinstance(detail, dict):
+            results = detail.get("results")
+            if isinstance(results, list):
+                result = {"results": results}
+            detail = detail.get("message") or str(detail)
+        raise JobError(str(detail), result=result) from e
+
+
+def _job_payload(request: Request, job) -> dict:
+    """Stato del job con messaggio tradotto nella lingua della richiesta."""
+    snap = job.snapshot()
+    key = snap.pop("message_key")
+    params = snap.pop("message_params")
+    snap["message"] = t_lang(lang_of(request), key, params) if key else None
+    return snap
+
+
+@app.get("/api/jobs/{job_id}")
+def job_status(request: Request, job_id: str):
+    """Stato, avanzamento ed eventuale risultato di un job."""
+    job = JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(404, t_lang(lang_of(request), "api.job_not_found"))
+    return _job_payload(request, job)
+
+
+@app.post("/api/jobs/{job_id}/cancel")
+def job_cancel(request: Request, job_id: str):
+    """Chiede l'annullamento (cooperativo) e ritorna lo stato aggiornato."""
+    job = JOBS.get(job_id)
+    if job is None:
+        raise HTTPException(404, t_lang(lang_of(request), "api.job_not_found"))
+    job.request_cancel()
+    return _job_payload(request, job)
+
+
+@app.post("/api/jobs/video-convert", status_code=202)
+def job_video_convert(
+    request: Request,
+    file: UploadFile = File(...),
+    fmt: str = Form("mp4"),
+    crf: int | None = Form(None),
+):
+    """Avvia in background il transcode video e ritorna {id} per il polling."""
+    lang = lang_of(request)
+    job = JOBS.create("video-convert", lang, unit="second")
+    try:
+        src, src_name = _save_video_upload(request, file, dest_dir=job.work_dir)
+    except HTTPException:
+        JOBS.discard(job)
+        raise
+    JOBS.start(job, lambda j: _job_http(lambda: _video_convert_run(
+        lang, src, src_name, fmt, crf,
+        progress=_job_progress(j, "job.video", "second"), cancel=lambda: j.cancelled,
+    )))
+    return {"id": job.id}
+
+
+@app.post("/api/jobs/video-audio", status_code=202)
+def job_video_audio(
+    request: Request,
+    file: UploadFile = File(...),
+    fmt: str = Form("mp3"),
+):
+    """Avvia in background l'estrazione audio e ritorna {id} per il polling."""
+    lang = lang_of(request)
+    job = JOBS.create("video-audio", lang, unit="second")
+    try:
+        src, src_name = _save_video_upload(request, file, dest_dir=job.work_dir)
+    except HTTPException:
+        JOBS.discard(job)
+        raise
+    JOBS.start(job, lambda j: _job_http(lambda: _video_audio_run(
+        lang, src, src_name, fmt,
+        progress=_job_progress(j, "job.audio", "second"), cancel=lambda: j.cancelled,
+    )))
+    return {"id": job.id}
+
+
+@app.post("/api/jobs/video-gif", status_code=202)
+def job_video_gif(
+    request: Request,
+    file: UploadFile = File(...),
+    fps: int = Form(10),
+    width: int = Form(480),
+    start: float | None = Form(None),
+    duration: float | None = Form(None),
+):
+    """Avvia in background la creazione della GIF e ritorna {id} per il polling."""
+    lang = lang_of(request)
+    job = JOBS.create("video-gif", lang, unit="second")
+    try:
+        src, src_name = _save_video_upload(request, file, dest_dir=job.work_dir)
+    except HTTPException:
+        JOBS.discard(job)
+        raise
+    JOBS.start(job, lambda j: _job_http(lambda: _video_gif_run(
+        lang, src, src_name, fps, width, start, duration,
+        progress=_job_progress(j, "job.gif", "second"), cancel=lambda: j.cancelled,
+    )))
+    return {"id": job.id}
+
+
+@app.post("/api/jobs/scan-clean", status_code=202)
+def job_scan_clean(
+    request: Request,
+    files: list[UploadFile] = File(...),
+    deskew: bool = Form(True),
+    antishadow: bool = Form(False),
+    binarize: bool = Form(False),
+    corners: str = Form(""),
+    fmt: str = Form("png"),
+    quality: int | None = Form(None),
+    dpi: int | None = Form(None),
+):
+    """Avvia in background la pulizia scansioni e ritorna {id} per il polling."""
+    lang = lang_of(request)
+    if not scanconv.available():
+        raise HTTPException(501, t_lang(lang, "api.scan_engine_missing"))
+    if not files:
+        raise HTTPException(400, t_lang(lang, "api.no_files"))
+    if len(files) > MAX_BATCH_FILES:
+        raise HTTPException(400, t_lang(lang, "api.too_many_files", max=MAX_BATCH_FILES, n=len(files)))
+    fmt_l = _scan_fmt(lang, fmt)
+    quality = _sanitize_quality(quality)
+    dpi_v = max(72, min(600, dpi)) if dpi else 200
+    try:
+        corner_list = scanconv.parse_corners(_json_or_none(corners, "corners"))
+    except ValueError as e:
+        raise HTTPException(400, t_lang(lang, "api.scan_corners_invalid")) from e
+
+    job = JOBS.create("scan-clean", lang, total=len(files), unit="file")
+    try:
+        uploads = []
+        for i, uf in enumerate(files):
+            name = Path(uf.filename or "").name
+            dest = job.work_dir / f"{i:03d}{Path(name).suffix.lower()}"
+            err = _save_scan_upload(uf, dest, lang)
+            uploads.append((name, None if err else _file_loader(dest), err))
+    except Exception:
+        JOBS.discard(job)
+        raise
+    JOBS.start(job, lambda j: _job_http(lambda: _scan_clean_core(
+        lang, uploads, deskew=deskew, antishadow=antishadow, binarize=binarize,
+        corners=corner_list, fmt_l=fmt_l, quality=quality, dpi_v=dpi_v,
+        progress=_job_progress(j, "job.scan", "file"), cancel=lambda: j.cancelled,
+    )))
+    return {"id": job.id}
 
 
 def _expand_pages(data: bytes, pages_json: str) -> list[int]:

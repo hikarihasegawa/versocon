@@ -13,6 +13,7 @@ from pathlib import Path
 
 from . import engines
 from .proc import NO_WINDOW
+from .report import OperationCancelled, report
 
 MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB di input
 FFMPEG_TIMEOUT = 300  # secondi
@@ -91,26 +92,108 @@ def _find_ffmpeg() -> str | None:
     return None
 
 
-def _run_ffmpeg(ff: str, args: list[str], dst: Path, label: str = "Operazione") -> int:
+def _find_ffprobe(ff: str) -> str | None:
+    """ffprobe accanto a ffmpeg oppure nel PATH; None se assente."""
+    cand = Path(ff).with_name("ffprobe.exe" if os.name == "nt" else "ffprobe")
+    if cand.is_file():
+        return str(cand)
+    for p in engines.iter_candidates(("ffprobe", "ffprobe.exe")):
+        try:
+            if Path(p).is_file():
+                return p
+        except OSError:
+            continue
+    return None
+
+
+def _probe_duration(ff: str, src_path: str) -> float | None:
+    """Durata del file in secondi (ffprobe); None → progresso indeterminato."""
+    probe = _find_ffprobe(ff)
+    if not probe:
+        return None
+    try:
+        r = subprocess.run(
+            [probe, "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nw=1:nk=1", str(src_path)],
+            capture_output=True, timeout=20, **NO_WINDOW,
+        )
+        value = float((r.stdout or b"").decode("utf-8", "replace").strip())
+        return value if value > 0 else None
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
+def _pump_progress(
+    proc: subprocess.Popen,
+    progress,
+    cancel,
+    total_s: float | None,
+    started: float,
+) -> None:
+    """Legge le righe di ``-progress pipe:1`` e segnala l'avanzamento reale.
+
+    Si ferma subito (uccidendo ffmpeg) se l'utente annulla o se scade il timeout.
+    """
+    total = int(total_s) if total_s else None
+    report(progress, 0, total, "seconds")
+    for raw in proc.stdout:
+        if cancel is not None and cancel():
+            raise OperationCancelled()
+        if time.monotonic() - started > FFMPEG_TIMEOUT:
+            raise VideoTimeoutError(f"superato il timeout di {FFMPEG_TIMEOUT}s")
+        line = raw.decode("utf-8", "replace").strip()
+        if line.startswith("out_time_us=") and total:
+            try:
+                us = int(line.split("=", 1)[1])
+            except ValueError:
+                continue
+            report(progress, min(int(us / 1_000_000), total), total, "seconds")
+
+
+def _run_ffmpeg(
+    ff: str,
+    args: list[str],
+    dst: Path,
+    label: str = "Operazione",
+    *,
+    progress=None,
+    cancel=None,
+    total_s: float | None = None,
+) -> int:
     """Esegue ffmpeg con gli argomenti dati e scrive l'output atomicamente su `dst`.
 
     Restituisce la dimensione in byte. Un fallimento non lascia file parziali.
+    ``progress``/``cancel`` opzionali: avanzamento reale e annullo cooperativo.
     """
     # mkstemp apre l'fd: va chiuso subito, altrimenti su Windows il file resta
     # "in uso" e non possiamo fare rename/mover al termine.
     fd, tmpname = tempfile.mkstemp(suffix=dst.suffix, dir=str(dst.parent))
     os.close(fd)
     tmp = Path(tmpname)
+    err = tempfile.TemporaryFile()
 
+    started = time.monotonic()
     try:
-        cmd = [ff, "-y", "-hide_banner", *args, "-loglevel", "error", str(tmp)]
+        cmd = [ff, "-y", "-hide_banner", *args, "-progress", "pipe:1", "-nostats", "-loglevel", "error", str(tmp)]
         try:
-            r = subprocess.run(cmd, capture_output=True, timeout=FFMPEG_TIMEOUT, **NO_WINDOW)
-        except subprocess.TimeoutExpired as e:
-            raise VideoTimeoutError(f"{label}: superato il timeout di {FFMPEG_TIMEOUT}s") from e
-        if r.returncode != 0:
-            tail = (r.stderr or b"").decode("utf-8", "replace").strip()[-400:]
-            raise ValueError(f"ffmpeg ha fallito (codice {r.returncode}){(' — ' + tail) if tail else ''}")
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=err, **NO_WINDOW
+            )
+        except OSError as e:
+            raise ValueError(f"ffmpeg non avviabile: {e}") from e
+        try:
+            _pump_progress(proc, progress, cancel, total_s, started)
+            code = proc.wait()
+        except BaseException:
+            proc.kill()
+            proc.wait()
+            raise
+        if code != 0:
+            err.seek(0)
+            tail = err.read().decode("utf-8", "replace").strip()[-400:]
+            raise ValueError(f"ffmpeg ha fallito (codice {code}){(' — ' + tail) if tail else ''}")
+        if total_s:
+            report(progress, int(total_s), int(total_s), "seconds")
         # Spostamento atomico dell'output; su Windows può servire un tentativo in più
         # se un handle (antivirus) trattiene ancora il file.
         last_err: Exception | None = None
@@ -124,6 +207,7 @@ def _run_ffmpeg(ff: str, args: list[str], dst: Path, label: str = "Operazione") 
         else:
             raise ValueError("Impossibile completare il salvataggio (file occupato sul sistema).") from last_err
     finally:
+        err.close()
         if tmp.exists():
             try:
                 tmp.unlink()
@@ -141,8 +225,20 @@ def _find_ffmpeg_or_raise() -> str:
     return ff
 
 
-def transcode(src_path: str, dst_path: str, fmt: str = "mp4", crf: int | None = None) -> int:
-    """Trascode `src_path` in `dst_path` usando ffmpeg e restituisce la dimensione in byte."""
+def transcode(
+    src_path: str,
+    dst_path: str,
+    fmt: str = "mp4",
+    crf: int | None = None,
+    *,
+    progress=None,
+    cancel=None,
+) -> int:
+    """Trascode `src_path` in `dst_path` usando ffmpeg e restituisce la dimensione in byte.
+
+    ``progress``/``cancel`` opzionali per il job in background (avanzamento reale
+    sui secondi del sorgente, annullo che termina ffmpeg).
+    """
     if not Path(src_path).is_file():
         raise ValueError("File sorgente non trovato")
 
@@ -160,10 +256,20 @@ def transcode(src_path: str, dst_path: str, fmt: str = "mp4", crf: int | None = 
         "-c:v", vcodec, "-crf", str(crf), "-preset", "medium",
         "-c:a", acodec, "-movflags", "+faststart",
     ]
-    return _run_ffmpeg(ff, args, Path(dst_path), label="Transcode")
+    return _run_ffmpeg(
+        ff, args, Path(dst_path), label="Transcode",
+        progress=progress, cancel=cancel, total_s=_probe_duration(ff, str(src_path)),
+    )
 
 
-def extract_audio(src_path: str, dst_path: str, fmt: str = "mp3") -> int:
+def extract_audio(
+    src_path: str,
+    dst_path: str,
+    fmt: str = "mp3",
+    *,
+    progress=None,
+    cancel=None,
+) -> int:
     """Estrae la traccia audio di `src_path` in MP3 o M4A e restituisce la dimensione in byte.
 
     Solleva `NoAudioTrackError` se il sorgente non ha audio (es. video muto).
@@ -183,7 +289,10 @@ def extract_audio(src_path: str, dst_path: str, fmt: str = "mp3") -> int:
     codec, extra = _AUDIO_OUT[o]
     args = ["-i", str(src_path), "-vn", "-c:a", codec, *extra]
     try:
-        return _run_ffmpeg(ff, args, Path(dst_path), label="Estrazione audio")
+        return _run_ffmpeg(
+            ff, args, Path(dst_path), label="Estrazione audio",
+            progress=progress, cancel=cancel, total_s=_probe_duration(ff, str(src_path)),
+        )
     except ValueError as e:
         msg = str(e).lower()
         if "does not contain any stream" in msg or "matches no streams" in msg:
@@ -198,6 +307,9 @@ def video_to_gif(
     width: int = 480,
     start: float | None = None,
     duration: float | None = None,
+    *,
+    progress=None,
+    cancel=None,
 ) -> int:
     """Crea una GIF animata in loop (palette ottimizzata) e restituisce la dimensione in byte.
 
@@ -233,7 +345,15 @@ def video_to_gif(
     if duration is not None:
         args += ["-t", str(float(duration))]
     args += ["-vf", vf, "-loop", "0"]
-    return _run_ffmpeg(ff, args, Path(dst_path), label="Creazione GIF")
+    if duration is not None:
+        total: float | None = float(duration)
+    else:
+        src_total = _probe_duration(ff, str(src_path))
+        total = max(0.1, src_total - (float(start) if start is not None else 0.0)) if src_total else None
+    return _run_ffmpeg(
+        ff, args, Path(dst_path), label="Creazione GIF",
+        progress=progress, cancel=cancel, total_s=total,
+    )
 
 
 def ffmpeg_available() -> bool:

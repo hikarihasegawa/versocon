@@ -430,4 +430,16 @@
   "api.signature_missing": "Imagem da assinatura em falta",
   "api.editor_failed": "Falha no editor de PDF: {detail}",
   "api.sign_gen_failed": "Falha ao gerar a assinatura: {detail}"
+,
+  "api.job_not_found": "Operação não encontrada ou expirada.",
+  "job.running": "Operação em curso…",
+  "job.video": "A converter vídeo…",
+  "job.audio": "A extrair áudio…",
+  "job.gif": "A criar GIF…",
+  "job.scan": "A limpar digitalizações…",
+  "job.scan_page": "A limpar página…",
+  "job.cancel": "Cancelar",
+  "job.cancelling": "A cancelar…",
+  "job.cancelled": "Operação cancelada.",
+  "job.busy": "Outra operação está em curso: aguarda ou cancela."
 }

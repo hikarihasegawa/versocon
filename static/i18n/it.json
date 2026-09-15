@@ -450,4 +450,16 @@
   "api.signature_missing": "Immagine firma mancante",
   "api.editor_failed": "Editor PDF fallito: {detail}",
   "api.sign_gen_failed": "Generazione firma fallita: {detail}"
+,
+  "api.job_not_found": "Operazione non trovata o scaduta.",
+  "job.running": "Operazione in corso…",
+  "job.video": "Conversione video in corso…",
+  "job.audio": "Estrazione audio in corso…",
+  "job.gif": "Creazione GIF in corso…",
+  "job.scan": "Pulizia scansioni in corso…",
+  "job.scan_page": "Pulizia pagina in corso…",
+  "job.cancel": "Annulla",
+  "job.cancelling": "Annullamento…",
+  "job.cancelled": "Operazione annullata.",
+  "job.busy": "Un'altra operazione è in corso: attendi o annulla."
 }

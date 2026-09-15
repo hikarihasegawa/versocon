@@ -448,4 +448,16 @@
   "api.signature_missing": "Signature image missing",
   "api.editor_failed": "PDF editor failed: {detail}",
   "api.sign_gen_failed": "Signature generation failed: {detail}"
+,
+  "api.job_not_found": "Operation not found or expired.",
+  "job.running": "Working…",
+  "job.video": "Converting video…",
+  "job.audio": "Extracting audio…",
+  "job.gif": "Creating GIF…",
+  "job.scan": "Cleaning scans…",
+  "job.scan_page": "Cleaning page…",
+  "job.cancel": "Cancel",
+  "job.cancelling": "Cancelling…",
+  "job.cancelled": "Operation cancelled.",
+  "job.busy": "Another operation is running: wait or cancel it."
 }
