@@ -3,6 +3,17 @@
    Carta di riso, inchiostro nero, sigillo rosso, halftone, speed lines
    =================================================================== */
 
+/* Inter — font del tema Pro (come il riferimento DeepSeek), bundle locale:
+   nessuna richiesta di rete. Fonte: github.com/rsms/inter — licenza in
+   fonts/LICENSE-Inter.txt (SIL OFL 1.1). Per i CJK si usa il fallback. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("fonts/InterVariable.woff2") format("woff2");
+}
+
 :root {
   --paper:      #141210;
   --paper-2:    #26221c;
@@ -752,7 +763,8 @@ html.theme-pro {
   --shadow:     none;
   --shadow-sm:  none;
   --radius:     12px;
-  --font-title: "Segoe UI", "Inter", system-ui, -apple-system, sans-serif;
+  --font:       "Inter", "Segoe UI", "Hiragino Sans", "Yu Gothic UI", system-ui, -apple-system, sans-serif;
+  --font-title: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
 /* decorazioni fumetto spente */
