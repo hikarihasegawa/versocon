@@ -52,6 +52,27 @@ def test_form_fields_endpoint_and_handler():
     assert 'data-field' in js
 
 
+def test_tool_grid_and_sticky_panel_layout():
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert 'id="edTools"' in html
+    assert "ed-action-sel" in html and 'tabindex="-1"' in html
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "ED_TOOLS" in js and "renderEdTools" in js and "aria-pressed" in js
+    assert 'classList.toggle("wide"' in js
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    assert ".ed-tools {" in css and ".ed-head {" in css and ".ed-tool {" in css
+    assert "grid-template-columns: minmax(320px, 360px)" in css
+    assert ".ed-left .ed-foot {" in css and "position: sticky" in css
+    assert 'class="ed-foot"' in html
+    assert ".shell.wide" in css
+
+
+def test_i18n_dispatches_lang_event_on_init():
+    js = (STATIC / "i18n.js").read_text(encoding="utf-8")
+    assert 'new CustomEvent("vscon:lang"' in js
+    assert js.count('new CustomEvent("vscon:lang"') == 2
+
+
 def test_action_keys_translated_all_languages():
     js = (STATIC / "i18n.js").read_text(encoding="utf-8")
     langs = re.findall(r'"([a-z]{2})"', re.search(r"SUPPORTED\s*=\s*\[([^\]]+)\]", js).group(1))
@@ -59,6 +80,8 @@ def test_action_keys_translated_all_languages():
         "pdf.edit.annotate", "pdf.edit.note", "pdf.edit.ink", "pdf.edit.stamp",
         "pdf.edit.text", "pdf.edit.redact", "pdf.edit.replace", "pdf.edit.number",
         "pdf.edit.hf", "pdf.edit.insertpage", "pdf.edit.extract", "pdf.edit.form",
+        "pdf.edit.group_pages", "pdf.edit.group_mark", "pdf.edit.group_text",
+        "pdf.edit.group_doc", "pdf.edit.group_form",
         "pdf.edit.click_pos", "pdf.edit.ink_hint", "pdf.edit.redact_hint",
         "pdf.edit.form_load", "pdf.edit.form_hint", "pdf.edit.hf_ph",
         "dyn.needle_required", "dyn.ink_empty", "dyn.redact_rects_empty",

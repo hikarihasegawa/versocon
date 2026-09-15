@@ -211,13 +211,14 @@
       <div class="ed-work">
 
       <div class="ed-left">
+      <div class="ed-head">
       <label class="btn btn-ghost" data-i18n-text="btn.pdf">
         <input type="file" id="edPdfIn" accept="application/pdf,.pdf" hidden />
         Scegli PDF
       </label>
       <div class="ctlrow">
         <label data-i18n="pdf.edit.action">Azione</label>
-        <select id="edAction" class="grow">
+        <select id="edAction" class="grow ed-action-sel" tabindex="-1">
           <option value="rotate" selected data-i18n="pdf.edit.rotate">🔄 Ruota pagine</option>
           <option value="delete" data-i18n="pdf.edit.delete">🗑 Elimina pagine</option>
           <option value="reorder" data-i18n="pdf.edit.reorder">⇅ Riordina pagine</option>
@@ -236,6 +237,8 @@
           <option value="extract" data-i18n="pdf.edit.extract">✂ Estrai pagine</option>
           <option value="form" data-i18n="pdf.edit.form">🧾 Compila modulo</option>
         </select>
+        <div class="ed-tools" id="edTools" role="group"></div>
+      </div>
       </div>
 
       <div class="ctlrow" id="edBlock-reorder" hidden>
@@ -531,12 +534,14 @@
         <p class="hint" id="edFormHint" data-i18n="pdf.edit.form_hint">Scegli un PDF con campi modulo, poi premi «Carica campi».</p>
       </div>
 
-      <div class="outrow">
-        <button class="btn btn-primary" id="btnEdApply" data-i18n="btn.apply">Applica</button>
-        <a class="btn btn-ghost" id="edDownload" href="#" download hidden data-i18n="pdf.edit.dl">⬇ Scarica PDF modificato</a>
+      <div class="ed-foot">
+        <div class="outrow">
+          <button class="btn btn-primary" id="btnEdApply" data-i18n="btn.apply">Applica</button>
+          <a class="btn btn-ghost" id="edDownload" href="#" download hidden data-i18n="pdf.edit.dl">⬇ Scarica PDF modificato</a>
+        </div>
+        <p class="hint" id="edStatus"></p>
+        <p class="hint session-note" id="edSessionNote" hidden data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</p>
       </div>
-      <p class="hint" id="edStatus"></p>
-      <p class="hint session-note" id="edSessionNote" hidden data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</p>
       </div>
 
       <div class="ed-right">
@@ -567,7 +572,7 @@
               <canvas class="ed-draw" id="edRectLayer" hidden></canvas>
             </div>
           </div>
-          <p class="hint ed-hint-sig" data-i18n="pdf.edit.hint_sig">Trascina la firma dove vuoi · angoli per ridimensionare</p>
+          <p class="hint ed-hint-sig" id="edHintSig" hidden data-i18n="pdf.edit.hint_sig">Trascina la firma dove vuoi · angoli per ridimensionare</p>
         </div>
       </div>
 

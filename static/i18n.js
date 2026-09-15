@@ -146,6 +146,7 @@
       sel.addEventListener("change", () => { IC.setLang(sel.value); });
     }
     apply();
+    document.dispatchEvent(new CustomEvent("vscon:lang", { detail: { lang: cur } }));
   }
 
   if (document.readyState === "loading") {

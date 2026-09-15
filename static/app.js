@@ -260,6 +260,8 @@
       document.querySelectorAll("#tabPdf .subpane").forEach((p) => {
         p.hidden = (p.id !== "sub" + s);
       });
+      const shell = document.querySelector(".shell");
+      if (shell) shell.classList.toggle("wide", s === "pdf-edit");
     });
   });
 
@@ -1235,9 +1237,46 @@
     }
     const pad = document.getElementById("edSignPad");
     if (pad) pad.hidden = (act !== "signature" || !inkPadOpen);
+    const sigHint = document.getElementById("edHintSig");
+    if (sigHint) sigHint.hidden = (act !== "signature");
     syncDrawLayers();
+    updateEdToolsActive();
   }
+  /* Griglia strumenti (la select #edAction resta come stato, nascosta). */
+  const ED_TOOLS = [
+    ["pdf.edit.group_pages", ["rotate", "delete", "reorder", "insertpage", "extract"]],
+    ["pdf.edit.group_mark", ["annotate", "note", "ink", "stamp"]],
+    ["pdf.edit.group_text", ["watermark", "text", "redact", "replace"]],
+    ["pdf.edit.group_doc", ["signature", "number", "headerfooter"]],
+    ["pdf.edit.group_form", ["form"]],
+  ];
+  const ED_TOOL_KEY = { watermark: "wm", signature: "sig", headerfooter: "hf" };
+  function renderEdTools() {
+    const box = document.getElementById("edTools");
+    if (!box) return;
+    box.setAttribute("aria-label", IC.t("pdf.edit.action"));
+    box.innerHTML = ED_TOOLS.map(([group, keys]) =>
+      `<h5>${IC.t(group)}</h5>` + keys.map((k) => {
+        const label = IC.t("pdf.edit." + (ED_TOOL_KEY[k] || k));
+        return `<button class="ed-tool" type="button" data-tool="${k}" aria-pressed="${k === edAction.value}">${label}</button>`;
+      }).join("")
+    ).join("");
+  }
+  function updateEdToolsActive() {
+    document.querySelectorAll("#edTools .ed-tool").forEach((b) => {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-tool") === edAction.value));
+    });
+  }
+  const edToolsBox = document.getElementById("edTools");
+  if (edToolsBox) edToolsBox.addEventListener("click", (e) => {
+    const btn = e.target.closest(".ed-tool");
+    if (!btn) return;
+    edAction.value = btn.getAttribute("data-tool");
+    syncEdBlock();
+    btn.focus();
+  });
   edAction.addEventListener("change", syncEdBlock);
+  renderEdTools();
   syncEdBlock();
   const pairs = [
     ["edWmSize", "edWmSizeVal", (v) => v],
@@ -1708,6 +1747,7 @@
     try { renderImgToPdf(); } catch (e) {}
     try { renderMergeList(); } catch (e) {}
     try { renderResults(); } catch (e) {}
+    try { renderEdTools(); } catch (e) {}
     renderConfigStatus(bootCfg);
     const btn = $("#btnConvert");
     if (btn && !btn.disabled) btn.textContent = IC.t("btn.convert");
