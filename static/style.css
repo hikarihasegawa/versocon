@@ -590,7 +590,7 @@ input[type="color"] { padding: 2px 4px; }
   position: sticky; top: 12px;
   max-height: calc(100vh - 140px);
   overflow-y: auto; overscroll-behavior: contain;
-  padding: 0 6px 8px;
+  padding: 0 6px;
   scrollbar-gutter: stable both-edges;
 }
 .ed-left .btn { align-self: stretch; text-align: center; }

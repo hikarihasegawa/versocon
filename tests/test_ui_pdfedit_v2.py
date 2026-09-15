@@ -116,6 +116,17 @@ def test_barre_sticky_col_sfondo_della_card():
     assert "background: var(--paper);" not in foot.group(1)
 
 
+def test_fascia_applica_aderente_al_fondo():
+    """Regressione: il padding-bottom di `.ed-left` lasciava 8px sotto la fascia
+    sticky, dove scorrevano le opzioni (visibile sotto «Applica»)."""
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    m = re.search(r"\.ed-left \{(.*?)\}", css, re.S)
+    assert m, ".ed-left non trovato"
+    body = m.group(1)
+    assert "padding: 0 6px;" in body
+    assert "padding-bottom" not in body
+
+
 def test_shell_wide_ricalcolata_al_cambio_sezione():
     """Regressione: dopo l'editor PDF la shell restava larga (rail a icone) anche
     cambiando sezione principale, perché `wide` era tolto solo dal click subtab."""
