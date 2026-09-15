@@ -770,6 +770,36 @@ def _expand_pages(data: bytes, pages_json: str) -> list[int]:
     return out
 
 
+def _json_or_none(raw: str, field: str):
+    """Parsa un campo Form JSON opzionale; None se vuoto."""
+    import json as _json
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    try:
+        return _json.loads(raw)
+    except _json.JSONDecodeError as e:
+        raise ValueError(f"{field}: JSON non valido") from e
+
+
+def _save_pdf_output(out: bytes, name: str, suffix: str) -> dict:
+    """Salva il PDF modificato in OUT_DIR con nome univoco e payload standard."""
+    stem = Path(name).stem or "pdf"
+    dst_name, n = f"{stem}_{suffix}.pdf", 1
+    while (OUT_DIR / dst_name).exists():
+        n += 1
+        dst_name = f"{stem}_{suffix}-{n}.pdf"
+    dst = OUT_DIR / dst_name
+    dst.write_bytes(out)
+    return {
+        "results": [{
+            "name": dst_name, "src": name,
+            "size": len(out), "path": str(dst),
+            "download": f"/api/file/{dst_name}",
+        }],
+    }
+
+
 @app.post("/api/pdf-edit")
 def api_pdf_edit(
     request: Request,
@@ -797,8 +827,44 @@ def api_pdf_edit(
     sig_w_pct: str = Form(""),        # larghezza % pagina
     sig_rot: int = Form(0),           # gradi
     sig_opacity: float = Form(100.0), # 0-100
+    # editor v2 — testo cercato / annotazioni / testo libero
+    page_num: int = Form(1),
+    needle: str = Form(""),
+    replacement: str = Form(""),
+    text_body: str = Form(""),
+    anno_kind: str = Form("highlight"),
+    note_icon: str = Form("Note"),
+    color: str = Form(""),            # '#rrggbb' (vuoto → default azione)
+    annot_opacity: float = Form(0.35),
+    x_pct: float = Form(50.0),
+    y_pct: float = Form(50.0),
+    w_pct: float = Form(30.0),
+    h_pct: float = Form(10.0),
+    anno_rotate: int = Form(0),
+    text_size: float = Form(12.0),
+    font_family: str = Form("helv"),
+    ink_strokes: str = Form(""),      # JSON [[[x,y],...], ...] in % pagina
+    redact_rects: str = Form(""),     # JSON [[x,y,w,h], ...] in % pagina
+    redact_fill: str = Form("#000000"),
+    replace_fill: str = Form("#ffffff"),
+    # numerazione / intestazione / pagine / moduli
+    num_start: int = Form(1),
+    num_prefix: str = Form(""),
+    num_suffix: str = Form(""),
+    num_digits: int = Form(6),
+    num_position: str = Form("br"),
+    hf_header: str = Form(""),
+    hf_footer: str = Form(""),
+    hf_position: str = Form("center"),
+    hf_size: float = Form(10.0),
+    hf_margin: int = Form(24),
+    insert_at: int = Form(1),
+    insert_count: int = Form(1),
+    form_values: str = Form(""),      # JSON {"campo": "valore", ...}
 ):
-    """Editor PDF. `action` ∈ {reorder,delete,rotate,watermark,signature}."""
+    """Editor PDF. `action` ∈ {reorder,delete,rotate,watermark,signature,
+    annotate,note,ink,stamp,text,redact,replace,number,headerfooter,
+    insertpage,extract,form}."""
     name = Path(file.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
         raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
@@ -806,7 +872,10 @@ def api_pdf_edit(
     if not data:
         raise HTTPException(400, T(request, "api.file_empty_named", name=name))
     act = (action or "").strip().lower()
-    if act not in ("reorder", "delete", "rotate", "watermark", "signature"):
+    if act not in ("reorder", "delete", "rotate", "watermark", "signature",
+                   "annotate", "note", "ink", "stamp", "text", "redact",
+                   "replace", "number", "headerfooter", "insertpage",
+                   "extract", "form"):
         raise HTTPException(400, T(request, "api.action_invalid", action=action))
 
     import json
@@ -840,7 +909,7 @@ def api_pdf_edit(
                 data, wm_text, corner=wm_corner.lower(),
                 font_size=wm_size, opacity=wm_opacity, rotate=wm_rotate,
             )
-        else:  # signature (nuova: posizionamento libero)
+        elif act == "signature":
             sig_img = signature.file.read() if signature and signature.filename else b""
             if not sig_img:
                 raise ValueError(T(request, "api.signature_missing"))
@@ -857,6 +926,55 @@ def api_pdf_edit(
                 x_pct=xp, y_pct=yp, width_pct=wp,
                 rotation=sig_rot, opacity=sig_opacity,
             )
+        elif act == "annotate":
+            out = pdfeditconv.annotate_text(data, page_num, needle, kind=anno_kind,
+                                            color=color, opacity=annot_opacity)
+        elif act == "note":
+            out = pdfeditconv.add_note(data, page_num, x_pct, y_pct, text_body,
+                                       icon=note_icon, color=color or "#e2382c")
+        elif act == "ink":
+            strokes = _json_or_none(ink_strokes, "strokes")
+            out = pdfeditconv.add_ink(data, page_num, strokes,
+                                      color=color or "#e2382c", width=text_size)
+        elif act == "stamp":
+            out = pdfeditconv.add_stamp(data, page_num, text_body, x_pct, y_pct,
+                                        w_pct=w_pct, h_pct=h_pct,
+                                        color=color or "#e2382c",
+                                        font_size=text_size, rotate=anno_rotate)
+        elif act == "text":
+            out = pdfeditconv.add_text(data, page_num, text_body, x_pct, y_pct,
+                                       font_size=text_size,
+                                       color=color or "#141210", font=font_family)
+        elif act == "redact":
+            rects = _json_or_none(redact_rects, "rects")
+            out = pdfeditconv.redact(data, needle=needle, rects=rects,
+                                     page=(page_num if rects else None), fill=redact_fill)
+        elif act == "replace":
+            out = pdfeditconv.find_replace(data, needle, replacement,
+                                           pages=_expand_pages(data, pages), fill=replace_fill)
+        elif act == "number":
+            out = pdfeditconv.number_pages(
+                data, start=num_start, prefix=num_prefix, suffix=num_suffix,
+                digits=num_digits, position=num_position, font_size=text_size,
+                color=color or "#141210", pages=_expand_pages(data, pages),
+                margin=hf_margin,
+            )
+        elif act == "headerfooter":
+            out = pdfeditconv.header_footer(
+                data, header=hf_header, footer=hf_footer, position=hf_position,
+                font_size=hf_size, color=color or "#141210",
+                pages=_expand_pages(data, pages), margin=hf_margin,
+                date=time.strftime("%Y-%m-%d"),
+            )
+        elif act == "insertpage":
+            out = pdfeditconv.insert_blank_page(data, at=insert_at, count=insert_count)
+        elif act == "extract":
+            out = pdfeditconv.extract_pages(data, _expand_pages(data, pages))
+        else:  # form
+            values = _json_or_none(form_values, "form_values")
+            if not isinstance(values, dict):
+                raise ValueError("form_values: atteso oggetto JSON {campo: valore}")
+            out = pdfeditconv.fill_form(data, values)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except HTTPException:
@@ -864,23 +982,32 @@ def api_pdf_edit(
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, T(request, "api.editor_failed", detail=str(e)))
 
-    stem = Path(name).stem or "pdf"
     suffix = {"reorder": "re", "delete": "del", "rotate": "rot",
-              "watermark": "wm", "signature": "sig"}[act]
-    dst_name, n = f"{stem}_{suffix}.pdf", 1
-    while (OUT_DIR / dst_name).exists():
-        n += 1
-        dst_name = f"{stem}_{suffix}-{n}.pdf"
-    dst = OUT_DIR / dst_name
-    dst.write_bytes(out)
-    return {
-        "results": [{
-            "name": dst_name, "src": name,
-            "size": len(out), "path": str(dst),
-            "download": f"/api/file/{dst_name}",
-        }],
-        "action": act,
-    }
+              "watermark": "wm", "signature": "sig", "annotate": "anno",
+              "note": "note", "ink": "ink", "stamp": "stamp", "text": "txt",
+              "redact": "red", "replace": "repl", "number": "num",
+              "headerfooter": "hf", "insertpage": "blank",
+              "extract": "extract", "form": "form"}[act]
+    payload = _save_pdf_output(out, name, suffix)
+    payload["action"] = act
+    return payload
+
+
+@app.post("/api/pdf-form-fields")
+def api_pdf_form_fields(request: Request, file: UploadFile = File(...)):
+    """Elenca i campi modulo di un PDF (per la UI di compilazione)."""
+    name = Path(file.filename or "").name
+    if Path(name).suffix.lower() != ".pdf":
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
+    data = file.file.read()
+    if not data:
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
+    try:
+        return {"fields": pdfeditconv.form_fields(data)}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, T(request, "api.editor_failed", detail=str(e)))
 
 
 @app.post("/api/signature-generate")
