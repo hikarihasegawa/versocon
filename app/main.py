@@ -120,6 +120,7 @@ def config():
             "ffmpeg_available": vidconv.ffmpeg_available(),
         },
         "ocr": exconv.ocr_info(),
+        "scan": scanconv.engine_info(),
         "support": {"kofi_url": constants.KOFI_URL},
         "note": "HEIC/HEIF require pillow-heif (installed).",
     }
