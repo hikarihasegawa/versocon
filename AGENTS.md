@@ -9,3 +9,9 @@ Valide in aggiunta alle regole globali (`~/.config/opencode/AGENTS.md`). Per que
 - Messaggi: **inglese, Conventional Commits**, sintetici e chiari (una riga: cosa e perché; corpo solo se serve).
 - Mai committare: segreti/credenziali, artefatti di test (es. `.playwright-mcp/`), output di build, file temporanei.
 - **Push: solo su richiesta esplicita.**
+
+## Allineamento GitHub (regola hard)
+- A ogni push/release, docs GitHub, `.github/workflows/`, GitHub Release, manifesti winget/scoop e checksum devono essere **professionalmente allineati** a versione reale e modifiche incluse: mai riferimenti a versioni superate, asset inesistenti o hash non verificati.
+- Rilascio: bump `app/version.py` (unica fonte; i workflow riscrivono ISS/MSIX dal tag), poi README + `docs/security.md` (SHA-256 dell'asset pubblicato), `packaging/winget/*` e `packaging/scoop/versocon.json` (version/url/hash), release notes professionali.
+- Ogni allineamento va verificato con comandi reali (asset scaricato → SHA-256, `gh release view`, contenuto servito da raw.githubusercontent) e l'esito riportato.
+- README e docs pubbliche descrivono **l'ultima versione rilasciata**: le modifiche già su master ma non ancora rilasciate non vanno annunciate come disponibili finché non escono con un rilascio (bump + note).
