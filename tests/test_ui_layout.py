@@ -190,3 +190,26 @@ def test_select_non_troncano_il_valore():
     color = re.search(r'input\[type="color"\] \{(.*?)\}', css, re.S)
     assert color and "width: 64px" in color.group(1)
     assert ".ed-pg-sel { width: 64px; }" in css, "il select del salto pagina resta compatto"
+
+
+def test_select_grow_non_si_comprime_sotto_il_contenuto():
+    """Regressione (firma): `.grow { flex: 1 }` dà base 0 al select, che quindi si
+    stringeva sotto l'opzione più lunga ("Dancing (elegante)" → "Dancing"). In
+    `.ctlrow` la tendina non scende mai sotto la larghezza del contenuto e le
+    coppie etichetta+controllo restano unite finché non vanno a capo."""
+    css = _css()
+    m = re.search(r"(?m)^\.ctlrow select \{(.*?)\}", css, re.S)
+    assert m, "regola `.ctlrow select` non trovata"
+    assert "min-width: fit-content" in m.group(1), (
+        "la tendina nelle righe di controllo deve mantenere la larghezza del contenuto"
+    )
+    p = re.search(r"(?m)^\.ctlrow \.pair \{(.*?)\}", css, re.S)
+    assert p, "regola `.ctlrow .pair` non trovata"
+    body = p.group(1)
+    assert "min-width: fit-content" in body and "flex: 1 0 auto" in body, (
+        "etichetta+controllo non devono comprimersi sotto il contenuto"
+    )
+    sig = re.search(r'id="edTxtSignRow"(.+?)</div>', _html(), re.S)
+    assert sig and sig.group(1).count('class="pair"') == 3, (
+        "nome/stile/inchiostro della firma devono essere coppie .pair"
+    )

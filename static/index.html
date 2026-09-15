@@ -367,13 +367,19 @@
         </label>
         <button class="btn btn-ghost" id="btnInkOpen" type="button" data-i18n="pdf.edit.sig_ink_btn">✍ Firma disegnata</button>
         <div class="ctlrow" id="edTxtSignRow">
-          <label data-i18n="pdf.edit.txt_name">Nome</label>
-          <input type="text" id="edTxtName" placeholder="es. Alessandro Rossi" class="numin grow" maxlength="240"
-                 data-i18n-attr="placeholder:pdf.edit.txt_name_ph" />
-          <label data-i18n="pdf.edit.txt_style">Stile</label>
-          <select id="edTxtStyle" class="grow"></select>
-          <label data-i18n="pdf.edit.txt_ink">Inchiostro</label>
-          <input type="color" id="edTxtColor" value="#000000" title="Colore della firma" data-i18n-attr="title:pdf.edit.txt_ink_title" />
+          <span class="pair">
+            <label data-i18n="pdf.edit.txt_name">Nome</label>
+            <input type="text" id="edTxtName" placeholder="es. Alessandro Rossi" class="numin grow" maxlength="240"
+                   data-i18n-attr="placeholder:pdf.edit.txt_name_ph" />
+          </span>
+          <span class="pair">
+            <label data-i18n="pdf.edit.txt_style">Stile</label>
+            <select id="edTxtStyle" class="grow"></select>
+          </span>
+          <span class="pair">
+            <label data-i18n="pdf.edit.txt_ink">Inchiostro</label>
+            <input type="color" id="edTxtColor" value="#000000" title="Colore della firma" data-i18n-attr="title:pdf.edit.txt_ink_title" />
+          </span>
           <button class="btn btn-ghost" id="btnTxtSign" type="button" data-i18n="pdf.edit.txt_gen">✒️ Genera firma</button>
         </div>
         <label data-i18n="pdf.edit.sig_page">Pagina</label>

@@ -505,10 +505,19 @@ input[type="color"] { padding: 2px 4px; }
   border-radius: 6px;
   color: var(--ink);
   padding: 9px 12px; font: inherit; font-weight: 700; outline: none;
+  /* `flex: 1` (classe .grow) azzera la base: senza questo minimo la tendina
+     si comprime sotto l'opzione più lunga e il valore appare tagliato.
+     La riga va a capo (flex-wrap) prima di stringere il testo. */
+  min-width: fit-content;
 }
 .ctlrow select:focus { border-color: var(--red); }
 .ctlrow label.chk { text-transform: none; letter-spacing: .02em; cursor: pointer; }
-.ctlrow .pair { display: inline-flex; align-items: center; gap: 8px; }
+.ctlrow .pair {
+  display: inline-flex; align-items: center; gap: 8px;
+  /* etichetta+controllo restano una unità: mai compressi sotto il contenuto,
+     la riga va a capo prima di tagliare valore o etichetta */
+  flex: 1 0 auto; min-width: fit-content;
+}
 .ctlrow label.chk input { accent-color: var(--red); width: 16px; height: 16px; margin: 0; }
 .sep { border: 0; border-top: 2px dashed rgba(20, 18, 16, .25); margin: 18px 0 12px; }
 .grow { flex: 1; }
