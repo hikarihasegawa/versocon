@@ -1255,7 +1255,7 @@
         edPgSel.appendChild(o);
       }
       edPgSel.value = String(edCurPage);
-      edStatus.textContent = IC.t("dyn.ed_loaded", { name: file.name, size: fmtBytes(file.size), n: edPageCount });
+      edStatus.textContent = "";
       await renderEdPage();
     } catch (e) {
       edStatus.textContent = IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) });

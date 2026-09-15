@@ -165,3 +165,15 @@ def test_anteprima_posizione_timbro_e_marker():
     assert "edStampRotate" in js.split("ED_PLACE_INPUTS")[1].split("]")[0]
     css = (STATIC / "style.css").read_text(encoding="utf-8")
     assert ".ed-stamp-box {" in css and ".ed-place-mark {" in css
+
+
+def test_nessun_avviso_caricato_sotto_applica():
+    """Feedback utente: l'utente non deve vedere «Caricato: nome (size)» nella
+    barra di stato dell'editor; le chiavi residue sono state rimosse da tutte le lingue."""
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "dyn.ed_loaded" not in js
+    assert "dyn.loaded" not in js
+    assert 'edStatus.textContent = "";' in js
+    for lang in ["it", "en", "es", "fr", "de", "pt", "zh", "ja"]:
+        data = json.loads((I18N / f"{lang}.json").read_text(encoding="utf-8"))
+        assert "dyn.ed_loaded" not in data and "dyn.loaded" not in data, lang
