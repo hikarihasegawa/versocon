@@ -21,6 +21,7 @@ from converters import documents as docconv
 from converters import pdfedit as pdfeditconv
 from converters import extract as exconv
 from converters import images as imgconv
+from converters import scan as scanconv
 from converters import sign as sconv
 from converters import tools as toolconv
 from converters import video as vidconv
@@ -915,6 +916,100 @@ def image_ocr(
     if m == "text":
         payload["text"] = text
     return payload
+
+
+def _read_scan_upload(request: Request, uf: UploadFile) -> bytes:
+    """Legge un upload della pulizia scansioni entro il limite di 100 MB."""
+    name = Path(uf.filename or "").name
+    data = _read_capped(uf, compconv.MAX_BYTES)
+    if not data:
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
+    if len(data) > compconv.MAX_BYTES:
+        raise HTTPException(400, T(request, "api.file_100mb_limit", name=name))
+    return data
+
+
+@app.post("/api/scan-clean")
+def scan_clean(
+    request: Request,
+    files: list[UploadFile] = File(...),
+    deskew: bool = Form(True),
+    antishadow: bool = Form(False),
+    binarize: bool = Form(False),
+    corners: str = Form(""),
+    fmt: str = Form("png"),
+    quality: int | None = Form(None),
+    dpi: int | None = Form(None),
+):
+    """Pulizia scansioni: raddrizza, antishadow, bianco/nero, ritaglio prospettico.
+
+    Accetta una o più immagini (EXIF/HEIC inclusi) e/o PDF scansionati.
+    `corners` è una lista JSON di 4 punti [x,y] in percentuale (TL,TR,BR,BL)
+    applicata a ogni file. Ritorna { results: [...] } con un file per input:
+    PDF pulito per i PDF, PNG/JPEG (`fmt`) per le immagini.
+    """
+    if not scanconv.available():
+        raise HTTPException(501, T(request, "api.scan_engine_missing"))
+    if not files:
+        raise HTTPException(400, T(request, "api.no_files"))
+    if len(files) > MAX_BATCH_FILES:
+        raise HTTPException(400, T(request, "api.too_many_files", max=MAX_BATCH_FILES, n=len(files)))
+    fmt_l = (fmt or "png").lower().lstrip(".")
+    if fmt_l == "jpeg":
+        fmt_l = "jpg"
+    if fmt_l not in ("png", "jpg"):
+        raise HTTPException(400, T(request, "api.out_format_unsupported", fmt=fmt))
+    quality = _sanitize_quality(quality)
+    dpi_v = max(72, min(600, dpi)) if dpi else 200
+    try:
+        corner_list = scanconv.parse_corners(_json_or_none(corners, "corners"))
+    except ValueError as e:
+        raise HTTPException(400, T(request, "api.scan_corners_invalid")) from e
+
+    results = []
+    used: set[str] = set()
+    for i, uf in enumerate(files):
+        name = Path(uf.filename or "").name
+        if not scanconv.is_scan_input(name):
+            results.append({"name": name, "error": T(request, "api.file_type_unsupported", name=name)})
+            continue
+        stem = Path(name).stem or f"scan{i + 1}"
+        try:
+            data = _read_scan_upload(request, uf)
+            if Path(name).suffix.lower() == ".pdf":
+                out = scanconv.clean_pdf(
+                    data, deskew=deskew, antishadow=antishadow, binarize=binarize,
+                    corners=corner_list, dpi=dpi_v,
+                )
+                ext = ".pdf"
+            else:
+                out = scanconv.clean_bytes(
+                    data, deskew=deskew, antishadow=antishadow, binarize=binarize,
+                    corners=corner_list, fmt=fmt_l, quality=quality or 85,
+                )
+                ext = scanconv.output_ext(fmt_l)
+        except HTTPException as e:
+            results.append({"name": name, "error": str(e.detail)})
+            continue
+        except Exception as e:  # noqa: BLE001 - errore per-file riportato alla UI
+            results.append({"name": name, "error": T(request, "api.scan_clean_failed", detail=str(e))})
+            continue
+        dst_name, n = f"{stem}_clean{ext}", 1
+        while (OUT_DIR / dst_name).exists() or dst_name in used:
+            n += 1
+            dst_name = f"{stem}_clean-{n}{ext}"
+        dst = OUT_DIR / dst_name
+        dst.write_bytes(out)
+        used.add(dst_name)
+        results.append({
+            "name": dst_name, "src": name, "size": len(out),
+            "path": str(dst), "download": f"/api/file/{dst_name}",
+        })
+
+    ok = [r for r in results if "error" not in r]
+    if not ok:
+        raise HTTPException(422, detail={"message": T(request, "api.all_failed"), "results": results})
+    return {"results": results}
 
 
 def _expand_pages(data: bytes, pages_json: str) -> list[int]:

@@ -8,3 +8,5 @@ python-multipart
 pywebview
 pytest
 httpx<0.28
+opencv-python-headless==4.14.0.94
+numpy
