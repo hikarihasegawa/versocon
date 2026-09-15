@@ -973,3 +973,111 @@ html.theme-pro #inkPad { background: #ffffff; border: 1px solid #333333; }
 }
 .theme-btn:hover { border-color: var(--red); }
 
+/* ===================================================================
+   Tema Pro — rifinitura "dashboard": scala tipografica, ritmo, altezze
+   controlli e proporzioni di card/pannelli. Specificità html.theme-pro
+   (0,2,1) e ordine in coda: prevale sulle regole precedenti.
+   =================================================================== */
+html.theme-pro {
+  font-size: 14px;
+  line-height: 1.5;
+  --ctl-h: 38px;
+  --ctl-h-sm: 34px;
+  --ctl-radius: 8px;
+  --card-pad: 20px;
+}
+html.theme-pro ::selection { background: rgba(255, 107, 44, .28); }
+
+/* shell e masthead: contenuto più largo, respiro regolare */
+html.theme-pro .shell { max-width: 960px; padding: 32px 24px 48px; gap: 16px; }
+html.theme-pro .masthead { margin-bottom: 2px; gap: 16px; }
+html.theme-pro .logo { gap: 12px; }
+html.theme-pro .logo-mark-img { width: 36px; height: 36px; }
+html.theme-pro h1 { font-size: 20px; font-weight: 600; }
+html.theme-pro .tagline { font-size: 12px; }
+
+/* tipografia: titoli e etichette con ruoli chiari, niente maiuscole urlate */
+html.theme-pro .panel-title { font-size: 16px; margin: 0 0 12px; }
+html.theme-pro h3 { font-size: 15px; margin: 0 0 10px; }
+html.theme-pro .ed-tools h5 {
+  font-size: 11px; font-weight: 600; letter-spacing: .05em;
+  text-transform: none; color: var(--ink-soft); opacity: 1; margin: 10px 0 2px;
+}
+html.theme-pro .ctlrow label,
+html.theme-pro .ctl label {
+  font-size: 12px; font-weight: 500; letter-spacing: 0;
+  text-transform: none; color: var(--ink-soft);
+}
+html.theme-pro .ctlrow { gap: 10px; margin: 12px 0; }
+html.theme-pro .outrow { gap: 10px; margin-top: 12px; }
+html.theme-pro .hint { font-size: 12px; margin: 8px 2px 0; }
+
+/* card e pannelli: superficie unica, bordo tenue, nessuna ombra */
+html.theme-pro .card { padding: var(--card-pad); border-radius: 12px; }
+html.theme-pro .ed-work { gap: 20px; }
+html.theme-pro .ed-left { gap: 12px; top: 16px; }
+html.theme-pro .ed-head {
+  background: var(--paper-2);
+  border-bottom: 1px solid #2c2c2c;
+  padding: 4px 0 10px;
+}
+html.theme-pro .ed-left .ed-foot {
+  background: var(--paper-2);
+  border-top: 1px solid #2c2c2c;
+  padding: 10px 0 4px;
+}
+html.theme-pro .ed-tool { min-height: var(--ctl-h); font-size: 13px; line-height: 1.2; }
+html.theme-pro .ed-tool[aria-pressed="true"] {
+  background: #2b2b2b; color: #ffffff; border-color: #3d3d3d;
+  box-shadow: inset 2px 0 0 var(--red);
+}
+html.theme-pro .ed-page-wrap { border-radius: 10px; padding: 12px; }
+
+/* controlli: altezze e raggi uniformi (38px) */
+html.theme-pro .btn,
+html.theme-pro .tab,
+html.theme-pro .theme-btn,
+html.theme-pro .numin,
+html.theme-pro .ctlrow select,
+html.theme-pro select,
+html.theme-pro input[type="color"] {
+  height: var(--ctl-h);
+  border-radius: var(--ctl-radius);
+}
+html.theme-pro .btn,
+html.theme-pro .tab,
+html.theme-pro .theme-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 18px; font-size: 14px;
+}
+html.theme-pro .tab { padding: 0 16px; }
+html.theme-pro .theme-btn { padding: 0 12px; font-size: 13px; }
+html.theme-pro .numin,
+html.theme-pro .ctlrow select,
+html.theme-pro select { padding: 0 12px; font-size: 14px; }
+html.theme-pro input[type="color"] { padding: 2px 4px; }
+html.theme-pro .lang-sel { height: var(--ctl-h); padding: 0 28px 0 12px; }
+html.theme-pro .subtab,
+html.theme-pro .seg-btn { height: var(--ctl-h-sm); display: inline-flex; align-items: center; }
+html.theme-pro .subtab { padding: 0 12px; }
+html.theme-pro .seg-btn { padding: 0 14px; }
+html.theme-pro .seg { padding: 4px; border-radius: 10px; }
+html.theme-pro .subtab.active,
+html.theme-pro .tab.active { box-shadow: none; }
+
+/* numeri allineati (dashboard) */
+html.theme-pro .numin,
+html.theme-pro .ctl-val,
+html.theme-pro .file .fsize,
+html.theme-pro .ed-pg-label,
+html.theme-pro .ed-zoom-label { font-variant-numeric: tabular-nums; }
+
+/* tastiera: focus unico e visibile */
+html.theme-pro :focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+html.theme-pro .numin:focus,
+html.theme-pro .ctlrow select:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 44, .25); border-color: var(--red); }
+
+
