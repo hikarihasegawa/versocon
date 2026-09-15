@@ -19,6 +19,7 @@
   const qualityInput = $("#quality");
   const qualityVal = $("#qualityVal");
   const maxSideInput = $("#maxSide");
+  const stripExifInput = $("#stripExif");
 
   const ACCEPT_RE = /\.(heic|heif|jpe?g|png|webp|bmp|tiff?|gif)$/i;
 
@@ -149,6 +150,7 @@
     if (fmt !== "png" && fmt !== "gif" && qualityInput.value) fd.append("quality", qualityInput.value);
     const ms = (maxSideInput.value || "").trim();
     if (ms && +ms > 0) fd.append("max_side", ms);
+    if (stripExifInput && stripExifInput.checked) fd.append("strip_exif", "1");
 
     btnConvert.disabled = true;
     btnConvert.textContent = IC.t("btn.converting");

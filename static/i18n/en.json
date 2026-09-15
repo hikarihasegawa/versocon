@@ -19,6 +19,8 @@
   "ctl.maxside": "Max side (px)",
   "ctl.maxside_ph": "none",
   "ctl.maxside_title": "Maximum side in pixels, proportional; 0 or empty = no resize",
+  "ctl.strip_exif": "Remove EXIF/GPS data",
+  "ctl.strip_exif_title": "Strip EXIF metadata (date, GPS, camera) from converted files",
   "ctl.out": "Output",
   "ctl.all": "all",
 
