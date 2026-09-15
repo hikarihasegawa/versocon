@@ -16,6 +16,8 @@
   "ctl.maxside": "Côté max (px)",
   "ctl.maxside_ph": "aucun",
   "ctl.maxside_title": "Côté maximum en pixels, proportionnel ; 0 ou vide = aucun redimensionnement",
+  "ctl.strip_exif": "Supprimer les données EXIF/GPS",
+  "ctl.strip_exif_title": "Supprime les métadonnées EXIF (date, GPS, appareil photo) des fichiers convertis",
   "ctl.out": "Sortie",
   "btn.zip": "⬇ Télécharger le ZIP",
   "btn.convert": "Convertir",

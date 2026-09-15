@@ -16,6 +16,8 @@
   "ctl.maxside": "最大辺 (px)",
   "ctl.maxside_ph": "なし",
   "ctl.maxside_title": "最大辺のピクセル数（縦横比を維持）; 0 または空欄 = リサイズなし",
+  "ctl.strip_exif": "EXIF/GPS データを削除",
+  "ctl.strip_exif_title": "変換後のファイルから EXIF メタデータ（日付・GPS・カメラ）を削除します",
   "ctl.out": "出力",
   "btn.zip": "⬇ ZIPをダウンロード",
   "btn.convert": "変換",

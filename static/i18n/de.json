@@ -16,6 +16,8 @@
   "ctl.maxside": "Max. Kantenlänge (px)",
   "ctl.maxside_ph": "keine",
   "ctl.maxside_title": "Maximale Kantenlänge in Pixeln, proportional; 0 oder leer = keine Größenänderung",
+  "ctl.strip_exif": "EXIF-/GPS-Daten entfernen",
+  "ctl.strip_exif_title": "Entfernt EXIF-Metadaten (Datum, GPS, Kamera) aus den konvertierten Dateien",
   "ctl.out": "Ausgabe",
   "btn.zip": "⬇ ZIP herunterladen",
   "btn.convert": "Konvertieren",

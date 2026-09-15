@@ -16,6 +16,8 @@
   "ctl.maxside": "最大边长 (px)",
   "ctl.maxside_ph": "无",
   "ctl.maxside_title": "最大边长（像素），等比缩放；0 或留空 = 不调整尺寸",
+  "ctl.strip_exif": "移除 EXIF/GPS 数据",
+  "ctl.strip_exif_title": "从转换后的文件中移除 EXIF 元数据（日期、GPS、相机）",
   "ctl.out": "输出",
   "btn.zip": "⬇ 下载 ZIP",
   "btn.convert": "转换",
