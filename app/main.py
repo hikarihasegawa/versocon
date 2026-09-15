@@ -11,10 +11,12 @@ import urllib.parse
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from converters import compress as compconv
 from converters import documents as docconv
@@ -1346,97 +1348,101 @@ def _save_pdf_output(out: bytes, name: str, suffix: str) -> dict:
     }
 
 
-@app.post("/api/pdf-edit")
-def api_pdf_edit(
-    request: Request,
-    file: UploadFile = File(...),
-    action: str = Form(...),
+class PdfEditForm(BaseModel):
+    """Campi Form dell'editor PDF.
+
+    È il contratto HTTP condiviso da `/api/pdf-edit` e `/api/pdf-edit-preview`:
+    la preview eredita da questa classe, così i nomi dei campi non possono
+    divergere tra le due API (verificato dal test di contratto)."""
+
+    file: UploadFile
+    action: str
     # riordino / eliminazione
-    order: str = Form(""),          # JSON lista 1-based, es. "[3,1,2]"
-    pages: str = Form(""),          # JSON lista 1-based, es. "[1,3]" o "2"
+    order: str = ""                  # JSON lista 1-based, es. "[3,1,2]"
+    pages: str = ""                  # JSON lista 1-based, es. "[1,3]" o "2"
     # rotazione
-    angle: int = Form(90),
+    angle: int = 90
     # watermark
-    wm_text: str = Form(""),
-    wm_corner: str = Form("br"),
-    wm_size: int = Form(48),
-    wm_opacity: float = Form(0.2),
-    wm_rotate: int = Form(0),
+    wm_text: str = ""
+    wm_corner: str = "br"
+    wm_size: int = 48
+    wm_opacity: float = 0.2
+    wm_rotate: int = 0
     # firma (immagine: firma disegnata o caricata)
-    signature: UploadFile | None = File(None),
-    sig_page: int = Form(1),
+    signature: UploadFile | None = None
+    sig_page: int = 1
     # posizionamento: legacy (angolo) oppure manuale (percentuali)
-    sig_corner: str = Form("bl"),
-    sig_width: float = Form(2.0),
-    sig_pos_x: str = Form(""),        # 0-100 (percentuale, centro). se vuoto → usa sig_corner
-    sig_pos_y: str = Form(""),
-    sig_w_pct: str = Form(""),        # larghezza % pagina
-    sig_rot: int = Form(0),           # gradi
-    sig_opacity: float = Form(100.0), # 0-100
+    sig_corner: str = "bl"
+    sig_width: float = 2.0
+    sig_pos_x: str = ""              # 0-100 (percentuale, centro). se vuoto → usa sig_corner
+    sig_pos_y: str = ""
+    sig_w_pct: str = ""              # larghezza % pagina
+    sig_rot: int = 0                 # gradi
+    sig_opacity: float = 100.0       # 0-100
     # editor v2 — testo cercato / annotazioni / testo libero
-    page_num: int = Form(1),
-    needle: str = Form(""),
-    replacement: str = Form(""),
-    text_body: str = Form(""),
-    anno_kind: str = Form("highlight"),
-    note_icon: str = Form("Note"),
-    color: str = Form(""),            # '#rrggbb' (vuoto → default azione)
-    annot_opacity: float = Form(0.35),
-    x_pct: float = Form(50.0),
-    y_pct: float = Form(50.0),
-    w_pct: float = Form(30.0),
-    h_pct: float = Form(10.0),
-    anno_rotate: int = Form(0),
-    text_size: float = Form(12.0),
-    font_family: str = Form("helv"),
-    ink_strokes: str = Form(""),      # JSON [[[x,y],...], ...] in % pagina
-    redact_rects: str = Form(""),     # JSON [[x,y,w,h], ...] in % pagina
-    redact_fill: str = Form("#000000"),
-    replace_fill: str = Form(""),
+    page_num: int = 1
+    needle: str = ""
+    replacement: str = ""
+    text_body: str = ""
+    anno_kind: str = "highlight"
+    note_icon: str = "Note"
+    color: str = ""                  # '#rrggbb' (vuoto → default azione)
+    annot_opacity: float = 0.35
+    x_pct: float = 50.0
+    y_pct: float = 50.0
+    w_pct: float = 30.0
+    h_pct: float = 10.0
+    anno_rotate: int = 0
+    text_size: float = 12.0
+    font_family: str = "helv"
+    ink_strokes: str = ""            # JSON [[[x,y],...], ...] in % pagina
+    redact_rects: str = ""           # JSON [[x,y,w,h], ...] in % pagina
+    redact_fill: str = "#000000"
+    replace_fill: str = ""
     # numerazione / intestazione / pagine / moduli
-    num_start: int = Form(1),
-    num_prefix: str = Form(""),
-    num_suffix: str = Form(""),
-    num_digits: int = Form(6),
-    num_position: str = Form("br"),
-    hf_header: str = Form(""),
-    hf_footer: str = Form(""),
-    hf_position: str = Form("center"),
-    hf_size: float = Form(10.0),
-    hf_margin: int = Form(24),
-    insert_at: int = Form(1),
-    insert_count: int = Form(1),
-    form_values: str = Form(""),      # JSON {"campo": "valore", ...}
+    num_start: int = 1
+    num_prefix: str = ""
+    num_suffix: str = ""
+    num_digits: int = 6
+    num_position: str = "br"
+    hf_header: str = ""
+    hf_footer: str = ""
+    hf_position: str = "center"
+    hf_size: float = 10.0
+    hf_margin: int = 24
+    insert_at: int = 1
+    insert_count: int = 1
+    form_values: str = ""            # JSON {"campo": "valore", ...}
     # sicurezza / OCR (FEAT-B)
-    pdf_pw: str = Form(""),           # password apertura (protect/unprotect)
-    pdf_pw_owner: str = Form(""),     # password owner (vuoto → casuale)
-    allow_print: bool = Form(True),
-    allow_copy: bool = Form(True),
-    allow_modify: bool = Form(False),
-    ocr_lang: str = Form("it"),
-    ocr_dpi: int = Form(200),
-):
-    """Editor PDF. `action` ∈ {reorder,delete,rotate,watermark,signature,
-    annotate,note,ink,stamp,text,redact,replace,number,headerfooter,
-    insertpage,extract,form,protect,unprotect,searchable}."""
-    name = Path(file.filename or "").name
-    if Path(name).suffix.lower() != ".pdf":
-        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
-    data = file.file.read()
-    if not data:
-        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
-    act = (action or "").strip().lower()
-    if act not in ("reorder", "delete", "rotate", "watermark", "signature",
-                   "annotate", "note", "ink", "stamp", "text", "redact",
-                   "replace", "number", "headerfooter", "insertpage",
-                   "extract", "form", "protect", "unprotect", "searchable"):
-        raise HTTPException(400, T(request, "api.action_invalid", action=action))
+    pdf_pw: str = ""                 # password apertura (protect/unprotect)
+    pdf_pw_owner: str = ""           # password owner (vuoto → casuale)
+    allow_print: bool = True
+    allow_copy: bool = True
+    allow_modify: bool = False
+    ocr_lang: str = "it"
+    ocr_dpi: int = 200
+
+
+_EDIT_ACTIONS = ("reorder", "delete", "rotate", "watermark", "signature",
+                 "annotate", "note", "ink", "stamp", "text", "redact",
+                 "replace", "number", "headerfooter", "insertpage",
+                 "extract", "form", "protect", "unprotect", "searchable")
+
+
+def _apply_pdf_edit(request: Request, f: PdfEditForm, data: bytes) -> tuple[str, bytes]:
+    """Applica `f.action` ai `data` del PDF e ritorna `(action, pdf_bytes)`.
+
+    Tutto in memoria. Errori come l'endpoint sincrono: ValueError → 400 con il
+    messaggio del converter, HTTPException ri-sollevata, altro → 500 tradotto."""
+    act = (f.action or "").strip().lower()
+    if act not in _EDIT_ACTIONS:
+        raise HTTPException(400, T(request, "api.action_invalid", action=f.action))
 
     import json
     try:
         if act == "reorder":
             try:
-                order_list = json.loads(order) if order else None
+                order_list = json.loads(f.order) if f.order else None
             except json.JSONDecodeError as e:
                 raise ValueError(T(request, "api.order_invalid")) from e
             if not order_list:
@@ -1444,113 +1450,113 @@ def api_pdf_edit(
             out = pdfeditconv.reorder_pages(data, order_list)
         elif act == "delete":
             try:
-                pg = _expand_pages(data, pages)
+                pg = _expand_pages(data, f.pages)
             except json.JSONDecodeError as e:
                 raise ValueError(T(request, "api.pages_invalid")) from e
             out = pdfeditconv.delete_pages(data, pg)
         elif act == "rotate":
             try:
-                pg = _expand_pages(data, pages)
+                pg = _expand_pages(data, f.pages)
             except json.JSONDecodeError as e:
                 raise ValueError(T(request, "api.pages_invalid")) from e
             if not pg:
                 pg = list(range(1, pdfeditconv.page_count(data) + 1))
-            out = pdfeditconv.rotate_pages(data, pg, angle=angle)
+            out = pdfeditconv.rotate_pages(data, pg, angle=f.angle)
         elif act == "watermark":
-            if not (wm_text or "").strip():
+            if not (f.wm_text or "").strip():
                 raise ValueError(T(request, "api.watermark_empty"))
             out = pdfeditconv.watermark_text(
-                data, wm_text, corner=wm_corner.lower(),
-                font_size=wm_size, opacity=wm_opacity, rotate=wm_rotate,
+                data, f.wm_text, corner=f.wm_corner.lower(),
+                font_size=f.wm_size, opacity=f.wm_opacity, rotate=f.wm_rotate,
             )
         elif act == "signature":
-            sig_img = signature.file.read() if signature and signature.filename else b""
+            sig_img = f.signature.file.read() if f.signature and f.signature.filename else b""
             if not sig_img:
                 raise ValueError(T(request, "api.signature_missing"))
             # priorità: sig_pos_x/y + sig_w_pct (nuovi) > sig_corner (legacy) > default
-            if (sig_pos_x or "").strip():
-                xp = float(sig_pos_x); yp = float(sig_pos_y or 85); wp = float(sig_w_pct or 30)
+            if (f.sig_pos_x or "").strip():
+                xp = float(f.sig_pos_x); yp = float(f.sig_pos_y or 85); wp = float(f.sig_w_pct or 30)
             else:
-                corner = (sig_corner or "bl").lower()
+                corner = (f.sig_corner or "bl").lower()
                 map_xy = {"tl": (15, 10), "tr": (85, 10), "bl": (15, 90), "br": (85, 90), "center": (50, 50)}
                 xp, yp = map_xy.get(corner, (85, 90))
                 wp = 30.0  # ~2in su pagina letter è ~30% della larghezza
             out = pdfeditconv.place_signature(
-                data, sig_img, page=sig_page,
+                data, sig_img, page=f.sig_page,
                 x_pct=xp, y_pct=yp, width_pct=wp,
-                rotation=sig_rot, opacity=sig_opacity,
+                rotation=f.sig_rot, opacity=f.sig_opacity,
             )
         elif act == "annotate":
-            out = pdfeditconv.annotate_text(data, page_num, needle, kind=anno_kind,
-                                            color=color, opacity=annot_opacity)
+            out = pdfeditconv.annotate_text(data, f.page_num, f.needle, kind=f.anno_kind,
+                                            color=f.color, opacity=f.annot_opacity)
         elif act == "note":
-            out = pdfeditconv.add_note(data, page_num, x_pct, y_pct, text_body,
-                                       icon=note_icon, color=color or "#e2382c")
+            out = pdfeditconv.add_note(data, f.page_num, f.x_pct, f.y_pct, f.text_body,
+                                       icon=f.note_icon, color=f.color or "#e2382c")
         elif act == "ink":
-            strokes = _json_or_none(ink_strokes, "strokes")
-            out = pdfeditconv.add_ink(data, page_num, strokes,
-                                      color=color or "#e2382c", width=text_size)
+            strokes = _json_or_none(f.ink_strokes, "strokes")
+            out = pdfeditconv.add_ink(data, f.page_num, strokes,
+                                      color=f.color or "#e2382c", width=f.text_size)
         elif act == "stamp":
-            out = pdfeditconv.add_stamp(data, page_num, text_body, x_pct, y_pct,
-                                        w_pct=w_pct, h_pct=h_pct,
-                                        color=color or "#e2382c",
-                                        font_size=text_size, rotate=anno_rotate)
+            out = pdfeditconv.add_stamp(data, f.page_num, f.text_body, f.x_pct, f.y_pct,
+                                        w_pct=f.w_pct, h_pct=f.h_pct,
+                                        color=f.color or "#e2382c",
+                                        font_size=f.text_size, rotate=f.anno_rotate)
         elif act == "text":
-            out = pdfeditconv.add_text(data, page_num, text_body, x_pct, y_pct,
-                                       font_size=text_size,
-                                       color=color or "#141210", font=font_family)
+            out = pdfeditconv.add_text(data, f.page_num, f.text_body, f.x_pct, f.y_pct,
+                                       font_size=f.text_size,
+                                       color=f.color or "#141210", font=f.font_family)
         elif act == "redact":
-            rects = _json_or_none(redact_rects, "rects")
-            out = pdfeditconv.redact(data, needle=needle, rects=rects,
-                                     page=(page_num if rects else None), fill=redact_fill)
+            rects = _json_or_none(f.redact_rects, "rects")
+            out = pdfeditconv.redact(data, needle=f.needle, rects=rects,
+                                     page=(f.page_num if rects else None), fill=f.redact_fill)
         elif act == "replace":
-            out = pdfeditconv.find_replace(data, needle, replacement,
-                                           pages=_expand_pages(data, pages), fill=replace_fill or None)
+            out = pdfeditconv.find_replace(data, f.needle, f.replacement,
+                                           pages=_expand_pages(data, f.pages), fill=f.replace_fill or None)
         elif act == "number":
             out = pdfeditconv.number_pages(
-                data, start=num_start, prefix=num_prefix, suffix=num_suffix,
-                digits=num_digits, position=num_position, font_size=text_size,
-                color=color or "#141210", pages=_expand_pages(data, pages),
-                margin=hf_margin,
+                data, start=f.num_start, prefix=f.num_prefix, suffix=f.num_suffix,
+                digits=f.num_digits, position=f.num_position, font_size=f.text_size,
+                color=f.color or "#141210", pages=_expand_pages(data, f.pages),
+                margin=f.hf_margin,
             )
         elif act == "headerfooter":
             out = pdfeditconv.header_footer(
-                data, header=hf_header, footer=hf_footer, position=hf_position,
-                font_size=hf_size, color=color or "#141210",
-                pages=_expand_pages(data, pages), margin=hf_margin,
+                data, header=f.hf_header, footer=f.hf_footer, position=f.hf_position,
+                font_size=f.hf_size, color=f.color or "#141210",
+                pages=_expand_pages(data, f.pages), margin=f.hf_margin,
                 date=time.strftime("%Y-%m-%d"),
             )
         elif act == "insertpage":
-            out = pdfeditconv.insert_blank_page(data, at=insert_at, count=insert_count)
+            out = pdfeditconv.insert_blank_page(data, at=f.insert_at, count=f.insert_count)
         elif act == "extract":
-            out = pdfeditconv.extract_pages(data, _expand_pages(data, pages))
+            out = pdfeditconv.extract_pages(data, _expand_pages(data, f.pages))
         elif act == "protect":
-            if not pdf_pw:
+            if not f.pdf_pw:
                 raise HTTPException(400, T(request, "api.password_required"))
             out = pdfeditconv.protect(
-                data, pdf_pw, owner_pw=pdf_pw_owner,
-                allow_print=allow_print, allow_copy=allow_copy,
-                allow_modify=allow_modify,
+                data, f.pdf_pw, owner_pw=f.pdf_pw_owner,
+                allow_print=f.allow_print, allow_copy=f.allow_copy,
+                allow_modify=f.allow_modify,
             )
         elif act == "unprotect":
             try:
-                out = pdfeditconv.unprotect(data, pdf_pw)
+                out = pdfeditconv.unprotect(data, f.pdf_pw)
             except pdfeditconv.PasswordError as e:
                 raise HTTPException(400, T(request, "api.password_wrong")) from e
         elif act == "searchable":
             try:
-                pg = _expand_pages(data, pages) if (pages or "").strip() else None
+                pg = _expand_pages(data, f.pages) if (f.pages or "").strip() else None
             except json.JSONDecodeError as e:
                 raise ValueError(T(request, "api.pages_invalid")) from e
             try:
                 out = exconv.searchable_pdf(
-                    data, lang=((ocr_lang or "it").strip() or "eng"),
-                    dpi=ocr_dpi, pages=pg,
+                    data, lang=((f.ocr_lang or "it").strip() or "eng"),
+                    dpi=f.ocr_dpi, pages=pg,
                 )
             except exconv.OcrEngineMissingError as e:
                 raise HTTPException(501, T(request, "api.ocr_not_installed")) from e
         else:  # form
-            values = _json_or_none(form_values, "form_values")
+            values = _json_or_none(f.form_values, "form_values")
             if not isinstance(values, dict):
                 raise ValueError("form_values: atteso oggetto JSON {campo: valore}")
             out = pdfeditconv.fill_form(data, values)
@@ -1560,6 +1566,21 @@ def api_pdf_edit(
         raise
     except Exception as e:  # noqa: BLE001
         raise HTTPException(500, T(request, "api.editor_failed", detail=str(e)))
+    return act, out
+
+
+@app.post("/api/pdf-edit")
+def api_pdf_edit(request: Request, form: Annotated[PdfEditForm, Form()]):
+    """Editor PDF. `action` ∈ {reorder,delete,rotate,watermark,signature,
+    annotate,note,ink,stamp,text,redact,replace,number,headerfooter,
+    insertpage,extract,form,protect,unprotect,searchable}."""
+    name = Path(form.file.filename or "").name
+    if Path(name).suffix.lower() != ".pdf":
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
+    data = form.file.file.read()
+    if not data:
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
+    act, out = _apply_pdf_edit(request, form, data)
 
     suffix = {"reorder": "re", "delete": "del", "rotate": "rot",
               "watermark": "wm", "signature": "sig", "annotate": "anno",
@@ -1572,6 +1593,42 @@ def api_pdf_edit(
     payload = _save_pdf_output(out, name, suffix)
     payload["action"] = act
     return payload
+
+
+class PdfEditPreviewForm(PdfEditForm):
+    """Campi di `/api/pdf-edit` più i parametri di rendering dell'anteprima."""
+
+    page: int = Field(default=1, ge=1)              # pagina da vedere (1-based)
+    dpi: int = Field(default=110, ge=30, le=300)    # risoluzione del PNG
+
+
+@app.post("/api/pdf-edit-preview")
+def api_pdf_edit_preview(request: Request, form: Annotated[PdfEditPreviewForm, Form()]):
+    """Anteprima live dell'editor PDF.
+
+    Applica `form.action` al PDF TENUTO IN MEMORIA (nessun output salvato) e
+    restituisce la pagina `form.page` del risultato come PNG, con header
+    `X-Page`/`X-Pages`. Se l'azione riduce le pagine, la pagina richiesta viene
+    limitata all'ultima disponibile. Stessi campi Form di `/api/pdf-edit` più
+    `page` e `dpi` (30..300)."""
+    name = Path(form.file.filename or "").name
+    if Path(name).suffix.lower() != ".pdf":
+        raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
+    data = form.file.file.read()
+    if not data:
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
+    act, out = _apply_pdf_edit(request, form, data)
+    try:
+        png, used, total = pdfeditconv.render_page_png(
+            out, page=form.page, dpi=form.dpi, password=form.pdf_pw)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, T(request, "api.editor_failed", detail=str(e)))
+    return Response(content=png, media_type="image/png", headers={
+        "X-Page": str(used), "X-Pages": str(total), "X-Action": act,
+        "Cache-Control": "no-store",
+    })
 
 
 @app.post("/api/pdf-form-fields")

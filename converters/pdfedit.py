@@ -30,12 +30,16 @@ Sicurezza:
 - protect(data, pw, ...)              → cifra in AES-256 (password apertura/modifica)
 - unprotect(data, pw)                 → rimuove la password (no-op se non protetto)
 
+Anteprima:
+- render_page_png(data, page, dpi)    → PNG di una pagina (anteprima live, nessun file scritto)
+
 Zero dipendenze nuove (solo pymupdf). Erri in modo esplicito con ValueError
 su input non validi (PDF vuoto/invalido, pagina fuori range, angolo non valido).
 """
 from __future__ import annotations
 
 import io
+import math
 import secrets
 from pathlib import Path
 
@@ -44,6 +48,8 @@ from PIL import Image
 
 MAX_PAGES = 500
 MAX_IMAGE_BYTES = 20 * 1024 * 1024  # 20 MB per immagine (firma)
+MAX_PREVIEW_PIXELS = 40_000_000  # tetto di sicurezza per il rendering anteprima
+_PREVIEW_DPI_MIN, _PREVIEW_DPI_MAX = 30, 300
 _ROT_VALUES = {0, 90, 180, 270}
 _WATERMARK_CORNERS = {"tl", "tr", "bl", "br", "center"}
 
@@ -71,6 +77,46 @@ def page_count(data: bytes) -> int:
     n = doc.page_count
     doc.close()
     return n
+
+
+def render_page_png(
+    data: bytes, page: int = 1, dpi: int = 110, password: str = ""
+) -> tuple[bytes, int, int]:
+    """Rende una pagina del PDF come PNG (anteprima live, nessun file scritto).
+
+    Ritorna `(png, pagina_usata, pagine_totali)`. `page` (1-based) è limitata
+    all'ultima pagina; `dpi` ∈ [30, 300] e viene ridotto se la pagina supera
+    `MAX_PREVIEW_PIXELS`. `password` serve per i PDF cifrati (es. risultato di
+    `protect`)."""
+    doc = _open(data)
+    try:
+        p = int(page)
+    except (TypeError, ValueError):
+        raise ValueError(f"page non valido: {page!r} (attesi interi 1..N)")
+    try:
+        d = int(dpi)
+    except (TypeError, ValueError):
+        raise ValueError(f"dpi non valido: {dpi!r} (attesi {_PREVIEW_DPI_MIN}..{_PREVIEW_DPI_MAX})")
+    if d < _PREVIEW_DPI_MIN or d > _PREVIEW_DPI_MAX:
+        raise ValueError(f"dpi fuori range: {d} (attesi {_PREVIEW_DPI_MIN}..{_PREVIEW_DPI_MAX})")
+    try:
+        if doc.needs_pass and not doc.authenticate(password or ""):
+            raise ValueError("PDF protetto: password mancante o errata")
+        n = doc.page_count
+        used = max(1, min(p, n))
+        pg = doc[used - 1]
+        w_pt, h_pt = pg.rect.width, pg.rect.height
+        scale = d / 72.0
+        if w_pt and h_pt and w_pt * h_pt * scale * scale > MAX_PREVIEW_PIXELS:
+            scale = (MAX_PREVIEW_PIXELS / (w_pt * h_pt)) ** 0.5
+            # il pixmap arrotonda per eccesso: stringi finché il prodotto
+            # delle dimensioni intere rientra nel tetto (garanzia, non stima)
+            while math.ceil(w_pt * scale) * math.ceil(h_pt * scale) > MAX_PREVIEW_PIXELS:
+                scale *= 0.995
+        pix = pg.get_pixmap(matrix=pymupdf.Matrix(scale, scale), alpha=False)
+        return pix.tobytes("png"), used, n
+    finally:
+        doc.close()
 
 
 def _norm_page(page: int, n: int, field: str = "page") -> int:
