@@ -706,6 +706,22 @@ input[type="color"] { padding: 2px 4px; }
   width: 100%; height: 100%;
   touch-action: none; cursor: crosshair;
 }
+.ed-stamp-box {
+  position: absolute; z-index: 3;
+  border: 2px dashed var(--red-deep);
+  background: rgba(239, 74, 60, .07);
+  transform-origin: center;
+  pointer-events: none;
+}
+.ed-place-mark {
+  position: absolute; z-index: 3;
+  width: 16px; height: 16px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--red-deep);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .55);
+  pointer-events: none;
+}
 .ed-form-fields { display: flex; flex-direction: column; gap: 6px; flex-basis: 100%; }
 .ed-form-fields label { font-size: .85em; }
 .ed-form-fields input { width: 100%; }

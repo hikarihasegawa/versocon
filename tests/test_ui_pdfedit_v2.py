@@ -93,6 +93,8 @@ def test_action_keys_translated_all_languages():
         "pdf.edit.group_doc", "pdf.edit.group_form",
         "pdf.edit.click_pos", "pdf.edit.ink_hint", "pdf.edit.redact_hint",
         "pdf.edit.form_load", "pdf.edit.form_hint", "pdf.edit.hf_ph",
+        "pdf.edit.rotate_hint", "pdf.edit.wm_hint", "pdf.edit.annotate_hint",
+        "pdf.edit.number_hint", "pdf.edit.hf_hint", "pdf.edit.stamp_hint",
         "dyn.needle_required", "dyn.ink_empty", "dyn.redact_rects_empty",
         "dyn.form_no_fields",
     ]
@@ -135,3 +137,31 @@ def test_shell_wide_ricalcolata_al_cambio_sezione():
     assert js.count("syncShellWide();") >= 2, "attesa la chiamata in selectTab e nel subtab PDF"
     assert '#tabPdf .subtab.active[data-sub="pdf-edit"]' in js
     assert 'classList.toggle("wide"' in js
+
+
+def test_hint_contestuali_azioni_editor():
+    """UI-E: i blocchi senza micro-aiuto ora hanno un hint dedicato; nel timbro
+    il solo «clicca per X/Y» è sostituito dal hint completo di anteprima."""
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    for key in [
+        "pdf.edit.rotate_hint", "pdf.edit.wm_hint", "pdf.edit.annotate_hint",
+        "pdf.edit.number_hint", "pdf.edit.hf_hint", "pdf.edit.stamp_hint",
+    ]:
+        assert f'data-i18n="{key}"' in html, f"manca l'hint {key}"
+    stamp = re.search(r'id="edBlock-stamp".*?</div>', html, re.S)
+    assert stamp, "edBlock-stamp non trovato"
+    assert "pdf.edit.click_pos" not in stamp.group(0)
+
+
+def test_anteprima_posizione_timbro_e_marker():
+    """UI-E: il timbro mostra un riquadro tratteggiato sull'anteprima; nota e testo
+    un marker su X/Y, aggiornati dai campi e dal click sull'anteprima."""
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert 'id="edStampBox"' in html and 'id="edPlaceMark"' in html
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "function redrawPlacePreview()" in js
+    assert js.count("redrawPlacePreview();") >= 3, "attese chiamate in syncEdBlock, renderEdPage e click"
+    assert 'getElementById("edStampBox")' in js and 'getElementById("edPlaceMark")' in js
+    assert "edStampRotate" in js.split("ED_PLACE_INPUTS")[1].split("]")[0]
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    assert ".ed-stamp-box {" in css and ".ed-place-mark {" in css

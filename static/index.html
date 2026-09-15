@@ -324,6 +324,7 @@
           <option value="270" data-i18n="pdf.edit.ang_270">270° (sinistra)</option>
           <option value="180" data-i18n="pdf.edit.ang_180">180° (capovolgi)</option>
         </select>
+        <span class="hint" data-i18n="pdf.edit.rotate_hint">Pagine vuote = tutte. 90° ruota in senso orario, 270° in senso antiorario.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-delete" hidden>
@@ -355,6 +356,7 @@
           <option value="180">180°</option>
           <option value="-90">−90°</option>
         </select>
+        <span class="hint" data-i18n="pdf.edit.wm_hint">Compare su tutte le pagine. Grandezza in punti, opacità in % e rotazione del testo.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-signature" hidden>
@@ -412,6 +414,7 @@
         <input type="color" id="edAnnoColor" value="#ffd400" />
         <label data-i18n-text="pdf.edit.wm_op">Opacità <span id="edAnnoOpVal" class="ctl-val">35</span></label>
         <input type="range" id="edAnnoOpacity" min="5" max="100" value="35" step="5" class="slider grow" />
+        <span class="hint" data-i18n="pdf.edit.annotate_hint">Cerca il testo solo nella pagina indicata: se non lo trova, nessuna annotazione.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-note" hidden>
@@ -472,7 +475,7 @@
         <input type="number" id="edStampSize" min="6" max="72" step="1" value="14" class="numin" />
         <label data-i18n="pdf.edit.color">Colore</label>
         <input type="color" id="edStampColor" value="#e2382c" />
-        <span class="hint" data-i18n="pdf.edit.click_pos">Clicca sull'anteprima per impostare X/Y.</span>
+        <span class="hint" data-i18n="pdf.edit.stamp_hint">Clicca l'anteprima per centrare X/Y · W/H in % della pagina · il riquadro tratteggiato mostra l'area del timbro.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-text" hidden>
@@ -554,6 +557,7 @@
         <label data-i18n="pdf.edit.pages">Pagine</label>
         <input type="text" id="edNumPages" placeholder="tutte | 1 | 1,3,5" class="numin grow"
                data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+        <span class="hint" data-i18n="pdf.edit.number_hint">Bates: prefisso + numero a N cifre + suffisso; margine in punti dal bordo pagina.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-headerfooter" hidden>
@@ -576,6 +580,7 @@
         <label data-i18n="pdf.edit.pages">Pagine</label>
         <input type="text" id="edHfPages" placeholder="tutte | 1 | 1,3,5" class="numin grow"
                data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+        <span class="hint" data-i18n="pdf.edit.hf_hint">Nei testi puoi usare i segnaposto {page}, {pages} e {date}.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-insertpage" hidden>
@@ -676,6 +681,8 @@
               </div>
               <canvas class="ed-draw" id="edInkLayer" hidden></canvas>
               <canvas class="ed-draw" id="edRectLayer" hidden></canvas>
+              <div class="ed-stamp-box" id="edStampBox" hidden></div>
+              <div class="ed-place-mark" id="edPlaceMark" hidden></div>
             </div>
           </div>
           <p class="hint ed-hint-sig" id="edHintSig" hidden data-i18n="pdf.edit.hint_sig">Trascina la firma dove vuoi · angoli per ridimensionare</p>

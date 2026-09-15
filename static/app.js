@@ -1069,6 +1069,45 @@
     const clr = document.getElementById("btnRedactClear");
     if (clr) clr.addEventListener("click", () => { edRedactRects = []; redrawRects(); });
   }
+  /* ---------- Editor v2: anteprima posizione (timbro: riquadro, nota/testo: marker) ---------- */
+  const edStampBox = document.getElementById("edStampBox");
+  const edPlaceMark = document.getElementById("edPlaceMark");
+  const ED_PLACE_INPUTS = [
+    "edNoteX", "edNoteY", "edTextX", "edTextY",
+    "edStampX", "edStampY", "edStampW", "edStampH", "edStampRotate",
+  ];
+  function redrawPlacePreview() {
+    const act = edAction.value;
+    const ready = !!(edPreview && !edPreview.hidden);
+    if (edPlaceMark) {
+      const onMark = ready && (act === "note" || act === "text");
+      edPlaceMark.hidden = !onMark;
+      if (onMark) {
+        const x = (document.getElementById(act === "note" ? "edNoteX" : "edTextX") || {}).value;
+        const y = (document.getElementById(act === "note" ? "edNoteY" : "edTextY") || {}).value;
+        edPlaceMark.style.left = (+x || 0) + "%";
+        edPlaceMark.style.top = (+y || 0) + "%";
+      }
+    }
+    if (edStampBox) {
+      const onStamp = ready && act === "stamp";
+      edStampBox.hidden = !onStamp;
+      if (onStamp) {
+        const g = (id) => { const el = document.getElementById(id); return el ? +el.value || 0 : 0; };
+        edStampBox.style.left = g("edStampX") + "%";
+        edStampBox.style.top = g("edStampY") + "%";
+        edStampBox.style.width = g("edStampW") + "%";
+        edStampBox.style.height = g("edStampH") + "%";
+        const rot = document.getElementById("edStampRotate");
+        edStampBox.style.transform = "rotate(" + ((rot && +rot.value) || 0) + "deg)";
+      }
+    }
+  }
+  ED_PLACE_INPUTS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", redrawPlacePreview);
+    if (el) el.addEventListener("change", redrawPlacePreview);
+  });
   function edPlaceFromClick(e) {
     const act = edAction.value;
     if (!["note", "text", "stamp"].includes(act)) return;
@@ -1086,6 +1125,7 @@
     const h = act === "stamp" ? (+(document.getElementById("edStampH") || {}).value || 0) : 0;
     xi.value = Math.max(0, Math.min(100, x - w / 2)).toFixed(1);
     yi.value = Math.max(0, Math.min(100, y - h / 2)).toFixed(1);
+    redrawPlacePreview();
   }
   edPageEl.addEventListener("click", edPlaceFromClick);
 
@@ -1158,6 +1198,7 @@
     edCanvas.style.height = cssH + "px";
     edPageEl.style.width = (cssW + 4) + "px";
     syncDrawLayers();
+    redrawPlacePreview();
     const ctx = edCanvas.getContext("2d");
     ctx.clearRect(0, 0, edCanvas.width, edCanvas.height);
     edCanvas.hidden = false;
@@ -1361,6 +1402,7 @@
     const sigHint = document.getElementById("edHintSig");
     if (sigHint) sigHint.hidden = (act !== "signature");
     syncDrawLayers();
+    redrawPlacePreview();
     updateEdToolsActive();
   }
   /* Griglia strumenti (la select #edAction resta come stato, nascosta). */
