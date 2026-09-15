@@ -68,6 +68,14 @@ def test_tool_grid_and_sticky_panel_layout():
     assert ".shell.wide" in css
 
 
+def test_apply_reloads_live_preview_and_chains_edits():
+    """Dopo «Applica» il risultato diventa il documento di lavoro e l'anteprima si aggiorna."""
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "edPdfFile = new File([blob], res.name" in js
+    assert "loadEdPreview(edPdfFile, true)" in js
+    assert "async function loadEdPreview(file, keepView = false)" in js
+
+
 def test_i18n_dispatches_lang_event_on_init():
     js = (STATIC / "i18n.js").read_text(encoding="utf-8")
     assert 'new CustomEvent("vscon:lang"' in js

@@ -1128,7 +1128,9 @@
     }
   }
 
-  async function loadEdPreview(file) {
+  async function loadEdPreview(file, keepView = false) {
+    const keepPage = keepView ? edCurPage : 1;
+    const keepZoom = keepView ? edZoom : 1;
     if (!file) {
       if (edPdfDoc) { try { edPdfDoc.destroy(); } catch (e) {} edPdfDoc = null; }
       edPreview.hidden = true;
@@ -1155,9 +1157,9 @@
       const buf = await file.arrayBuffer();
       edPdfDoc = await window.pdfjsLib.getDocument({ data: buf }).promise;
       edPageCount = edPdfDoc.numPages;
-      edCurPage = 1;
+      edCurPage = Math.min(Math.max(1, keepPage), edPageCount);
       syncPager();
-      edZoom = 1;
+      edZoom = keepZoom;
       syncZoomUI();
       resetWrapScroll();
       edPgSel.innerHTML = "";
@@ -1166,7 +1168,7 @@
         o.value = i; o.textContent = i;
         edPgSel.appendChild(o);
       }
-      edPgSel.value = "1";
+      edPgSel.value = String(edCurPage);
       edStatus.textContent = IC.t("dyn.ed_loaded", { name: file.name, size: fmtBytes(file.size), n: edPageCount });
       await renderEdPage();
     } catch (e) {
@@ -1748,6 +1750,15 @@
       edDownload.href = res.download;
       edDownload.download = res.name;
       edDownload.hidden = false;
+      // Anteprima live: il risultato diventa il documento di lavoro, così le
+      // modifiche successive si applicano in catena e l'utente vede l'effetto.
+      try {
+        const blob = await (await fetch(res.download)).blob();
+        edPdfFile = new File([blob], res.name, { type: "application/pdf" });
+        await loadEdPreview(edPdfFile, true);
+      } catch (e) {
+        // anteprima non aggiornata: restano disponibili download e stato
+      }
       edStatus.textContent = IC.t("dyn.ed_saved", { name: res.name, size: fmtBytes(res.size) });
       showToast(IC.t("dyn.pdf_modified"), "ok");
     } catch (err) {
