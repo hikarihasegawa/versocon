@@ -17,9 +17,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         python: ["3.11", "3.12"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python }}
           cache: pip
@@ -38,10 +38,29 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            sudo apt-get install -y tesseract-ocr
+            sudo apt-get install -y tesseract-ocr tesseract-ocr-ita
           elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
             choco install tesseract -y
           fi
+
+      - name: "Add Italian traineddata (Windows: choco ships eng+osd only)"
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $dest = "$env:ProgramFiles\Tesseract-OCR\tessdata"
+          $url = "https://raw.githubusercontent.com/tesseract-ocr/tessdata/ced78752cc61322fb554c280d13360b35b8684e4/ita.traineddata"
+          $sha = "4F7476C611312BEB8F8E182888DA08EA642D9824AE4402CC6235F61AB1406406"
+          Invoke-WebRequest -Uri $url -OutFile "$dest\ita.traineddata"
+          $got = (Get-FileHash -Algorithm SHA256 -LiteralPath "$dest\ita.traineddata").Hash
+          if ($got -ne $sha) { throw "ita.traineddata SHA-256 inatteso: $got" }
+
+      - name: Verify OCR language data (fail fast)
+        shell: pwsh
+        run: |
+          $tess = if ($IsWindows) { "$env:ProgramFiles\Tesseract-OCR\tesseract.exe" } else { "tesseract" }
+          $langs = & $tess --list-langs
+          $langs
+          if ($langs -notcontains "ita") { throw "ita.traineddata non disponibile" }
 
       - name: Install deps
         run: |
@@ -50,4 +69,4 @@ jobs:
           pip install -r requirements-ocr.txt
 
       - name: Run tests
-        run: python -m pytest tests -q --maxfail=5
+        run: python -m pytest tests -q
