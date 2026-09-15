@@ -817,6 +817,158 @@
     });
   }
 
+  /* ---------- Editor v2: layer disegno (penna) + rettangoli redazione ---------- */
+  const edInkLayer = document.getElementById("edInkLayer");
+  const edRectLayer = document.getElementById("edRectLayer");
+  let edInkStrokes = [];
+  let edRedactRects = [];
+  let edInkColor = "#e2382c";
+  let edInkW = 2;
+  let edRectDraft = null;
+
+  function layerSize(layer) {
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.round((edPageEl.clientWidth || 0) * dpr));
+    const h = Math.max(1, Math.round((edPageEl.clientHeight || 0) * dpr));
+    if (layer.width !== w) layer.width = w;
+    if (layer.height !== h) layer.height = h;
+  }
+  function pctPoint(layer, e) {
+    const r = layer.getBoundingClientRect();
+    const cl = (v) => Math.max(0, Math.min(100, v));
+    return [cl((e.clientX - r.left) / r.width * 100), cl((e.clientY - r.top) / r.height * 100)];
+  }
+  function redrawInk() {
+    if (!edInkLayer) return;
+    layerSize(edInkLayer);
+    const ctx = edInkLayer.getContext("2d");
+    const sx = edInkLayer.width / 100, sy = edInkLayer.height / 100;
+    const lw = Math.max(1, edInkW * (edInkLayer.width / 600));
+    ctx.clearRect(0, 0, edInkLayer.width, edInkLayer.height);
+    ctx.strokeStyle = ctx.fillStyle = edInkColor;
+    ctx.lineWidth = lw; ctx.lineCap = ctx.lineJoin = "round";
+    edInkStrokes.forEach((st) => {
+      if (st.length === 1) {
+        ctx.beginPath();
+        ctx.arc(st[0][0] * sx, st[0][1] * sy, lw / 2, 0, Math.PI * 2);
+        ctx.fill();
+        return;
+      }
+      ctx.beginPath();
+      st.forEach((p, i) => i ? ctx.lineTo(p[0] * sx, p[1] * sy) : ctx.moveTo(p[0] * sx, p[1] * sy));
+      ctx.stroke();
+    });
+  }
+  function redrawRects() {
+    if (!edRectLayer) return;
+    layerSize(edRectLayer);
+    const ctx = edRectLayer.getContext("2d");
+    const sx = edRectLayer.width / 100, sy = edRectLayer.height / 100;
+    const fill = (document.getElementById("edRedactFill") || {}).value || "#000000";
+    ctx.clearRect(0, 0, edRectLayer.width, edRectLayer.height);
+    const all = edRectDraft ? edRedactRects.concat([edRectDraft]) : edRedactRects;
+    ctx.fillStyle = fill; ctx.strokeStyle = "#e2382c"; ctx.lineWidth = 1.5; ctx.setLineDash([5, 3]);
+    all.forEach((r) => {
+      const x = r[0] * sx, y = r[1] * sy, w = r[2] * sx, h = r[3] * sy;
+      ctx.globalAlpha = 0.45; ctx.fillRect(x, y, w, h);
+      ctx.globalAlpha = 1; ctx.strokeRect(x, y, w, h);
+    });
+  }
+  function syncDrawLayers() {
+    const act = edAction.value;
+    const redactMode = (document.getElementById("edRedactMode") || {}).value;
+    if (edInkLayer) {
+      edInkLayer.hidden = act !== "ink";
+      edInkLayer.style.pointerEvents = act === "ink" ? "auto" : "none";
+      if (act === "ink") redrawInk();
+    }
+    if (edRectLayer) {
+      const on = act === "redact" && redactMode === "rect";
+      edRectLayer.hidden = !on;
+      edRectLayer.style.pointerEvents = on ? "auto" : "none";
+      if (on) redrawRects();
+    }
+  }
+  if (edInkLayer) {
+    let drawing = false;
+    edInkLayer.addEventListener("pointerdown", (e) => {
+      if (edInkLayer.hidden) return;
+      drawing = true;
+      edInkStrokes.push([pctPoint(edInkLayer, e)]);
+      try { edInkLayer.setPointerCapture(e.pointerId); } catch (_) {}
+      redrawInk();
+    });
+    edInkLayer.addEventListener("pointermove", (e) => {
+      if (!drawing) return;
+      edInkStrokes[edInkStrokes.length - 1].push(pctPoint(edInkLayer, e));
+      redrawInk();
+    });
+    const inkEnd = (e) => {
+      drawing = false;
+      try { edInkLayer.releasePointerCapture(e.pointerId); } catch (_) {}
+    };
+    edInkLayer.addEventListener("pointerup", inkEnd);
+    edInkLayer.addEventListener("pointercancel", inkEnd);
+    const cEl = document.getElementById("edInkColor");
+    if (cEl) cEl.addEventListener("input", () => { edInkColor = cEl.value; redrawInk(); });
+    const wEl = document.getElementById("edInkWidth");
+    if (wEl) wEl.addEventListener("input", () => { edInkW = +wEl.value || 2; redrawInk(); });
+    const clr = document.getElementById("btnInkLayerClear");
+    if (clr) clr.addEventListener("click", () => { edInkStrokes = []; redrawInk(); });
+  }
+  if (edRectLayer) {
+    let start = null;
+    edRectLayer.addEventListener("pointerdown", (e) => {
+      if (edRectLayer.hidden) return;
+      start = pctPoint(edRectLayer, e);
+      edRectDraft = [start[0], start[1], 0, 0];
+      try { edRectLayer.setPointerCapture(e.pointerId); } catch (_) {}
+      redrawRects();
+    });
+    edRectLayer.addEventListener("pointermove", (e) => {
+      if (!start) return;
+      const p = pctPoint(edRectLayer, e);
+      edRectDraft = [Math.min(start[0], p[0]), Math.min(start[1], p[1]),
+                     Math.abs(p[0] - start[0]), Math.abs(p[1] - start[1])];
+      redrawRects();
+    });
+    const rectEnd = (e) => {
+      if (start && edRectDraft && edRectDraft[2] > 0.5 && edRectDraft[3] > 0.5) {
+        edRedactRects.push(edRectDraft);
+      }
+      start = null; edRectDraft = null;
+      try { edRectLayer.releasePointerCapture(e.pointerId); } catch (_) {}
+      redrawRects();
+    };
+    edRectLayer.addEventListener("pointerup", rectEnd);
+    edRectLayer.addEventListener("pointercancel", rectEnd);
+    const modeEl = document.getElementById("edRedactMode");
+    if (modeEl) modeEl.addEventListener("change", syncDrawLayers);
+    const fillEl = document.getElementById("edRedactFill");
+    if (fillEl) fillEl.addEventListener("input", redrawRects);
+    const clr = document.getElementById("btnRedactClear");
+    if (clr) clr.addEventListener("click", () => { edRedactRects = []; redrawRects(); });
+  }
+  function edPlaceFromClick(e) {
+    const act = edAction.value;
+    if (!["note", "text", "stamp"].includes(act)) return;
+    if (!edPreview || edPreview.hidden) return;
+    if (edSigOverlay && !edSigOverlay.hidden && edSigOverlay.contains(e.target)) return;
+    if ((edInkLayer && !edInkLayer.hidden) || (edRectLayer && !edRectLayer.hidden)) return;
+    const r = edPageEl.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const x = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+    const y = Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100));
+    const map = { note: ["edNoteX", "edNoteY"], text: ["edTextX", "edTextY"], stamp: ["edStampX", "edStampY"] }[act];
+    const xi = document.getElementById(map[0]), yi = document.getElementById(map[1]);
+    if (!xi || !yi) return;
+    const w = act === "stamp" ? (+(document.getElementById("edStampW") || {}).value || 0) : 0;
+    const h = act === "stamp" ? (+(document.getElementById("edStampH") || {}).value || 0) : 0;
+    xi.value = Math.max(0, Math.min(100, x - w / 2)).toFixed(1);
+    yi.value = Math.max(0, Math.min(100, y - h / 2)).toFixed(1);
+  }
+  edPageEl.addEventListener("click", edPlaceFromClick);
+
   function   applySigBoxToDom() {
     edSigOverlay.hidden = !edSigFile;
     if (!edSigFile) return;
@@ -885,6 +1037,7 @@
     edCanvas.style.width  = cssW + "px";
     edCanvas.style.height = cssH + "px";
     edPageEl.style.width = (cssW + 4) + "px";
+    syncDrawLayers();
     const ctx = edCanvas.getContext("2d");
     ctx.clearRect(0, 0, edCanvas.width, edCanvas.height);
     edCanvas.hidden = false;
@@ -1069,13 +1222,11 @@
     }
     applySigBoxToDom();
   });
-  const edBlocks = {
-    rotate: document.getElementById("edBlock-rotate"),
-    delete: document.getElementById("edBlock-delete"),
-    reorder: document.getElementById("edBlock-reorder"),
-    watermark: document.getElementById("edBlock-watermark"),
-    signature: document.getElementById("edBlock-signature"),
-  };
+  const ED_ACTIONS = ["rotate", "delete", "reorder", "watermark", "signature",
+    "annotate", "note", "ink", "stamp", "text", "redact", "replace",
+    "number", "headerfooter", "insertpage", "extract", "form"];
+  const edBlocks = {};
+  ED_ACTIONS.forEach((a) => { edBlocks[a] = document.getElementById("edBlock-" + a); });
   let inkPadOpen = false;
   function syncEdBlock() {
     const act = edAction.value;
@@ -1084,6 +1235,7 @@
     }
     const pad = document.getElementById("edSignPad");
     if (pad) pad.hidden = (act !== "signature" || !inkPadOpen);
+    syncDrawLayers();
   }
   edAction.addEventListener("change", syncEdBlock);
   syncEdBlock();
@@ -1092,6 +1244,7 @@
     ["edWmOpacity", "edWmOpVal", (v) => v],
     ["edSigRot", "edSigRotVal", (v) => (+v) + "°"],
     ["edSigOpacity", "edSigOpVal", (v) => v],
+    ["edAnnoOpacity", "edAnnoOpVal", (v) => v],
   ];
   for (const [id, labelId, fmt] of pairs) {
     const el = document.getElementById(id);
@@ -1269,6 +1422,42 @@
     });
   }
 
+  /* ---------- Compila modulo: elenco campi dal PDF ---------- */
+  const btnFormLoad = document.getElementById("btnFormLoad");
+  if (btnFormLoad) btnFormLoad.addEventListener("click", async () => {
+    if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
+    const box = document.getElementById("edFormFields");
+    btnFormLoad.disabled = true;
+    try {
+      const fd = new FormData();
+      fd.append("file", edPdfFile);
+      const r = await fetch("/api/pdf-form-fields", { method: "POST", body: fd });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error((data && data.detail) || IC.t("dyn.generic_error"));
+      const fields = data.fields || [];
+      box.innerHTML = "";
+      if (!fields.length) {
+        showToast(IC.t("pdf.edit.form_none"), "warn");
+      } else {
+        fields.forEach((f) => {
+          const lab = document.createElement("label");
+          lab.textContent = f.name + (f.page ? " · p." + f.page : "");
+          const inp = document.createElement("input");
+          inp.type = "text";
+          inp.className = "numin";
+          inp.setAttribute("data-field", f.name);
+          inp.value = f.value || "";
+          box.appendChild(lab);
+          box.appendChild(inp);
+        });
+      }
+    } catch (err) {
+      showToast(err.message || String(err), "err");
+    } finally {
+      btnFormLoad.disabled = false;
+    }
+  });
+
   function pagesToPayload(raw) {
     const v = (raw || "").trim();
     const low = v.toLowerCase();
@@ -1321,6 +1510,102 @@
         fd.append("sig_w_pct", String(edSigBox.w));
         fd.append("sig_rot", String(edSigBox.rot || 0));
         fd.append("sig_opacity", String(edSigBox.op || 100));
+      } else if (act === "annotate") {
+        const needle = $("#edAnnoNeedle").value.trim();
+        if (!needle) throw new Error(IC.t("dyn.needle_required"));
+        fd.append("needle", needle);
+        fd.append("anno_kind", $("#edAnnoKind").value);
+        fd.append("page_num", $("#edAnnoPage").value);
+        fd.append("color", $("#edAnnoColor").value);
+        fd.append("annot_opacity", String((+$("#edAnnoOpacity").value) / 100));
+      } else if (act === "note") {
+        const txt = $("#edNoteText").value.trim();
+        if (!txt) throw new Error(IC.t("dyn.note_text_required"));
+        fd.append("page_num", $("#edNotePage").value);
+        fd.append("text_body", txt);
+        fd.append("note_icon", $("#edNoteIcon").value);
+        fd.append("x_pct", $("#edNoteX").value);
+        fd.append("y_pct", $("#edNoteY").value);
+        fd.append("color", $("#edNoteColor").value);
+      } else if (act === "ink") {
+        if (!edInkStrokes.length) throw new Error(IC.t("dyn.ink_empty"));
+        fd.append("page_num", $("#edInkPage").value);
+        fd.append("ink_strokes", JSON.stringify(edInkStrokes));
+        fd.append("color", edInkColor);
+        fd.append("text_size", String(edInkW));
+      } else if (act === "stamp") {
+        const txt = $("#edStampText").value.trim();
+        if (!txt) throw new Error(IC.t("dyn.note_text_required"));
+        fd.append("page_num", $("#edStampPage").value);
+        fd.append("text_body", txt);
+        fd.append("x_pct", $("#edStampX").value);
+        fd.append("y_pct", $("#edStampY").value);
+        fd.append("w_pct", $("#edStampW").value);
+        fd.append("h_pct", $("#edStampH").value);
+        fd.append("anno_rotate", $("#edStampRotate").value);
+        fd.append("text_size", $("#edStampSize").value);
+        fd.append("color", $("#edStampColor").value);
+      } else if (act === "text") {
+        const txt = $("#edTextBody").value.trim();
+        if (!txt) throw new Error(IC.t("dyn.note_text_required"));
+        fd.append("page_num", $("#edTextPage").value);
+        fd.append("text_body", txt);
+        fd.append("x_pct", $("#edTextX").value);
+        fd.append("y_pct", $("#edTextY").value);
+        fd.append("text_size", $("#edTextSize").value);
+        fd.append("font_family", $("#edTextFont").value);
+        fd.append("color", $("#edTextColor").value);
+      } else if (act === "redact") {
+        if ($("#edRedactMode").value === "rect") {
+          if (!edRedactRects.length) throw new Error(IC.t("dyn.redact_rects_empty"));
+          fd.append("redact_rects", JSON.stringify(edRedactRects));
+          fd.append("page_num", $("#edRedactPage").value);
+        } else {
+          const needle = $("#edRedactNeedle").value.trim();
+          if (!needle) throw new Error(IC.t("dyn.needle_required"));
+          fd.append("needle", needle);
+        }
+        fd.append("redact_fill", $("#edRedactFill").value);
+      } else if (act === "replace") {
+        const needle = $("#edReplNeedle").value.trim();
+        if (!needle) throw new Error(IC.t("dyn.needle_required"));
+        fd.append("needle", needle);
+        fd.append("replacement", $("#edReplWith").value);
+        fd.append("pages", pagesToPayload($("#edReplPages").value));
+        fd.append("replace_fill", $("#edReplFill").value);
+      } else if (act === "number") {
+        fd.append("num_start", $("#edNumStart").value);
+        fd.append("num_prefix", $("#edNumPrefix").value);
+        fd.append("num_suffix", $("#edNumSuffix").value);
+        fd.append("num_digits", $("#edNumDigits").value);
+        fd.append("num_position", $("#edNumPos").value);
+        fd.append("text_size", $("#edNumSize").value);
+        fd.append("hf_margin", $("#edNumMargin").value);
+        fd.append("color", $("#edNumColor").value);
+        fd.append("pages", pagesToPayload($("#edNumPages").value));
+      } else if (act === "headerfooter") {
+        const head = $("#edHfHeader").value.trim();
+        const foot = $("#edHfFooter").value.trim();
+        if (!head && !foot) throw new Error(IC.t("dyn.hf_empty"));
+        fd.append("hf_header", head);
+        fd.append("hf_footer", foot);
+        fd.append("hf_position", $("#edHfPos").value);
+        fd.append("hf_size", $("#edHfSize").value);
+        fd.append("hf_margin", $("#edHfMargin").value);
+        fd.append("color", $("#edHfColor").value);
+        fd.append("pages", pagesToPayload($("#edHfPages").value));
+      } else if (act === "insertpage") {
+        fd.append("insert_at", $("#edInsertAt").value);
+        fd.append("insert_count", $("#edInsertCount").value);
+      } else if (act === "extract") {
+        fd.append("pages", pagesToPayload($("#edExtractPages").value));
+      } else if (act === "form") {
+        const vals = {};
+        document.querySelectorAll("#edFormFields [data-field]").forEach((el) => {
+          vals[el.getAttribute("data-field")] = el.value;
+        });
+        if (!Object.keys(vals).length) throw new Error(IC.t("dyn.form_no_fields"));
+        fd.append("form_values", JSON.stringify(vals));
       }
     } catch (e) {
       return showToast(e.message || String(e), "err");

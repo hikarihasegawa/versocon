@@ -223,6 +223,18 @@
           <option value="reorder" data-i18n="pdf.edit.reorder">⇅ Riordina pagine</option>
           <option value="watermark" data-i18n="pdf.edit.wm">💧 Watermark testo</option>
           <option value="signature" data-i18n="pdf.edit.sig">✍ Firma in immagine</option>
+          <option value="annotate" data-i18n="pdf.edit.annotate">🖍 Annota testo cercato</option>
+          <option value="note" data-i18n="pdf.edit.note">📝 Nota</option>
+          <option value="ink" data-i18n="pdf.edit.ink">🖊 Penna libera</option>
+          <option value="stamp" data-i18n="pdf.edit.stamp">🏷 Timbro</option>
+          <option value="text" data-i18n="pdf.edit.text">🔤 Testo libero</option>
+          <option value="redact" data-i18n="pdf.edit.redact">⬛ Redazione</option>
+          <option value="replace" data-i18n="pdf.edit.replace">🔁 Trova e sostituisci</option>
+          <option value="number" data-i18n="pdf.edit.number">🔢 Numerazione (Bates)</option>
+          <option value="headerfooter" data-i18n="pdf.edit.hf">📑 Intestazione/piè pagina</option>
+          <option value="insertpage" data-i18n="pdf.edit.insertpage">➕ Pagina bianca</option>
+          <option value="extract" data-i18n="pdf.edit.extract">✂ Estrai pagine</option>
+          <option value="form" data-i18n="pdf.edit.form">🧾 Compila modulo</option>
         </select>
       </div>
 
@@ -315,6 +327,210 @@
         </div>
       </div>
 
+      <div class="ctlrow" id="edBlock-annotate" hidden>
+        <label data-i18n="pdf.edit.kind">Tipo</label>
+        <select id="edAnnoKind">
+          <option value="highlight" selected data-i18n="pdf.edit.kind_highlight">Evidenzia</option>
+          <option value="underline" data-i18n="pdf.edit.kind_underline">Sottolinea</option>
+          <option value="strikeout" data-i18n="pdf.edit.kind_strikeout">Barra</option>
+          <option value="squiggly" data-i18n="pdf.edit.kind_squiggly">Ondulato</option>
+        </select>
+        <label data-i18n="pdf.edit.needle">Testo da cercare</label>
+        <input type="text" id="edAnnoNeedle" class="numin grow" data-i18n-attr="placeholder:pdf.edit.needle_ph" />
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
+        <input type="number" id="edAnnoPage" min="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edAnnoColor" value="#ffd400" />
+        <label data-i18n-text="pdf.edit.wm_op">Opacità <span id="edAnnoOpVal" class="ctl-val">35</span></label>
+        <input type="range" id="edAnnoOpacity" min="5" max="100" value="35" step="5" class="slider grow" />
+      </div>
+
+      <div class="ctlrow" id="edBlock-note" hidden>
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
+        <input type="number" id="edNotePage" min="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.note_icon">Icona</label>
+        <select id="edNoteIcon">
+          <option value="Note" selected>Note</option>
+          <option value="Comment">Comment</option>
+          <option value="Help">Help</option>
+          <option value="Insert">Insert</option>
+          <option value="Key">Key</option>
+          <option value="Star">Star</option>
+        </select>
+        <label data-i18n="pdf.edit.note_text">Testo nota</label>
+        <input type="text" id="edNoteText" class="numin grow" />
+        <label data-i18n="pdf.edit.pos_x">X (%)</label>
+        <input type="number" id="edNoteX" min="0" max="100" step="0.1" value="50" class="numin" />
+        <label data-i18n="pdf.edit.pos_y">Y (%)</label>
+        <input type="number" id="edNoteY" min="0" max="100" step="0.1" value="50" class="numin" />
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edNoteColor" value="#e2382c" />
+        <span class="hint" data-i18n="pdf.edit.click_pos">Clicca sull'anteprima per impostare X/Y.</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-ink" hidden>
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
+        <input type="number" id="edInkPage" min="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edInkColor" value="#e2382c" />
+        <label data-i18n="pdf.edit.ink_width">Spessore</label>
+        <input type="range" id="edInkWidth" min="0.5" max="12" value="2" step="0.5" class="slider grow" />
+        <button class="btn btn-ghost" id="btnInkLayerClear" type="button" data-i18n="pdf.edit.ink_clear">Pulisci</button>
+        <span class="hint" data-i18n="pdf.edit.ink_hint">Disegna col mouse o col dito direttamente sull'anteprima.</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-stamp" hidden>
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
+        <input type="number" id="edStampPage" min="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.wm_text">Testo</label>
+        <input type="text" id="edStampText" value="APPROVATO" class="numin grow" />
+        <label data-i18n="pdf.edit.pos_x">X (%)</label>
+        <input type="number" id="edStampX" min="0" max="100" step="0.1" value="30" class="numin" />
+        <label data-i18n="pdf.edit.pos_y">Y (%)</label>
+        <input type="number" id="edStampY" min="0" max="100" step="0.1" value="45" class="numin" />
+        <label data-i18n="pdf.edit.w_pct">Larghezza (%)</label>
+        <input type="number" id="edStampW" min="5" max="100" step="1" value="30" class="numin" />
+        <label data-i18n="pdf.edit.h_pct">Altezza (%)</label>
+        <input type="number" id="edStampH" min="3" max="100" step="1" value="10" class="numin" />
+        <label data-i18n="pdf.edit.wm_rot">Rotazione</label>
+        <select id="edStampRotate">
+          <option value="0" selected>0°</option>
+          <option value="90">90°</option>
+          <option value="180">180°</option>
+          <option value="270">270°</option>
+        </select>
+        <label data-i18n="pdf.edit.size">Dimensione</label>
+        <input type="number" id="edStampSize" min="6" max="72" step="1" value="14" class="numin" />
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edStampColor" value="#e2382c" />
+        <span class="hint" data-i18n="pdf.edit.click_pos">Clicca sull'anteprima per impostare X/Y.</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-text" hidden>
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
+        <input type="number" id="edTextPage" min="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.text_body">Testo</label>
+        <input type="text" id="edTextBody" class="numin grow" />
+        <label data-i18n="pdf.edit.pos_x">X (%)</label>
+        <input type="number" id="edTextX" min="0" max="100" step="0.1" value="10" class="numin" />
+        <label data-i18n="pdf.edit.pos_y">Y (%)</label>
+        <input type="number" id="edTextY" min="0" max="100" step="0.1" value="10" class="numin" />
+        <label data-i18n="pdf.edit.size">Dimensione</label>
+        <input type="number" id="edTextSize" min="6" max="96" step="1" value="12" class="numin" />
+        <label data-i18n="pdf.edit.font">Font</label>
+        <select id="edTextFont">
+          <option value="helv" selected>Helvetica</option>
+          <option value="hebo">Helvetica Bold</option>
+          <option value="tiro">Times</option>
+          <option value="tibo">Times Bold</option>
+          <option value="cour">Courier</option>
+          <option value="cobo">Courier Bold</option>
+        </select>
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edTextColor" value="#141210" />
+        <span class="hint" data-i18n="pdf.edit.click_pos">Clicca sull'anteprima per impostare X/Y.</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-redact" hidden>
+        <label data-i18n="pdf.edit.redact_mode">Modo</label>
+        <select id="edRedactMode">
+          <option value="text" selected data-i18n="pdf.edit.redact_text">Testo cercato</option>
+          <option value="rect" data-i18n="pdf.edit.redact_rects">Rettangoli</option>
+        </select>
+        <label data-i18n="pdf.edit.needle">Testo da cercare</label>
+        <input type="text" id="edRedactNeedle" class="numin grow" data-i18n-attr="placeholder:pdf.edit.needle_ph" />
+        <label data-i18n="pdf.edit.sig_page">Pagina</label>
+        <input type="number" id="edRedactPage" min="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.fill">Colore copertura</label>
+        <input type="color" id="edRedactFill" value="#000000" />
+        <button class="btn btn-ghost" id="btnRedactClear" type="button" data-i18n="pdf.edit.ink_clear">Pulisci</button>
+        <span class="hint" data-i18n="pdf.edit.redact_hint">Testo: su tutte le pagine. Rettangoli: trascina sull'anteprima (pagina indicata).</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-replace" hidden>
+        <label data-i18n="pdf.edit.needle">Testo da cercare</label>
+        <input type="text" id="edReplNeedle" class="numin grow" data-i18n-attr="placeholder:pdf.edit.needle_ph" />
+        <label data-i18n="pdf.edit.replace_with">Sostituisci con</label>
+        <input type="text" id="edReplWith" class="numin grow" />
+        <label data-i18n="pdf.edit.pages">Pagine</label>
+        <input type="text" id="edReplPages" placeholder="tutte | 1 | 1,3,5" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+        <label data-i18n="pdf.edit.fill">Colore copertura</label>
+        <input type="color" id="edReplFill" value="#ffffff" />
+      </div>
+
+      <div class="ctlrow" id="edBlock-number" hidden>
+        <label data-i18n="pdf.edit.num_start">Numero iniziale</label>
+        <input type="number" id="edNumStart" min="0" step="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.num_prefix">Prefisso</label>
+        <input type="text" id="edNumPrefix" class="numin" />
+        <label data-i18n="pdf.edit.num_suffix">Suffisso</label>
+        <input type="text" id="edNumSuffix" class="numin" />
+        <label data-i18n="pdf.edit.num_digits">Cifre</label>
+        <input type="number" id="edNumDigits" min="1" max="12" step="1" value="6" class="numin" />
+        <label data-i18n="pdf.edit.hf_position">Posizione</label>
+        <select id="edNumPos">
+          <option value="tl" data-i18n="pdf.edit.pos_tl">Alto sinistra</option>
+          <option value="tc" data-i18n="pdf.edit.pos_tc">Alto centro</option>
+          <option value="tr" data-i18n="pdf.edit.pos_tr">Alto destra</option>
+          <option value="bl" data-i18n="pdf.edit.pos_bl">Basso sinistra</option>
+          <option value="bc" data-i18n="pdf.edit.pos_bc">Basso centro</option>
+          <option value="br" selected data-i18n="pdf.edit.pos_br">Basso destra</option>
+        </select>
+        <label data-i18n="pdf.edit.size">Dimensione</label>
+        <input type="number" id="edNumSize" min="6" max="48" step="1" value="10" class="numin" />
+        <label data-i18n="pdf.edit.margin">Margine</label>
+        <input type="number" id="edNumMargin" min="0" max="120" step="1" value="24" class="numin" />
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edNumColor" value="#141210" />
+        <label data-i18n="pdf.edit.pages">Pagine</label>
+        <input type="text" id="edNumPages" placeholder="tutte | 1 | 1,3,5" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+      </div>
+
+      <div class="ctlrow" id="edBlock-headerfooter" hidden>
+        <label data-i18n="pdf.edit.hf_header">Intestazione</label>
+        <input type="text" id="edHfHeader" class="numin grow" data-i18n-attr="placeholder:pdf.edit.hf_ph" />
+        <label data-i18n="pdf.edit.hf_footer">Piè di pagina</label>
+        <input type="text" id="edHfFooter" class="numin grow" data-i18n-attr="placeholder:pdf.edit.hf_ph" />
+        <label data-i18n="pdf.edit.hf_position">Allineamento</label>
+        <select id="edHfPos">
+          <option value="left" data-i18n="pdf.edit.hf_left">Sinistra</option>
+          <option value="center" selected data-i18n="pdf.edit.hf_center">Centro</option>
+          <option value="right" data-i18n="pdf.edit.hf_right">Destra</option>
+        </select>
+        <label data-i18n="pdf.edit.size">Dimensione</label>
+        <input type="number" id="edHfSize" min="6" max="48" step="1" value="10" class="numin" />
+        <label data-i18n="pdf.edit.margin">Margine</label>
+        <input type="number" id="edHfMargin" min="0" max="120" step="1" value="24" class="numin" />
+        <label data-i18n="pdf.edit.color">Colore</label>
+        <input type="color" id="edHfColor" value="#141210" />
+        <label data-i18n="pdf.edit.pages">Pagine</label>
+        <input type="text" id="edHfPages" placeholder="tutte | 1 | 1,3,5" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+      </div>
+
+      <div class="ctlrow" id="edBlock-insertpage" hidden>
+        <label data-i18n="pdf.edit.insert_at">Dopo la pagina</label>
+        <input type="number" id="edInsertAt" min="0" step="1" value="1" class="numin" />
+        <label data-i18n="pdf.edit.insert_count">Quante pagine</label>
+        <input type="number" id="edInsertCount" min="1" max="50" step="1" value="1" class="numin" />
+        <span class="hint" data-i18n="pdf.edit.insert_hint">0 = all'inizio del documento.</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-extract" hidden>
+        <label data-i18n="pdf.edit.pages">Pagine</label>
+        <input type="text" id="edExtractPages" placeholder="es. 1,3,5" class="numin grow"
+               data-i18n-attr="placeholder:pdf.edit.extract_ph" />
+        <span class="hint" data-i18n="pdf.edit.extract_hint">Crea un nuovo PDF con le pagine indicate, nell'ordine dato.</span>
+      </div>
+
+      <div class="ctlrow" id="edBlock-form" hidden>
+        <button class="btn btn-ghost" id="btnFormLoad" type="button" data-i18n="pdf.edit.form_load">Carica campi</button>
+        <div id="edFormFields" class="ed-form-fields"></div>
+        <p class="hint" id="edFormHint" data-i18n="pdf.edit.form_hint">Scegli un PDF con campi modulo, poi premi «Carica campi».</p>
+      </div>
+
       <div class="outrow">
         <button class="btn btn-primary" id="btnEdApply" data-i18n="btn.apply">Applica</button>
         <a class="btn btn-ghost" id="edDownload" href="#" download hidden data-i18n="pdf.edit.dl">⬇ Scarica PDF modificato</a>
@@ -347,6 +563,8 @@
                 <span class="ed-h" data-h="nw"></span><span class="ed-h" data-h="ne"></span>
                 <span class="ed-h" data-h="se"></span><span class="ed-h" data-h="sw"></span>
               </div>
+              <canvas class="ed-draw" id="edInkLayer" hidden></canvas>
+              <canvas class="ed-draw" id="edRectLayer" hidden></canvas>
             </div>
           </div>
           <p class="hint ed-hint-sig" data-i18n="pdf.edit.hint_sig">Trascina la firma dove vuoi · angoli per ridimensionare</p>
