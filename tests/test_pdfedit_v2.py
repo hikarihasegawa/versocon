@@ -55,6 +55,17 @@ def _make_rotated_pdf() -> bytes:
     return buf.getvalue()
 
 
+def _make_index_pdf() -> bytes:
+    """Riga in un'unica span (come le voci d'indice): la sostituzione deve
+    posizionarsi dove sta la parola trovata, non all'inizio della riga."""
+    doc = pymupdf.Document()
+    page = doc.new_page(width=300, height=200)
+    page.insert_text((20, 100), "01 Cosa rende Eden diversa", fontsize=14)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
 def _pixel(pdf: bytes, x: int, y: int) -> tuple[int, int, int]:
     """Colore RGB del pixel (x, y) della prima pagina renderizzata a 72 dpi."""
     pix = _load(pdf)[0].get_pixmap(dpi=72)
@@ -321,6 +332,18 @@ def test_find_replace_testo_ruotato_resta_verticale():
     assert abs(line["dir"][1]) > 0.9, f"direzione non verticale: {line['dir']}"
     x0, y0, x1, y1 = line["bbox"]
     assert (x1 - x0) < (y1 - y0), f"bbox non verticale: {line['bbox']}"
+
+
+def test_find_replace_parola_dentro_span_lunga_non_sovrappone():
+    """Regressione: match dentro una span lunga → il rimpiazzo va dove stava la
+    parola, non all'inizio della span (voci d'indice sovrapposte)."""
+    out = pdfedit.find_replace(_make_index_pdf(), "Eden", "Test")
+    pg = _load(out)[0]
+    assert not pg.search_for("Eden"), "testo originale ancora presente"
+    test_r = pg.search_for("Test")[0]
+    cosa_r = pg.search_for("Cosa")[0]
+    assert test_r.x0 >= cosa_r.x1 - 1, f"rimpiazzo sovrapposto: Test {test_r} vs Cosa {cosa_r}"
+    assert test_r.x0 > 90, f"rimpiazzo all'inizio della riga: x0={test_r.x0}"
 
 
 # --------------------------------------------------------------------------

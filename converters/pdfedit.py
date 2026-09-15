@@ -434,6 +434,20 @@ def _style_at(page: "pymupdf.Page", rect: "pymupdf.Rect"):
     return fallback
 
 
+def _match_origin(rect: "pymupdf.Rect", span_origin: "pymupdf.Point",
+                  direction: tuple[float, float]) -> "pymupdf.Point":
+    """Origine del match: coordinata lungo la scrittura dal rettangolo trovato,
+    coordinata perpendicolare (baseline) dallo span.
+
+    Serve perché una span può contenere più parole: l'origine della span è
+    l'inizio della riga, non della parola cercata.
+    """
+    dx, dy = (direction or (1.0, 0.0))[:2]
+    if abs(dx) >= abs(dy):
+        return pymupdf.Point(rect.x0 if dx >= 0 else rect.x1, span_origin.y)
+    return pymupdf.Point(span_origin.x, rect.y1 if dy < 0 else rect.y0)
+
+
 def _rotate_for(direction: tuple[float, float]) -> int:
     """Rotazione CCW (0/90/180/270) da usare in `insert_text` per la direzione data."""
     dx, dy = (direction or (1.0, 0.0))[:2]
@@ -665,8 +679,10 @@ def find_replace(data: bytes, needle: str, replacement: str, pages=None,
     for i in targets:
         pg = doc[i]
         for r in pg.search_for(needle):
-            font, size, color, origin, direction = _style_at(pg, r)
-            jobs.append((i, pymupdf.Rect(r), font, size, color, origin, direction))
+            rect = pymupdf.Rect(r)
+            font, size, color, span_origin, direction = _style_at(pg, rect)
+            origin = _match_origin(rect, span_origin, direction)
+            jobs.append((i, rect, font, size, color, origin, direction))
     if not jobs:
         raise ValueError(f"Testo non trovato: {needle!r}")
     rgb_fill = _rgb(fill, "colore copertura") if fill else None
