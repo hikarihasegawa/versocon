@@ -64,7 +64,6 @@
   "pdf.img_ocr_mode": "Risultato",
   "pdf.img_ocr_text": "Testo (.txt)",
   "pdf.img_ocr_pdf": "PDF ricercabile",
-  "pdf.ocr_status_pending": "Stato OCR: rilevamento…",
   "btn.extract": "Estrai testo",
   "btn.image": "Scegli immagine",
   "btn.img_ocr": "Riconosci testo",
@@ -305,8 +304,6 @@
   "dyn.err_preview": "⚠ Errore anteprima: {msg}",
   "dyn.applied": "✓ {name} ({size})",
   "dyn.ffmpeg_missing": "⚠ ffmpeg non rilevato: la conversione video non funzionerà finché non lo installi.",
-  "dyn.ffmpeg_ok": "✓ ffmpeg rilevato.",
-  "dyn.ocr_ok": "✓ OCR attivo — lingue: {langs}",
   "dyn.ocr_off": "⚠ OCR non disponibile (Tesseract mancante): verrà estratto solo il testo nativo.",
 
   "dyn.fmt_unsupported": "Formato non supportato: {name}",
@@ -380,7 +377,6 @@
   "dyn.img_ocr_pdf_ok": "PDF ricercabile creato ✓",
   "dyn.no_signature": "Carica o disegna prima la firma.",
   "dyn.sign_gen_failed": "Generazione firma fallita.",
-  "dyn.ed_saved": "✓ {name} ({size})",
   "dyn.generic_error": "Errore",
 
   "api.support_not_configured": "Link di supporto non configurato.",

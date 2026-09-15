@@ -62,7 +62,6 @@
   "pdf.img_ocr_mode": "Output",
   "pdf.img_ocr_text": "Text (.txt)",
   "pdf.img_ocr_pdf": "Searchable PDF",
-  "pdf.ocr_status_pending": "OCR status: detecting…",
   "btn.extract": "Extract text",
   "btn.image": "Choose image",
   "btn.img_ocr": "Recognize text",
@@ -303,8 +302,6 @@
   "dyn.err_preview": "⚠ Preview error: {msg}",
   "dyn.applied": "✓ {name} ({size})",
   "dyn.ffmpeg_missing": "⚠ ffmpeg not detected: video conversion won't work until you install it.",
-  "dyn.ffmpeg_ok": "✓ ffmpeg detected.",
-  "dyn.ocr_ok": "✓ OCR active — languages: {langs}",
   "dyn.ocr_off": "⚠ OCR unavailable (Tesseract missing). Extraction limited to native text.",
 
   "dyn.fmt_unsupported": "Unsupported format: {name}",
@@ -378,7 +375,6 @@
   "dyn.img_ocr_pdf_ok": "Searchable PDF created ✓",
   "dyn.no_signature": "Upload or draw a signature first.",
   "dyn.sign_gen_failed": "Signature generation failed.",
-  "dyn.ed_saved": "✓ {name} ({size})",
   "dyn.generic_error": "Error",
 
   "api.support_not_configured": "Support link not configured.",

@@ -1875,7 +1875,6 @@
       } catch (e) {
         // anteprima non aggiornata: restano disponibili download e stato
       }
-      edStatus.textContent = IC.t("dyn.ed_saved", { name: res.name, size: fmtBytes(res.size) });
       showToast(IC.t("dyn.pdf_modified"), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
@@ -1911,18 +1910,18 @@
     if (appVersion && cfg.version) appVersion.textContent = "v" + cfg.version;
     if (cfg.support && cfg.support.kofi_url) kofiUrl = cfg.support.kofi_url;
     if (videoStatus) {
-      if (cfg.video && cfg.video.ffmpeg_available === false) {
-        videoStatus.textContent = IC.t("dyn.ffmpeg_missing");
-      } else if (cfg.video && cfg.video.ffmpeg_available) {
-        videoStatus.textContent = IC.t("dyn.ffmpeg_ok");
-      }
+      const missing = !!(cfg.video && cfg.video.ffmpeg_available === false);
+      videoStatus.hidden = !missing;
+      videoStatus.textContent = missing ? IC.t("dyn.ffmpeg_missing") : "";
+      const btnV = document.getElementById("btnVideoRecheck");
+      if (btnV) btnV.hidden = !missing;
     }
     if (txtOcrStatus) {
-      if (cfg.ocr && cfg.ocr.available) {
-        txtOcrStatus.textContent = IC.t("dyn.ocr_ok", { langs: (cfg.ocr.languages || []).join(", ") });
-      } else {
-        txtOcrStatus.textContent = IC.t("dyn.ocr_off");
-      }
+      const missing = !(cfg.ocr && cfg.ocr.available);
+      txtOcrStatus.hidden = !missing;
+      txtOcrStatus.textContent = missing ? IC.t("dyn.ocr_off") : "";
+      const btnO = document.getElementById("btnOcrRecheck");
+      if (btnO) btnO.hidden = !missing;
     }
   }
   fetch("/api/config")
