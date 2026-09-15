@@ -19,7 +19,7 @@ import subprocess
 import threading
 
 import pymupdf
-from PIL import Image
+from PIL import Image, ImageOps
 
 from . import engines
 from .proc import NO_WINDOW
@@ -28,6 +28,7 @@ MAX_PAGES = 500
 OCR_MIN_SIDE = 300
 OCR_MAX_SIDE = 6000
 OCR_DPI = 200
+OCR_MIN_CONF = 30  # confidenza minima Tesseract (0-100) per il layer invisibile
 DEFAULT_OCR_LANG = "ita"
 FALLBACK_LANGS = ["eng", "ita"]
 
@@ -323,5 +324,131 @@ def extract_text(
                 txt = ocr_image_bytes(_page_png(doc, i, dpi), lang=lang)
             out.append(txt)
         return out
+    finally:
+        doc.close()
+
+
+# --------------------------------------------------------------------------
+# OCR su immagini e PDF ricercabile (layer di testo invisibile)
+# --------------------------------------------------------------------------
+def _open_image(img: bytes) -> Image.Image:
+    """Apre un file immagine (bytes) applicando l'orientamento EXIF."""
+    try:
+        return ImageOps.exif_transpose(Image.open(io.BytesIO(img)))
+    except Exception as e:  # noqa: BLE001
+        raise ValueError(f"Immagine non valida: {e}") from e
+
+
+def _ocr_error(e: Exception, lang: str) -> Exception:
+    """Distingue lingua Tesseract mancante (ValueError) da motore assente."""
+    import pytesseract  # type: ignore
+
+    if isinstance(e, pytesseract.TesseractError) and (
+        "traineddata" in str(e) or "Failed loading language" in str(e)
+    ):
+        return ValueError(f"Lingua OCR non disponibile: {lang}")
+    return OcrEngineMissingError(lang)
+
+
+def ocr_image_file(img: bytes, lang: str = "it") -> str:
+    """OCR di un file immagine (foto/scansione) → testo; rispetta l'EXIF."""
+    pyt = _try_import_pytesseract()
+    if pyt is None:
+        raise OcrEngineMissingError(lang)
+    im = _open_image(img)
+    try:
+        return pyt.image_to_string(im, lang=lang)
+    except Exception as e:  # noqa: BLE001
+        raise _ocr_error(e, lang) from e
+
+
+def image_to_searchable_pdf(img: bytes, lang: str = "it") -> bytes:
+    """OCR di un'immagine → PDF con l'immagine + layer di testo invisibile
+    (generato da Tesseract). Richiede il motore OCR."""
+    pyt = _try_import_pytesseract()
+    if pyt is None:
+        raise OcrEngineMissingError(lang)
+    im = _open_image(img)
+    try:
+        return bytes(pyt.image_to_pdf_or_hocr(im, lang=lang, extension="pdf"))
+    except Exception as e:  # noqa: BLE001
+        raise _ocr_error(e, lang) from e
+
+
+def _page_ocr_layer(page: "pymupdf.Page", pyt, lang: str, dpi: int) -> int:
+    """OCR della pagina renderizzata e inserimento del testo INVISIBILE
+    (render_mode=3) raggruppato per riga. Ritorna il numero di parole inserite."""
+    raw = _render_pixmap(doc=page.parent, page_no=page.number, dpi=dpi)
+    img = Image.open(io.BytesIO(raw))
+    try:
+        d = pyt.image_to_data(img, lang=lang, output_type=pyt.Output.DICT)
+    except Exception as e:  # noqa: BLE001
+        raise _ocr_error(e, lang) from e
+    sx = page.rect.width / img.width
+    sy = page.rect.height / img.height
+    lines: dict[tuple[int, int, int], list[tuple[int, int, int, int, str]]] = {}
+    for j, txt in enumerate(d["text"]):
+        word = (txt or "").strip()
+        if d["level"][j] != 5 or not word or int(d["conf"][j]) < OCR_MIN_CONF:
+            continue
+        key = (d["block_num"][j], d["par_num"][j], d["line_num"][j])
+        lines.setdefault(key, []).append(
+            (d["left"][j], d["top"][j], d["width"][j], d["height"][j], word)
+        )
+    count = 0
+    for words in lines.values():
+        words.sort(key=lambda w: w[0])
+        left = min(w[0] for w in words)
+        top = min(w[1] for w in words)
+        height = max(w[3] for w in words)
+        size = max(4.0, min(200.0, height * sy * 0.85))
+        baseline = top * sy + height * sy * 0.8
+        page.insert_text((left * sx, baseline), " ".join(w[4] for w in words),
+                         fontsize=size, fontname="helv", render_mode=3)
+        count += len(words)
+    return count
+
+
+def searchable_pdf(
+    data: bytes,
+    lang: str = "it",
+    dpi: int | None = None,
+    pages=None,
+) -> bytes:
+    """Rende ricercabile un PDF scansionato: sovrappone un layer di testo
+    INVISIBILE al contenuto originale (che non viene modificato).
+
+    - `pages=None` → solo le pagine senza testo nativo (auto).
+    - `pages=[...]` (1-based) → esattamente quelle pagine.
+    Richiede Tesseract (OcrEngineMissingError se assente)."""
+    pyt = _try_import_pytesseract()
+    if pyt is None:
+        raise OcrEngineMissingError(lang)
+    if not data:
+        raise ValueError("PDF vuoto")
+    try:
+        doc = pymupdf.Document(stream=data, filetype="pdf")
+    except Exception as e:  # noqa: BLE001
+        raise ValueError(f"PDF non valido: {e}")
+    try:
+        n = doc.page_count
+        if n > MAX_PAGES:
+            raise ValueError(f"PDF con {n} pagine (max {MAX_PAGES} supportate)")
+        dpi_c = _clamp_dpi(dpi)
+        target = set(int(p) for p in pages) if pages else None
+        if target:
+            bad = sorted(p for p in target if p < 1 or p > n)
+            if bad:
+                raise ValueError(f"Pagine fuori range: {bad} (attese 1..{n})")
+        for i in range(n):
+            if target is not None:
+                if (i + 1) not in target:
+                    continue
+            elif _native_text(doc[i]).strip():
+                continue
+            _page_ocr_layer(doc[i], pyt, lang, dpi_c)
+        buf = io.BytesIO()
+        doc.save(buf, garbage=3, deflate=True)
+        return buf.getvalue()
     finally:
         doc.close()

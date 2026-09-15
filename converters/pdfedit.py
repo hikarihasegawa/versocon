@@ -25,12 +25,18 @@ Editor v2 (annotazioni e operazioni documento):
 - extract_pages(...)                  → estrai pagine in un nuovo PDF
 - form_fields(...) / fill_form(...)   → elenca e compila campi modulo
 
+Sicurezza:
+- is_protected(data)                  → True se il PDF richiede una password
+- protect(data, pw, ...)              → cifra in AES-256 (password apertura/modifica)
+- unprotect(data, pw)                 → rimuove la password (no-op se non protetto)
+
 Zero dipendenze nuove (solo pymupdf). Erri in modo esplicito con ValueError
 su input non validi (PDF vuoto/invalido, pagina fuori range, angolo non valido).
 """
 from __future__ import annotations
 
 import io
+import secrets
 from pathlib import Path
 
 import pymupdf
@@ -774,3 +780,87 @@ def fill_form(data: bytes, fields: dict) -> bytes:
         raise ValueError(f"Campi non trovati: {', '.join(sorted(left))}")
     doc.need_appearances(True)
     return _save(doc)
+
+
+# --------------------------------------------------------------------------
+# Sicurezza: protezione con password (AES-256) e rimozione
+# --------------------------------------------------------------------------
+class PasswordError(ValueError):
+    """Password mancante/errata o PDF non apribile con la password data."""
+
+
+_PERM_PRINT = pymupdf.PDF_PERM_PRINT | pymupdf.PDF_PERM_PRINT_HQ
+_PERM_COPY = pymupdf.PDF_PERM_COPY | pymupdf.PDF_PERM_ACCESSIBILITY
+_PERM_MODIFY = (pymupdf.PDF_PERM_MODIFY | pymupdf.PDF_PERM_ANNOTATE
+                | pymupdf.PDF_PERM_FORM | pymupdf.PDF_PERM_ASSEMBLE)
+
+
+def _permissions(allow_print: bool, allow_copy: bool, allow_modify: bool) -> int:
+    """Bitmask permessi PDF: stampa, copia/testo accessibile, modifica completa."""
+    perms = 0
+    if allow_print:
+        perms |= _PERM_PRINT
+    if allow_copy:
+        perms |= _PERM_COPY
+    if allow_modify:
+        perms |= _PERM_MODIFY
+    return perms
+
+
+def is_protected(data: bytes) -> bool:
+    """True se il PDF richiede una password per l'apertura."""
+    doc = _open(data)
+    try:
+        return bool(doc.needs_pass)
+    finally:
+        doc.close()
+
+
+def protect(
+    data: bytes,
+    user_pw: str,
+    owner_pw: str = "",
+    allow_print: bool = True,
+    allow_copy: bool = True,
+    allow_modify: bool = False,
+) -> bytes:
+    """Cifra il PDF in AES-256. `user_pw` serve per aprirlo. Se `owner_pw` è
+    vuoto ne viene generato uno casuale, così i permessi valgono davvero anche
+    per chi conosce la password di apertura. Ritorna i bytes cifrati."""
+    if not user_pw:
+        raise PasswordError("password mancante")
+    doc = _open(data)
+    try:
+        doc.save(
+            buf := io.BytesIO(),
+            encryption=pymupdf.PDF_ENCRYPT_AES_256,
+            user_pw=user_pw, owner_pw=(owner_pw or secrets.token_urlsafe(16)),
+            permissions=_permissions(allow_print, allow_copy, allow_modify),
+            garbage=3, deflate=True,
+        )
+        return buf.getvalue()
+    finally:
+        doc.close()
+
+
+def unprotect(data: bytes, password: str = "") -> bytes:
+    """Rimuove la password di apertura. Se il PDF non è protetto ritorna
+    l'input invariato; password errata → PasswordError."""
+    if not data:
+        raise ValueError("PDF vuoto")
+    try:
+        doc = pymupdf.Document(stream=data, filetype="pdf")
+    except Exception as e:  # noqa: BLE001
+        raise ValueError(f"PDF non valido: {e}")
+    try:
+        if not doc.needs_pass:
+            return bytes(data)
+        if not doc.authenticate(password or ""):
+            raise PasswordError("password errata")
+        if doc.page_count > MAX_PAGES:
+            raise ValueError(f"PDF con {doc.page_count} pagine (max {MAX_PAGES} supportate)")
+        doc.save(buf := io.BytesIO(), encryption=pymupdf.PDF_ENCRYPT_NONE,
+                 garbage=3, deflate=True)
+        return buf.getvalue()
+    finally:
+        doc.close()

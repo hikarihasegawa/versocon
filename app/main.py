@@ -758,6 +758,72 @@ def pdf_to_text(
     return payload
 
 
+@app.post("/api/image-ocr")
+def image_ocr(
+    request: Request,
+    file: UploadFile = File(...),
+    mode: str = Form("text"),
+    lang: str = Form("it"),
+):
+    """OCR di un'immagine (foto o scansione).
+
+    `mode` ∈ {text, pdf}: "text" → .txt con il testo riconosciuto;
+    "pdf" → PDF ricercabile (immagine + layer di testo invisibile).
+    Ritorna { results: [{name,size,download}], text?, ocr_available }.
+    """
+    name = Path(file.filename or "").name
+    if not compconv.image_is_compressible(name):
+        raise HTTPException(400, T(request, "api.file_type_unsupported", name=name))
+    data = _read_capped(file, compconv.MAX_BYTES)
+    if not data:
+        raise HTTPException(400, T(request, "api.file_empty_named", name=name))
+    if len(data) > compconv.MAX_BYTES:
+        raise HTTPException(400, T(request, "api.file_100mb_limit", name=name))
+    m = (mode or "text").strip().lower()
+    if m not in ("text", "pdf"):
+        raise HTTPException(400, T(request, "api.ocr_output_invalid", mode=mode))
+    ocr_lang = (lang or "it").strip() or "eng"
+    try:
+        if m == "text":
+            text = exconv.ocr_image_file(data, lang=ocr_lang)
+        else:
+            out = exconv.image_to_searchable_pdf(data, lang=ocr_lang)
+    except exconv.OcrEngineMissingError as e:
+        raise HTTPException(501, T(request, "api.ocr_not_installed")) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, T(request, "api.extract_text_failed", detail=str(e)))
+
+    stem = Path(name).stem or "immagine"
+    if m == "text":
+        dst_name, n = f"{stem}.txt", 1
+        while (OUT_DIR / dst_name).exists():
+            n += 1
+            dst_name = f"{stem}-{n}.txt"
+    else:
+        dst_name, n = f"{stem}_ocr.pdf", 1
+        while (OUT_DIR / dst_name).exists():
+            n += 1
+            dst_name = f"{stem}_ocr-{n}.pdf"
+    dst = OUT_DIR / dst_name
+    if m == "text":
+        dst.write_text(text, encoding="utf-8")
+    else:
+        dst.write_bytes(out)
+    payload = {
+        "ocr_available": True,
+        "results": [{
+            "name": dst_name, "src": name,
+            "size": dst.stat().st_size,
+            "path": str(dst), "download": f"/api/file/{dst_name}",
+        }],
+    }
+    if m == "text":
+        payload["text"] = text
+    return payload
+
+
 def _expand_pages(data: bytes, pages_json: str) -> list[int]:
     """Espande una lista pagine: "tutte"/""/lista JSON → lista 1-based completa/parziale."""
     import json as _json
@@ -861,10 +927,18 @@ def api_pdf_edit(
     insert_at: int = Form(1),
     insert_count: int = Form(1),
     form_values: str = Form(""),      # JSON {"campo": "valore", ...}
+    # sicurezza / OCR (FEAT-B)
+    pdf_pw: str = Form(""),           # password apertura (protect/unprotect)
+    pdf_pw_owner: str = Form(""),     # password owner (vuoto → casuale)
+    allow_print: bool = Form(True),
+    allow_copy: bool = Form(True),
+    allow_modify: bool = Form(False),
+    ocr_lang: str = Form("it"),
+    ocr_dpi: int = Form(200),
 ):
     """Editor PDF. `action` ∈ {reorder,delete,rotate,watermark,signature,
     annotate,note,ink,stamp,text,redact,replace,number,headerfooter,
-    insertpage,extract,form}."""
+    insertpage,extract,form,protect,unprotect,searchable}."""
     name = Path(file.filename or "").name
     if Path(name).suffix.lower() != ".pdf":
         raise HTTPException(400, T(request, "api.file_not_pdf", name=name))
@@ -875,7 +949,7 @@ def api_pdf_edit(
     if act not in ("reorder", "delete", "rotate", "watermark", "signature",
                    "annotate", "note", "ink", "stamp", "text", "redact",
                    "replace", "number", "headerfooter", "insertpage",
-                   "extract", "form"):
+                   "extract", "form", "protect", "unprotect", "searchable"):
         raise HTTPException(400, T(request, "api.action_invalid", action=action))
 
     import json
@@ -970,6 +1044,31 @@ def api_pdf_edit(
             out = pdfeditconv.insert_blank_page(data, at=insert_at, count=insert_count)
         elif act == "extract":
             out = pdfeditconv.extract_pages(data, _expand_pages(data, pages))
+        elif act == "protect":
+            if not pdf_pw:
+                raise HTTPException(400, T(request, "api.password_required"))
+            out = pdfeditconv.protect(
+                data, pdf_pw, owner_pw=pdf_pw_owner,
+                allow_print=allow_print, allow_copy=allow_copy,
+                allow_modify=allow_modify,
+            )
+        elif act == "unprotect":
+            try:
+                out = pdfeditconv.unprotect(data, pdf_pw)
+            except pdfeditconv.PasswordError as e:
+                raise HTTPException(400, T(request, "api.password_wrong")) from e
+        elif act == "searchable":
+            try:
+                pg = _expand_pages(data, pages) if (pages or "").strip() else None
+            except json.JSONDecodeError as e:
+                raise ValueError(T(request, "api.pages_invalid")) from e
+            try:
+                out = exconv.searchable_pdf(
+                    data, lang=((ocr_lang or "it").strip() or "eng"),
+                    dpi=ocr_dpi, pages=pg,
+                )
+            except exconv.OcrEngineMissingError as e:
+                raise HTTPException(501, T(request, "api.ocr_not_installed")) from e
         else:  # form
             values = _json_or_none(form_values, "form_values")
             if not isinstance(values, dict):
@@ -987,7 +1086,9 @@ def api_pdf_edit(
               "note": "note", "ink": "ink", "stamp": "stamp", "text": "txt",
               "redact": "red", "replace": "repl", "number": "num",
               "headerfooter": "hf", "insertpage": "blank",
-              "extract": "extract", "form": "form"}[act]
+              "extract": "extract", "form": "form",
+              "protect": "prot", "unprotect": "unlock",
+              "searchable": "ocr"}[act]
     payload = _save_pdf_output(out, name, suffix)
     payload["action"] = act
     return payload
