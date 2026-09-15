@@ -73,6 +73,89 @@
     return d.innerHTML;
   }
 
+  /* ---------- job in background: progresso reale + annulla ---------- */
+  const jobBar = $("#jobBar");
+  const jobLabel = $("#jobLabel");
+  const jobProg = $("#jobProg");
+  const jobCount = $("#jobCount");
+  const jobCancel = $("#jobCancel");
+  let activeJob = null;   // una sola operazione lunga per volta nell'UI
+
+  function jobTicker(state) {
+    if (!jobBar || !jobLabel) return;
+    jobLabel.textContent = state.message || IC.t("job.running");
+    if (state.total != null && state.done != null) {
+      jobProg.max = 100;
+      jobProg.value = Math.max(0, Math.min(100, (state.done / state.total) * 100));
+    } else {
+      jobProg.max = 100;
+      jobProg.removeAttribute("value");   // niente totale reale → indeterminata
+    }
+    if (state.unit === "file" || state.unit === "page") {
+      jobCount.textContent = state.total != null ? `${state.done ?? 0} / ${state.total}` : "";
+    } else {
+      jobCount.textContent = state.total != null
+        ? Math.round(((state.done || 0) / state.total) * 100) + "%" : "";
+    }
+  }
+
+  async function pollJob(id) {
+    for (;;) {
+      await new Promise((r) => setTimeout(r, 350));
+      const r = await fetch(`/api/jobs/${id}`);
+      if (!r.ok) throw new Error(IC.t("dyn.generic_error"));
+      const state = await r.json();
+      jobTicker(state);
+      if (state.status === "done" || state.status === "error" || state.status === "cancelled") return state;
+    }
+  }
+
+  /* Avvia un job e torna lo stato finale; onDone/onError opzionali. */
+  async function runJob(url, fd, onDone, onError) {
+    if (activeJob) {
+      showToast(IC.t("job.busy"), "warn");
+      return null;
+    }
+    const res = await fetch(url, { method: "POST", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const detail = data && data.detail;
+      const msg = (typeof detail === "string" && detail) || (detail && detail.message) || IC.t("dyn.generic_error");
+      if (onError) onError(new Error(msg), null); else showToast(msg, "err");
+      return null;
+    }
+    activeJob = data.id;
+    jobCancel.disabled = false;
+    jobBar.hidden = false;
+    jobTicker({ message: null, done: null, total: null });
+    try {
+      const state = await pollJob(data.id);
+      if (state.status === "done") {
+        if (onDone) onDone(state.result, state);
+      } else if (state.status === "cancelled") {
+        showToast(IC.t("job.cancelled"), "warn");
+      } else {
+        const msg = state.error || IC.t("dyn.generic_error");
+        if (onError) onError(new Error(msg), state); else showToast(msg, "err");
+      }
+      return state;
+    } finally {
+      activeJob = null;
+      jobBar.hidden = true;
+    }
+  }
+
+  if (jobCancel) {
+    jobCancel.addEventListener("click", async () => {
+      if (!activeJob) return;
+      jobCancel.disabled = true;
+      jobLabel.textContent = IC.t("job.cancelling");
+      try {
+        await fetch(`/api/jobs/${activeJob}/cancel`, { method: "POST" });
+      } catch (_) { /* il polling riporta comunque lo stato */ }
+    });
+  }
+
   /* ---------- queue ---------- */
   function addFiles(list) {
     for (const f of list) {
@@ -594,17 +677,17 @@
     const op = videoOp.value;
     const fd = new FormData();
     fd.append("file", videoFile);
-    let url = "/api/convert-video";
+    let url = "/api/jobs/video-convert";
     let okKey = "dyn.video_converted";
     if (op === "gif") {
-      url = "/api/video-gif";
+      url = "/api/jobs/video-gif";
       okKey = "dyn.gif_created";
       if (videoGifFps.value) fd.append("fps", videoGifFps.value);
       if (videoGifWidth.value) fd.append("width", videoGifWidth.value);
       if (videoGifStart.value) fd.append("start", videoGifStart.value);
       if (videoGifDur.value) fd.append("duration", videoGifDur.value);
     } else if (op === "audio_mp3" || op === "audio_m4a") {
-      url = "/api/video-audio";
+      url = "/api/jobs/video-audio";
       okKey = "dyn.audio_extracted";
       fd.append("fmt", op === "audio_m4a" ? "m4a" : "mp3");
     } else {
@@ -614,12 +697,12 @@
     btnVideoConvert.disabled = true;
     btnVideoConvert.textContent = IC.t("btn.transcoding");
     try {
-      const res = await fetch(url, { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error((data && data.detail) || "Errore");
-      results = data.results;
-      renderResults();
-      showToast(IC.t(okKey), "ok");
+      const state = await runJob(url, fd);
+      if (state && state.status === "done") {
+        results = state.result.results;
+        renderResults();
+        showToast(IC.t(okKey), "ok");
+      }
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
@@ -2133,21 +2216,17 @@
       btnScan.disabled = true;
       btnScan.textContent = IC.t("btn.scanning");
       try {
-        const res = await fetch("/api/scan-clean", { method: "POST", body: fd });
-        const data = await res.json();
-        if (!res.ok) {
-          const d = data && data.detail;
-          if (d && typeof d === "object" && Array.isArray(d.results)) {
-            results = d.results;
-            renderResults();
-          }
-          throw new Error(typeof d === "string" ? d : (d && d.message) || IC.t("dyn.generic_error"));
+        const state = await runJob("/api/jobs/scan-clean", fd);
+        if (state && state.status === "done") {
+          results = state.result.results;
+          renderResults();
+          const ok = results.filter((r) => !r.error);
+          if (ok.length) scanShowResult(ok[0]);
+          showToast(IC.t("dyn.scan_done", { n: ok.length }), "ok");
+        } else if (state && state.status === "error" && state.result && state.result.results) {
+          results = state.result.results;
+          renderResults();
         }
-        results = data.results;
-        renderResults();
-        const ok = results.filter((r) => !r.error);
-        if (ok.length) scanShowResult(ok[0]);
-        showToast(IC.t("dyn.scan_done", { n: ok.length }), "ok");
       } catch (err) {
         showToast(err.message || String(err), "err");
       } finally {

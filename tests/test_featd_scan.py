@@ -281,7 +281,7 @@ def test_subtab_scan_e_controlli():
 
 def test_js_invia_scansione_con_angoli_e_anteprima_risultato():
     js = (STATIC / "app.js").read_text(encoding="utf-8")
-    assert '"/api/scan-clean"' in js
+    assert '"/api/jobs/scan-clean"' in js
     for field in ["deskew", "antishadow", "binarize", "fmt", "quality", "dpi", "corners"]:
         assert f'fd.append("{field}"' in js, f"FormData: {field} mancante"
     assert "JSON.stringify(scanCorners)" in js

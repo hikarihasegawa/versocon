@@ -947,6 +947,13 @@
 
 <div class="nav-scrim" id="navScrim"></div>
 
+<div id="jobBar" class="jobbar" hidden role="status" aria-live="polite">
+  <span class="jobbar-label" id="jobLabel"></span>
+  <progress id="jobProg" class="jobbar-prog" max="100" value="0"></progress>
+  <span class="jobbar-count" id="jobCount"></span>
+  <button class="btn jobbar-cancel" id="jobCancel" type="button" data-i18n="job.cancel">Annulla</button>
+</div>
+
 <div id="toast" class="toast" role="status"></div>
 <script src="app.js"></script>
 </body>

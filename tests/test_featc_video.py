@@ -240,8 +240,8 @@ def test_video_tab_has_operation_selector():
 
 def test_app_js_dispatches_new_endpoints():
     js = (STATIC / "app.js").read_text(encoding="utf-8")
-    assert '"/api/video-audio"' in js
-    assert '"/api/video-gif"' in js
+    assert '"/api/jobs/video-audio"' in js
+    assert '"/api/jobs/video-gif"' in js
     assert 'fd.append("fmt", op === "audio_m4a" ? "m4a" : "mp3")' in js
 
 

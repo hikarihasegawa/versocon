@@ -1255,4 +1255,24 @@ html.theme-pro .lang-pick { border-radius: 999px; }
   .app-body .tabs { transition: none; }
 }
 
+/* ---- Barra job: progresso reale + annulla per le operazioni lunghe ---- */
+.jobbar {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+  z-index: 70; display: flex; align-items: center; gap: 12px;
+  width: min(620px, 94vw);
+  padding: 10px 14px;
+  background: var(--paper-2); color: var(--ink);
+  border: var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.jobbar-label { flex: 0 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jobbar-prog { flex: 1 1 auto; min-width: 90px; height: 12px; accent-color: var(--red); }
+.jobbar-count { flex: 0 0 auto; color: var(--ink-soft); font-size: 13px; font-variant-numeric: tabular-nums; }
+.jobbar-cancel { flex: 0 0 auto; min-height: 32px; padding: 4px 14px; }
+html.theme-pro .jobbar { box-shadow: 0 8px 24px rgba(0, 0, 0, .45); }
+@media (max-width: 560px) {
+  .jobbar { flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .jobbar-label { flex: 1 1 100%; text-align: center; }
+}
+
 
