@@ -15,14 +15,13 @@ from __future__ import annotations
 import io
 import os
 import re
-import shutil
 import subprocess
 import threading
-from pathlib import Path
 
 import pymupdf
 from PIL import Image
 
+from . import engines
 from .proc import NO_WINDOW
 
 MAX_PAGES = 500
@@ -33,54 +32,17 @@ DEFAULT_OCR_LANG = "ita"
 FALLBACK_LANGS = ["eng", "ita"]
 
 
-def _candidate_tesseract_paths() -> list[str]:
-    """Percorso tesseract.exe / tesseract più probabili su questa piattaforma."""
-    cands: list[str] = []
-    import platform
-
-    plat = platform.system()
-    if plat == "Windows":
-        env = os.environ
-        pf = env.get("ProgramFiles", r"C:\Program Files")
-        pf86 = env.get("ProgramFiles(x86)", r"C:\Program Files (x86)")
-        home = Path.home()
-        cands += [
-            r"C:\Program Files\Tesseract-OCR\tesseract.exe",
-            r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
-            str(Path(pf) / "Tesseract-OCR" / "tesseract.exe"),
-            str(Path(pf86) / "Tesseract-OCR" / "tesseract.exe"),
-            str(home / "AppData" / "Local" / "Programs" / "Tesseract-OCR" / "tesseract.exe"),
-            str(home / "AppData" / "Roaming" / "Tesseract-OCR" / "tesseract.exe"),
-        ]
-    elif plat == "Darwin":
-        cands += [
-            "/opt/homebrew/bin/tesseract",
-            "/usr/local/bin/tesseract",
-        ]
-    else:  # Linux
-        cands += [
-            "/usr/bin/tesseract",
-            "/usr/local/bin/tesseract",
-            "/opt/tesseract/tesseract",
-        ]
-    return [c for c in cands if os.path.exists(c)]
-
-
 def _resolve_tesseract_cmd() -> str | None:
     """Restituisce il percorso assoluto del binary Tesseract, se esiste.
-    Ordine: (1) $TESSERACT_CMD; (2) PATH; (3) path noti per piattaforma.
+
+    Ordine: (1) $TESSERACT_CMD; (2) ricerca condivisa `engines` (PATH, WinGet
+    Links/Packages, Chocolatey, Scoop, cartelle comuni).
     """
     if os.environ.get("TESSERACT_CMD"):
         v = os.environ["TESSERACT_CMD"]
         if os.path.exists(v):
             return v
-    found = shutil.which("tesseract")
-    if found:
-        return found
-    for c in _candidate_tesseract_paths():
-        if os.path.isfile(c):
-            return c
-    return None
+    return engines.find_binary(("tesseract", "tesseract.exe"))
 
 
 class OcrEngineMissingError(Exception):
@@ -186,6 +148,14 @@ def ocr_info() -> dict:
     if not info["version"]:
         return {"available": False, "version": None, "languages": []}
     return {"available": True, "version": info["version"], "languages": list(info["languages"])}
+
+
+def reset_ocr_cache() -> None:
+    """Dimentica percorso, versione e lingue di Tesseract (bottone «Ricontrolla»)."""
+    global _TESS_CACHE, _TESS_RESOLVED, _PROBE
+    _TESS_CACHE = None
+    _TESS_RESOLVED = False
+    _PROBE = None
 
 
 def _render_pixmap(doc: "pymupdf.Document", page_no: int, dpi: int) -> bytes:

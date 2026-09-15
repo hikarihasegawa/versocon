@@ -162,7 +162,10 @@
           <option value="ita+eng" data-i18n="pdf.ocr_lang_iten">Italiano + Inglese</option>
         </select>
       </div>
-      <p class="hint" id="txtOcrStatus" data-i18n="pdf.ocr_status_pending">Stato OCR: rilevamento…</p>
+      <div class="outrow">
+        <p class="hint" id="txtOcrStatus" data-i18n="pdf.ocr_status_pending" style="margin:0">Stato OCR: rilevamento…</p>
+        <button class="btn btn-ghost" id="btnOcrRecheck" type="button" data-recheck data-i18n="btn.recheck">↻ Ricontrolla</button>
+      </div>
       <div class="outrow">
         <button class="btn btn-primary" id="btnTxtExtract" data-i18n="btn.extract">Estrai testo</button>
       </div>
@@ -296,6 +299,7 @@
         <label data-i18n-text="pdf.edit.sig_op">Opacità <span id="edSigOpVal" class="ctl-val">100</span></label>
         <input type="range" id="edSigOpacity" min="10" max="100" value="100" step="5" class="slider grow" />
         <button class="btn btn-ghost" id="btnSigResetPos" type="button" data-i18n="pdf.edit.sig_reset">↺ Riposiziona</button>
+        <button class="btn btn-ghost" id="btnSigClear" type="button" data-i18n="pdf.edit.sig_clear">🗑 Rimuovi firma</button>
       </div>
 
       <div class="ctlrow" id="edSignPad" hidden>
@@ -472,7 +476,10 @@
     <div class="outrow">
       <button class="btn btn-primary" id="btnVideoConvert" data-i18n="btn.convert">Converti</button>
     </div>
-    <p class="hint" id="videoStatus"></p>
+    <div class="outrow">
+      <p class="hint" id="videoStatus" style="margin:0"></p>
+      <button class="btn btn-ghost" id="btnVideoRecheck" type="button" data-recheck data-i18n="btn.recheck">↻ Ricontrolla</button>
+    </div>
   </section>
 
   <section class="card results" id="resultsCard" hidden>

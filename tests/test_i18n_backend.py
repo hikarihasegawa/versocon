@@ -67,10 +67,25 @@ def test_pick_lang_accept_language_fallback():
 def test_t_fallback_en_and_it():
     assert T(_mk_request({"X-VersoCon-Lang": "en"}), "api.no_files") == "No files provided"
     assert T(_mk_request({"X-VersoCon-Lang": "it"}), "api.no_files") == "Nessun file inviato"
-    # es non presente -> cade su en
-    assert T(_mk_request({"X-VersoCon-Lang": "es"}), "api.no_files") == "No files provided"
+    # es è tradotta (tutte le 8 lingue di SUPPORTED hanno il file)
+    assert T(_mk_request({"X-VersoCon-Lang": "es"}), "api.no_files") == "No se envió ningún archivo"
     # chiave inesistente -> restituisce la chiave
     assert T(_mk_request({"X-VersoCon-Lang": "it"}), "api.nota_esistente_xyz") == "api.nota_esistente_xyz"
+
+
+def test_t_fallback_to_en_when_lang_file_missing(monkeypatch, tmp_path):
+    """Lingua supportata ma con file assente: catena lang -> en -> it -> chiave."""
+    import app.i18n as i18n
+
+    (tmp_path / "en.json").write_text('{"api.no_files": "No files provided"}', encoding="utf-8")
+    (tmp_path / "it.json").write_text('{"api.no_files": "Nessun file inviato"}', encoding="utf-8")
+    monkeypatch.setattr(i18n, "_I18N_DIR", tmp_path)
+    i18n.reset_cache()
+    try:
+        assert i18n.t(_mk_request({"X-VersoCon-Lang": "de"}), "api.no_files") == "No files provided"
+        assert i18n.t(_mk_request({"X-VersoCon-Lang": "de"}), "api.manca") == "api.manca"
+    finally:
+        i18n.reset_cache()
 
 
 def test_t_param_interpolation():

@@ -1027,6 +1027,15 @@
     const rv = document.getElementById("edSigRotVal"); if (rv) rv.textContent = "0°";
     applySigBoxToDom();
   });
+  const btnSigClear = document.getElementById("btnSigClear");
+  if (btnSigClear) btnSigClear.addEventListener("click", () => {
+    if (edSigImag.src && edSigImag.src.startsWith("blob:")) URL.revokeObjectURL(edSigImag.src);
+    edSigImag.removeAttribute("src");
+    edSigFile = null;
+    const inp = document.getElementById("edSigImg");
+    if (inp) inp.value = "";
+    applySigBoxToDom();
+  });
 
   /* ---------- InkPad (firma mano) ---------- */
   const inkPad = document.getElementById("inkPad");
@@ -1295,6 +1304,29 @@
       renderConfigStatus(cfg);
     })
     .catch(() => {});
+
+  /* ---------- Ricontrolla motori esterni (ffmpeg / Tesseract) ---------- */
+  async function recheckEngines(btn) {
+    btn.disabled = true;
+    try {
+      const r = await fetch("/api/engines/recheck", { method: "POST" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const res = await r.json();
+      if (bootCfg) {
+        bootCfg.video = Object.assign({}, bootCfg.video, res.video || {});
+        bootCfg.ocr = res.ocr || bootCfg.ocr;
+        renderConfigStatus(bootCfg);
+      }
+      showToast(IC.t("dyn.recheck_ok"), "ok");
+    } catch (_) {
+      showToast(IC.t("dyn.recheck_err"), "err");
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  document.querySelectorAll("[data-recheck]").forEach((btn) => {
+    btn.addEventListener("click", () => recheckEngines(btn));
+  });
 
   /* ---------- i18n live refresh ---------- */
   function refreshDynamicI18n() {

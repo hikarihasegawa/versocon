@@ -29,18 +29,20 @@ jobs:
           pip install -r requirements-lock.txt
           pip install pyinstaller
 
-      - name: Set installer version from tag/manual input
+      - name: Set app + installer version from tag/manual input
         id: ver
         shell: pwsh
         run: |
           $raw = "${{ github.event.inputs.version }}"
           if (-not $raw) { $raw = "${{ github.ref_name }}" }
           $v = ($raw -replace '^v','').Trim()
-          Write-Host "Versione installer: $v"
+          Write-Host "Versione: $v"
           $iss = "packaging/inno/versocon.iss"
           $c = [IO.File]::ReadAllText($iss)
           $c = [regex]::Replace($c, '#define \s*MyAppVersion\s+"[^"]*"', "#define MyAppVersion   `"$v`"")
           [IO.File]::WriteAllText($iss, $c)
+          # Unica fonte per UI e /api/config (vedi app/version.py).
+          [IO.File]::WriteAllText("app/version.py", "__version__ = `"$v`"`n")
 
       - name: Build single-dir app (PyInstaller)
         shell: pwsh

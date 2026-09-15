@@ -29,6 +29,7 @@
   "btn.video": "Scegli video",
   "btn.pick": "Scegli file",
 
+  "btn.recheck": "↻ Ricontrolla",
   "ctl.all": "tutte",
 
   "pdf.title": "PDF",
@@ -111,6 +112,7 @@
   "pdf.edit.sig_angle": "Angolo",
   "pdf.edit.sig_op": "Opacità",
   "pdf.edit.sig_reset": "↺ Riposiziona",
+  "pdf.edit.sig_clear": "🗑 Rimuovi firma",
   "pdf.edit.ink_title": "Disegna la firma",
   "pdf.edit.ink_size_title": "Spessore pennello",
   "pdf.edit.ink_clear": "Cancella",
@@ -212,6 +214,8 @@
   "dyn.pick_video_first": "Scegli prima un video.",
   "btn.transcoding": "Conversione in corso…",
   "dyn.video_converted": "Video convertito ✓",
+  "dyn.recheck_ok": "Ricontrollo completato ✓",
+  "dyn.recheck_err": "Ricontrollo non riuscito.",
   "dyn.not_pdf": "Non è un PDF: {name}",
   "dyn.need_2_pdfs": "Serve almeno 2 PDF da unire.",
   "btn.merging": "Unione in corso…",

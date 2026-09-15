@@ -28,6 +28,7 @@ from converters import video as vidconv
 from app import constants
 from app.i18n import t as T
 from app.security import LocalOnlyMiddleware, safe_child
+from app.version import __version__
 
 
 @asynccontextmanager
@@ -38,7 +39,7 @@ async def _lifespan(_app: FastAPI):
     shutil.rmtree(OUT_DIR, ignore_errors=True)
 
 
-app = FastAPI(title="VersoCon", version="0.2.6", lifespan=_lifespan)
+app = FastAPI(title="VersoCon", version=__version__, lifespan=_lifespan)
 app.add_middleware(LocalOnlyMiddleware)
 
 BASE_DIR = constants.ROOT
@@ -108,6 +109,21 @@ def config():
         "ocr": exconv.ocr_info(),
         "support": {"kofi_url": constants.KOFI_URL},
         "note": "HEIC/HEIF require pillow-heif (installed).",
+    }
+
+
+@app.post("/api/engines/recheck")
+def engines_recheck():
+    """Rilegge ffmpeg e Tesseract ignorando la cache (bottone «Ricontrolla»).
+
+    Utile quando l'utente installa un motore mentre l'app è già aperta: il
+    processo ha ancora il vecchio ambiente e le cache erano negative.
+    """
+    vidconv._reset_ffmpeg_cache()
+    exconv.reset_ocr_cache()
+    return {
+        "video": {"ffmpeg_available": vidconv.ffmpeg_available()},
+        "ocr": exconv.ocr_info(),
     }
 
 

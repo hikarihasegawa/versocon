@@ -56,7 +56,7 @@ def test_tesseract_probe_missing_binary(monkeypatch):
 def test_ffmpeg_probe_no_console(monkeypatch):
     calls = []
     monkeypatch.setattr(vid, "_FFMPEG_CACHE", None)
-    monkeypatch.setattr(vid.shutil, "which", lambda name: "ffmpeg")
+    monkeypatch.setattr(vid.engines.shutil, "which", lambda name: "ffmpeg")
     monkeypatch.setattr(vid.subprocess, "run", lambda cmd, **kw: calls.append(kw.get("creationflags", 0)) or _Done())
     assert vid._find_ffmpeg() == "ffmpeg"
     assert calls == [FLAG]

@@ -6,12 +6,12 @@ restituisce un errore 503 chiaro.
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
+from . import engines
 from .proc import NO_WINDOW
 
 MAX_VIDEO_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB di input
@@ -65,10 +65,7 @@ def _find_ffmpeg() -> str | None:
     global _FFMPEG_CACHE
     if _FFMPEG_CACHE is not None:
         return _FFMPEG_CACHE[1]
-    for name in ("ffmpeg", "ffmpeg.exe"):
-        p = shutil.which(name)
-        if not p:
-            continue
+    for p in engines.iter_candidates(("ffmpeg", "ffmpeg.exe")):
         try:
             r = subprocess.run([p, "-version"], capture_output=True, timeout=8, **NO_WINDOW)
         except Exception:  # noqa: BLE001 - stub, timeout, permessi

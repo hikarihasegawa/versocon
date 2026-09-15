@@ -36,6 +36,12 @@ jobs:
           pip install -r requirements-lock.txt
           pip install pyinstaller
 
+      - name: Set app version from input
+        shell: pwsh
+        run: |
+          $v = "${{ inputs.version }}"
+          [IO.File]::WriteAllText("app/version.py", "__version__ = `"$v`"`n")
+
       - name: Build app (PyInstaller)
         shell: pwsh
         run: pyinstaller packaging\versacon.spec --noconfirm --clean
