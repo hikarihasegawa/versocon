@@ -1,4 +1,4 @@
-"""Video: transcode base verso MP4 (H.264/AAC) o WebM (VP9/Vorbis) via ffmpeg.
+"""Video: transcode verso MP4/WebM, estrazione audio (MP3/M4A) e GIF animata via ffmpeg.
 
 ffmpeg è opzionale: se assente l'app continua a lavorare su tutto il resto e
 restituisce un errore 503 chiaro.
@@ -29,13 +29,27 @@ _OUT = {
     "webm": ("libvpx-vp9", "libvorbis"),
 }
 
+# formato audio di uscita -> (codec, argomenti extra)
+_AUDIO_OUT = {
+    "mp3": ("libmp3lame", ["-q:a", "2"]),
+    "m4a": ("aac", ["-b:a", "192k", "-movflags", "+faststart"]),
+}
+
+MAX_GIF_FPS = 30
+MAX_GIF_WIDTH = 1920
+MIN_GIF_WIDTH = 64
+
 
 class MissingFfmpegError(RuntimeError):
     """ffmpeg non disponibile sul sistema."""
 
 
 class VideoTimeoutError(RuntimeError):
-    """Il transcode ha superato il timeout."""
+    """L'operazione ha superato il timeout."""
+
+
+class NoAudioTrackError(ValueError):
+    """Il video sorgente non contiene una traccia audio."""
 
 
 def video_is_supported(filename: str) -> bool:
@@ -77,47 +91,23 @@ def _find_ffmpeg() -> str | None:
     return None
 
 
-def transcode(src_path: str, dst_path: str, fmt: str = "mp4", crf: int | None = None) -> int:
-    """Trascode `src_path` in `dst_path` usando ffmpeg e restituisce la dimensione in byte.
+def _run_ffmpeg(ff: str, args: list[str], dst: Path, label: str = "Operazione") -> int:
+    """Esegue ffmpeg con gli argomenti dati e scrive l'output atomicamente su `dst`.
 
-    Scrive in un file temporaneo nella stessa cartella di destinazione e lo sposta
-    atomicamente al termine, così un fallimento non lascia file parziali.
+    Restituisce la dimensione in byte. Un fallimento non lascia file parziali.
     """
-    if not Path(src_path).is_file():
-        raise ValueError("File sorgente non trovato")
-
-    ext, vcodec, acodec = _out_container(fmt)
-    if not Path(dst_path).suffix:
-        raise ValueError("Percorso di destinazione senza estensione")
-    if Path(dst_path).suffix.lower().lstrip(".") != ext:
-        # se l'estensione non corrisponde al formato scelto, costringe quella del formato
-        dst_path = str(Path(dst_path).with_suffix("." + ext))
-
-    ff = _find_ffmpeg()
-    if not ff:
-        raise MissingFfmpegError(
-            "ffmpeg non trovato: installa ffmpeg (winget install Gyan.FFmpeg) e riprova."
-        )
-
-    crf = 23 if crf is None else int(crf)
-    dst = Path(dst_path)
-
     # mkstemp apre l'fd: va chiuso subito, altrimenti su Windows il file resta
     # "in uso" e non possiamo fare rename/mover al termine.
-    fd, tmpname = tempfile.mkstemp(suffix="." + ext, dir=str(dst.parent))
+    fd, tmpname = tempfile.mkstemp(suffix=dst.suffix, dir=str(dst.parent))
     os.close(fd)
     tmp = Path(tmpname)
 
     try:
-        cmd = [
-            ff, "-y", "-hide_banner", "-i", str(src_path),
-            "-c:v", vcodec, "-crf", str(crf), "-preset", "medium",
-            "-c:a", acodec, "-movflags", "+faststart", "-loglevel", "error", str(tmp),
-        ]
+        cmd = [ff, "-y", "-hide_banner", *args, "-loglevel", "error", str(tmp)]
         try:
             r = subprocess.run(cmd, capture_output=True, timeout=FFMPEG_TIMEOUT, **NO_WINDOW)
         except subprocess.TimeoutExpired as e:
-            raise VideoTimeoutError(f"Transcode superato il timeout di {FFMPEG_TIMEOUT}s") from e
+            raise VideoTimeoutError(f"{label}: superato il timeout di {FFMPEG_TIMEOUT}s") from e
         if r.returncode != 0:
             tail = (r.stderr or b"").decode("utf-8", "replace").strip()[-400:]
             raise ValueError(f"ffmpeg ha fallito (codice {r.returncode}){(' — ' + tail) if tail else ''}")
@@ -140,6 +130,110 @@ def transcode(src_path: str, dst_path: str, fmt: str = "mp4", crf: int | None = 
             except OSError:
                 pass
     return dst.stat().st_size
+
+
+def _find_ffmpeg_or_raise() -> str:
+    ff = _find_ffmpeg()
+    if not ff:
+        raise MissingFfmpegError(
+            "ffmpeg non trovato: installa ffmpeg (winget install Gyan.FFmpeg) e riprova."
+        )
+    return ff
+
+
+def transcode(src_path: str, dst_path: str, fmt: str = "mp4", crf: int | None = None) -> int:
+    """Trascode `src_path` in `dst_path` usando ffmpeg e restituisce la dimensione in byte."""
+    if not Path(src_path).is_file():
+        raise ValueError("File sorgente non trovato")
+
+    ext, vcodec, acodec = _out_container(fmt)
+    if not Path(dst_path).suffix:
+        raise ValueError("Percorso di destinazione senza estensione")
+    if Path(dst_path).suffix.lower().lstrip(".") != ext:
+        # se l'estensione non corrisponde al formato scelto, costringe quella del formato
+        dst_path = str(Path(dst_path).with_suffix("." + ext))
+
+    ff = _find_ffmpeg_or_raise()
+    crf = 23 if crf is None else int(crf)
+    args = [
+        "-i", str(src_path),
+        "-c:v", vcodec, "-crf", str(crf), "-preset", "medium",
+        "-c:a", acodec, "-movflags", "+faststart",
+    ]
+    return _run_ffmpeg(ff, args, Path(dst_path), label="Transcode")
+
+
+def extract_audio(src_path: str, dst_path: str, fmt: str = "mp3") -> int:
+    """Estrae la traccia audio di `src_path` in MP3 o M4A e restituisce la dimensione in byte.
+
+    Solleva `NoAudioTrackError` se il sorgente non ha audio (es. video muto).
+    """
+    if not Path(src_path).is_file():
+        raise ValueError("File sorgente non trovato")
+
+    o = (fmt or "mp3").lower().lstrip(".")
+    if o not in _AUDIO_OUT:
+        raise ValueError(f"Formato audio di uscita non supportato: {fmt}")
+    if not Path(dst_path).suffix:
+        raise ValueError("Percorso di destinazione senza estensione")
+    if Path(dst_path).suffix.lower().lstrip(".") != o:
+        dst_path = str(Path(dst_path).with_suffix("." + o))
+
+    ff = _find_ffmpeg_or_raise()
+    codec, extra = _AUDIO_OUT[o]
+    args = ["-i", str(src_path), "-vn", "-c:a", codec, *extra]
+    try:
+        return _run_ffmpeg(ff, args, Path(dst_path), label="Estrazione audio")
+    except ValueError as e:
+        msg = str(e).lower()
+        if "does not contain any stream" in msg or "matches no streams" in msg:
+            raise NoAudioTrackError("Il video non contiene una traccia audio.") from e
+        raise
+
+
+def video_to_gif(
+    src_path: str,
+    dst_path: str,
+    fps: int = 10,
+    width: int = 480,
+    start: float | None = None,
+    duration: float | None = None,
+) -> int:
+    """Crea una GIF animata in loop (palette ottimizzata) e restituisce la dimensione in byte.
+
+    `start`/`duration` (secondi) ritagliano il segmento; `width` è il lato largo in px.
+    """
+    if not Path(src_path).is_file():
+        raise ValueError("File sorgente non trovato")
+    if not Path(dst_path).suffix:
+        raise ValueError("Percorso di destinazione senza estensione")
+    if Path(dst_path).suffix.lower() != ".gif":
+        dst_path = str(Path(dst_path).with_suffix(".gif"))
+
+    fps = int(fps)
+    width = int(width)
+    if not 1 <= fps <= MAX_GIF_FPS:
+        raise ValueError(f"fps GIF fuori intervallo (1-{MAX_GIF_FPS})")
+    if not MIN_GIF_WIDTH <= width <= MAX_GIF_WIDTH:
+        raise ValueError(f"larghezza GIF fuori intervallo ({MIN_GIF_WIDTH}-{MAX_GIF_WIDTH})")
+    if start is not None and float(start) < 0:
+        raise ValueError("inizio GIF deve essere >= 0")
+    if duration is not None and float(duration) <= 0:
+        raise ValueError("durata GIF deve essere > 0")
+
+    ff = _find_ffmpeg_or_raise()
+    vf = (
+        f"fps={fps},scale={width}:-1:flags=lanczos,"
+        "split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse"
+    )
+    args: list[str] = []
+    if start is not None:
+        args += ["-ss", str(float(start))]
+    args += ["-i", str(src_path)]
+    if duration is not None:
+        args += ["-t", str(float(duration))]
+    args += ["-vf", vf, "-loop", "0"]
+    return _run_ffmpeg(ff, args, Path(dst_path), label="Creazione GIF")
 
 
 def ffmpeg_available() -> bool:

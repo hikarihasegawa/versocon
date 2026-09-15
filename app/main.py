@@ -374,24 +374,16 @@ def convert_images_to_pdf(
 
 
 
-@app.post("/api/convert-video")
-def convert_video(
-    request: Request,
-    file: UploadFile = File(...),
-    fmt: str = Form("mp4"),
-    crf: int | None = Form(None),
-):
-    """Transcode base di un video verso mp4 (H.264/AAC) o webm (VP9/Vorbis)."""
+def _save_video_upload(request: Request, file: UploadFile) -> tuple[Path, str]:
+    """Copia un upload video su disco a blocchi (mai l'intero file in RAM).
+
+    Restituisce (percorso del temp, nome originale). Il chiamante rimuove il temp.
+    """
     vname = Path(file.filename or "").name
     if not vidconv.video_is_supported(vname):
         raise HTTPException(400, T(request, "api.video_format_unsupported", name=vname, exts=", ".join(sorted(vidconv.VIDEO_IN_EXT))))
-    try:
-        _ext, _, _ = vidconv._out_container(fmt)
-    except ValueError as e:
-        raise HTTPException(400, str(e))
 
-    # Copia a blocchi su disco (mai l'intero video in RAM). Nome univoco:
-    # due conversioni in parallelo non si sovrascrivono il sorgente.
+    # Nome univoco: due conversioni in parallelo non si sovrascrivono il sorgente.
     orig_ext = Path(vname).suffix.lower() or ".mp4"
     fd, src_name = tempfile.mkstemp(prefix=".src-", suffix=orig_ext, dir=str(OUT_DIR))
     src = Path(src_name)
@@ -407,14 +399,47 @@ def convert_video(
         if written == 0:
             raise HTTPException(400, T(request, "api.file_empty"))
         raise HTTPException(400, T(request, "api.file_2gb_limit", name=vname))
+    return src, vname
 
-    stem = Path(file.filename).stem or "video"
-    out_ext = vidconv._out_container(fmt)[0]
-    dst_name, n = f"{stem}.{out_ext}", 1
+
+def _video_out_path(stem: str, ext: str) -> tuple[str, Path]:
+    """Nome di uscita univoco in OUT_DIR per il video dato."""
+    dst_name, n = f"{stem}.{ext}", 1
     while (OUT_DIR / dst_name).exists():
         n += 1
-        dst_name = f"{stem}-{n}.{out_ext}"
-    dst = OUT_DIR / dst_name
+        dst_name = f"{stem}-{n}.{ext}"
+    return dst_name, OUT_DIR / dst_name
+
+
+def _video_result(dst_name: str, src_name: str, dst: Path, size: int) -> dict:
+    """Payload standard di risposta per un output video."""
+    return {
+        "results": [{
+            "name": dst_name,
+            "src": src_name,
+            "size": size,
+            "path": str(dst),
+            "download": f"/api/file/{dst_name}",
+        }],
+    }
+
+
+@app.post("/api/convert-video")
+def convert_video(
+    request: Request,
+    file: UploadFile = File(...),
+    fmt: str = Form("mp4"),
+    crf: int | None = Form(None),
+):
+    """Transcode di un video verso mp4 (H.264/AAC) o webm (VP9/Vorbis)."""
+    try:
+        out_ext = vidconv._out_container(fmt)[0]
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    src, src_name = _save_video_upload(request, file)
+    stem = Path(src_name).stem or "video"
+    dst_name, dst = _video_out_path(stem, out_ext)
     try:
         try:
             size = vidconv.transcode(str(src), str(dst), fmt=fmt, crf=crf)
@@ -429,16 +454,69 @@ def convert_video(
     finally:
         if src.exists():
             src.unlink()
+    return _video_result(dst_name, src_name, dst, size)
 
-    return {
-        "results": [{
-            "name": dst_name,
-            "src": file.filename,
-            "size": size,
-            "path": str(dst),
-            "download": f"/api/file/{dst_name}",
-        }],
-    }
+
+@app.post("/api/video-audio")
+def video_audio(
+    request: Request,
+    file: UploadFile = File(...),
+    fmt: str = Form("mp3"),
+):
+    """Estrae la traccia audio di un video in mp3 (libmp3lame) o m4a (AAC)."""
+    out_ext = (fmt or "mp3").lower().lstrip(".")
+    if out_ext not in vidconv._AUDIO_OUT:
+        raise HTTPException(400, f"Formato audio di uscita non supportato: {fmt}")
+    src, src_name = _save_video_upload(request, file)
+    stem = Path(src_name).stem or "audio"
+    dst_name, dst = _video_out_path(stem, out_ext)
+    try:
+        try:
+            size = vidconv.extract_audio(str(src), str(dst), fmt=fmt)
+        except vidconv.MissingFfmpegError as e:
+            raise HTTPException(503, T(request, "api.ffmpeg_missing") + str(e))
+        except vidconv.VideoTimeoutError as e:
+            raise HTTPException(504, T(request, "api.ffmpeg_timeout") + str(e))
+        except vidconv.NoAudioTrackError as e:
+            raise HTTPException(400, T(request, "api.video_no_audio"))
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except Exception as e:  # noqa: BLE001 - failure generica di estrazione
+            raise HTTPException(500, T(request, "api.audio_extract_failed", detail=str(e)))
+    finally:
+        if src.exists():
+            src.unlink()
+    return _video_result(dst_name, src_name, dst, size)
+
+
+@app.post("/api/video-gif")
+def video_gif(
+    request: Request,
+    file: UploadFile = File(...),
+    fps: int = Form(10),
+    width: int = Form(480),
+    start: float | None = Form(None),
+    duration: float | None = Form(None),
+):
+    """Crea una GIF animata in loop da un video (palette ottimizzata)."""
+    src, src_name = _save_video_upload(request, file)
+    stem = Path(src_name).stem or "video"
+    dst_name, dst = _video_out_path(stem, "gif")
+    try:
+        try:
+            size = vidconv.video_to_gif(str(src), str(dst), fps=fps, width=width, start=start, duration=duration)
+        except vidconv.MissingFfmpegError as e:
+            raise HTTPException(503, T(request, "api.ffmpeg_missing") + str(e))
+        except vidconv.VideoTimeoutError as e:
+            raise HTTPException(504, T(request, "api.ffmpeg_timeout") + str(e))
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except Exception as e:  # noqa: BLE001 - failure generica GIF
+            raise HTTPException(500, T(request, "api.gif_create_failed", detail=str(e)))
+    finally:
+        if src.exists():
+            src.unlink()
+    return _video_result(dst_name, src_name, dst, size)
 
 
 def _read_pdf_upload(request: Request, uf: UploadFile) -> bytes:
