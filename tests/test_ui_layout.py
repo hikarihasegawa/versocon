@@ -107,3 +107,70 @@ def test_chiave_menu_tradotta_ovunque():
     for lang in LANGS:
         data = json.loads((I18N / f"{lang}.json").read_text(encoding="utf-8"))
         assert data.get("nav.menu"), f"{lang}: manca nav.menu"
+
+
+def test_tablist_aria_contratto():
+    """Contratto tablist verticale: ruoli, orientamento, roving tabindex."""
+    html = _html()
+    assert 'role="tablist" aria-orientation="vertical"' in html
+    for i, (tid, tab) in enumerate([("photos", "photos"), ("pdf", "pdf"),
+                                    ("compress", "compress"), ("video", "video")]):
+        assert f'id="tabBtn-{tid}"' in html, f"manca id tabBtn-{tid}"
+        assert f'aria-labelledby="tabBtn-{tid}"' in html, f"manca aria-labelledby per {tid}"
+    assert html.count('role="tabpanel"') == 4
+    assert 'id="tabBtn-photos" role="tab" aria-selected="true" tabindex="0"' in html
+    assert html.count('aria-selected="false" tabindex="-1"') == 3
+
+
+def test_navigazione_da_tastiera():
+    js = _js()
+    for s in ("selectTab", "tabButtons", "ArrowDown", "ArrowUp", "ArrowLeft",
+              "ArrowRight", "Home", "End", "tabIndex = on ? 0 : -1"):
+        assert s in js, f"{s} mancante in app.js"
+
+
+def test_rail_con_veste_anche_in_manga():
+    """Il rail non è più una fila di barre sciolte: pannello + voci + stato attivo."""
+    css = _css()
+    m = re.search(r"\.app-body \.tabs \{(.*?)\}", css, re.S)
+    assert m, "regola base .app-body .tabs mancante"
+    panel = m.group(1)
+    for s in ("background: var(--paper-2)", "border: var(--border)",
+              "box-shadow: var(--shadow-sm)", "padding: 8px"):
+        assert s in panel, f"rail senza {s!r} (veste Manga incompleta)"
+    assert ".app-body .tabs .tab {" in css
+    assert ".app-body .tabs .tab.active {" in css
+    assert "border-color: var(--ink)" in css
+
+
+def test_rail_collassato_mostra_le_icone_in_entrambi_i_temi():
+    """Regressione: in Manga le barre collassate restavano vuote (no label, no icona)."""
+    css = _css()
+    assert ".shell.wide .app-body .nav-label { display: none; }" in css
+    assert ".shell.wide .app-body .nav-ic { display: block;" in css
+
+
+def test_regressioni_layout_e_tema():
+    css = _css()
+    assert "html.theme-pro .nav-toggle { display: none; }" in css, "toggle visibile a desktop (regressione)"
+    assert "inset: 0 0 0 min(300px, 86vw)" in css, "lo scrim deve coprire solo l'area fuori dal drawer"
+    assert "body.nav-open .nav-scrim { display: block; }" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert ".app-body .tabs { transition: none; }" in css
+    js = _js()
+    assert "isProTheme() ? stripEmoji(raw) : raw" in js, "le emoji si tolgono solo nel tema Pro"
+
+
+def test_masthead_si_impila_sotto_900():
+    """Regressione overflow Manga a 768px: badge+selettori non stanno accanto al logo."""
+    blocks = _css().split("@media (max-width: 900px)")
+    assert len(blocks) >= 3, "attese due media query a 900px (editor + drawer)"
+    last = blocks[-1]
+    assert ".masthead { flex-direction: column; align-items: flex-start; gap: 14px; }" in last
+    assert ".masthead-right { align-items: flex-start; }" in last
+
+
+def test_drawer_definito_prima_del_tablist():
+    """Regressione TDZ: `navToggle` (const) va inizializzata prima di selectTab()."""
+    js = _js()
+    assert js.index("const navToggle") < js.index("function selectTab")

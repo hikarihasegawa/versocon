@@ -232,28 +232,6 @@
     })
   );
 
-  /* ---------- tabs ---------- */
-  const tabPhotos = $("#tabPhotos");
-  const tabPdf = $("#tabPdf");
-  const tabCompress = $("#tabCompress");
-  const tabVideo = $("#tabVideo");
-  const TABS = { photos: tabPhotos, pdf: tabPdf, compress: tabCompress, video: tabVideo };
-  document.querySelectorAll(".tabs .tab").forEach((b) => {
-    b.addEventListener("click", () => {
-      document.querySelectorAll(".tabs .tab").forEach((x) => {
-        x.classList.remove("active");
-        x.setAttribute("aria-selected", "false");
-      });
-      b.classList.add("active");
-      b.setAttribute("aria-selected", "true");
-      const t = b.dataset.tab;
-      for (const k in TABS) TABS[k].hidden = k !== t;
-      results = [];
-      renderResults();
-      setNavOpen(false);
-    });
-  });
-
   /* ---------- rail: drawer apribile sotto 900px ---------- */
   const navToggle = $("#navToggle");
   const navScrim = $("#navScrim");
@@ -270,6 +248,46 @@
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") setNavOpen(false);
   });
+
+  /* ---------- tabs ---------- */
+  const tabPhotos = $("#tabPhotos");
+  const tabPdf = $("#tabPdf");
+  const tabCompress = $("#tabCompress");
+  const tabVideo = $("#tabVideo");
+  const TABS = { photos: tabPhotos, pdf: tabPdf, compress: tabCompress, video: tabVideo };
+  const tabButtons = [...document.querySelectorAll(".tabs .tab")];
+  function selectTab(btn, focus) {
+    tabButtons.forEach((x) => {
+      const on = x === btn;
+      x.classList.toggle("active", on);
+      x.setAttribute("aria-selected", String(on));
+      x.tabIndex = on ? 0 : -1;
+    });
+    const t = btn.dataset.tab;
+    for (const k in TABS) TABS[k].hidden = k !== t;
+    results = [];
+    renderResults();
+    setNavOpen(false);
+    if (focus) btn.focus();
+  }
+  tabButtons.forEach((b) => b.addEventListener("click", () => selectTab(b)));
+  /* tablist verticale: frecce/Home/End spostano il focus e attivano la voce */
+  const mainTabs = document.getElementById("mainTabs");
+  if (mainTabs) {
+    mainTabs.addEventListener("keydown", (e) => {
+      const i = tabButtons.indexOf(document.activeElement);
+      if (i === -1) return;
+      let j = null;
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") j = (i + 1) % tabButtons.length;
+      else if (e.key === "ArrowUp" || e.key === "ArrowLeft") j = (i - 1 + tabButtons.length) % tabButtons.length;
+      else if (e.key === "Home") j = 0;
+      else if (e.key === "End") j = tabButtons.length - 1;
+      if (j === null) return;
+      e.preventDefault();
+      selectTab(tabButtons[j], true);
+    });
+  }
+  selectTab(tabButtons.find((b) => b.classList.contains("active")) || tabButtons[0]);
 
    /* ---------- PDF sub-tabs ---------- */
   document.querySelectorAll("#tabPdf .subtabs .subtab").forEach((b) => {

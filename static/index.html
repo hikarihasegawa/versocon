@@ -47,26 +47,26 @@
   </header>
 
   <div class="app-body">
-  <nav class="tabs" id="mainTabs" role="tablist" data-i18n-attr="aria-label:nav.aria">
-    <button class="tab active" data-tab="photos" role="tab" aria-selected="true">
+  <nav class="tabs" id="mainTabs" role="tablist" aria-orientation="vertical" data-i18n-attr="aria-label:nav.aria">
+    <button class="tab active" data-tab="photos" id="tabBtn-photos" role="tab" aria-selected="true" tabindex="0">
       <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 21"/>
       </svg>
       <span class="nav-label" data-i18n="nav.photos">🖼 Foto</span>
     </button>
-    <button class="tab" data-tab="pdf" role="tab" aria-selected="false">
+    <button class="tab" data-tab="pdf" id="tabBtn-pdf" role="tab" aria-selected="false" tabindex="-1">
       <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>
       </svg>
       <span class="nav-label" data-i18n="nav.pdf">📄 PDF</span>
     </button>
-    <button class="tab" data-tab="compress" role="tab" aria-selected="false">
+    <button class="tab" data-tab="compress" id="tabBtn-compress" role="tab" aria-selected="false" tabindex="-1">
       <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/>
       </svg>
       <span class="nav-label" data-i18n="nav.compress">🗜 Comprimi</span>
     </button>
-    <button class="tab" data-tab="video" role="tab" aria-selected="false">
+    <button class="tab" data-tab="video" id="tabBtn-video" role="tab" aria-selected="false" tabindex="-1">
       <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>
       </svg>
@@ -75,7 +75,7 @@
   </nav>
   <div class="app-main">
 
-  <div id="tabPhotos">
+  <div id="tabPhotos" role="tabpanel" aria-labelledby="tabBtn-photos">
   <section class="card dropzone-card" id="dropCard">
     <div id="dropzone" tabindex="0" role="button" aria-label="Zona drag and drop" data-i18n-attr="aria-label:dropzone.aria">
       <svg class="dz-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -130,7 +130,7 @@
   </section>
   </div>
 
-  <section class="card" id="tabPdf" hidden>
+  <section class="card" id="tabPdf" role="tabpanel" aria-labelledby="tabBtn-pdf" hidden>
     <h3 class="panel-title" data-i18n="pdf.title">PDF</h3>
     <div class="subtabs">
       <button class="subtab active" data-sub="pdf-images" data-i18n="pdf.sub.images">PDF → immagini</button>
@@ -686,7 +686,7 @@
     </div>
   </section>
 
-  <section class="card" id="tabCompress" hidden>
+  <section class="card" id="tabCompress" role="tabpanel" aria-labelledby="tabBtn-compress" hidden>
     <h3 class="panel-title" data-i18n="cp.title">Comprimi — riduci peso file</h3>
     <div class="subtabs">
       <button class="subtab active" data-csub="image" data-i18n="cp.sub.image">Immagine</button>
@@ -789,7 +789,7 @@
     </div>
   </section>
 
-  <section class="card" id="tabVideo" hidden>
+  <section class="card" id="tabVideo" role="tabpanel" aria-labelledby="tabBtn-video" hidden>
     <h3 class="panel-title" data-i18n="vid.title">Video — transcode</h3>
     <p class="hint" data-i18n-html="vid.hint">Converte un video in <b>MP4</b> (H.264/AAC) o <b>WebM</b> (VP9/Vorbis), estrae l'audio (<b>MP3</b>/<b>M4A</b>) o crea una <b>GIF</b> animata.</p>
     <label class="btn btn-ghost" data-i18n-text="btn.vid">
