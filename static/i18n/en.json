@@ -32,6 +32,7 @@
   "btn.images": "Choose images (in order)",
   "btn.video": "Choose video",
   "btn.pick": "Choose files",
+  "btn.scan_pick": "Pick photos or PDFs",
 
   "btn.recheck": "↻ Re-check",
   "pdf.title": "PDF",
@@ -41,6 +42,7 @@
   "pdf.sub.merge": "Merge PDF",
   "pdf.sub.split": "Extract pages",
   "pdf.sub.edit": "PDF editor",
+  "pdf.sub.scan": "Scan cleanup",
   "pdf.pages_hint": "One photo per page, max 60 pages.",
 
   "pdf.fmt": "Format",
@@ -75,6 +77,20 @@
   "pdf.split_from": "From page",
   "pdf.split_to": "To page",
   "btn.split": "Extract",
+
+  "scan.hint": "Deskew, fix shadows, convert to black & white; perspective crop with 4 corners.",
+  "scan.deskew": "Deskew",
+  "scan.antishadow": "Fix shadows",
+  "scan.binarize": "Adaptive black & white",
+  "scan.fmt": "Image format",
+  "scan.crop_hint": "Click the document's 4 corners on the preview: top-left, top-right, bottom-right, bottom-left. A fifth click starts over.",
+  "scan.clear_pts": "Clear corners",
+  "scan.result": "Result",
+  "scan.preview_empty": "Pick a file to see its preview.",
+  "scan.preview_none": "Preview unavailable for this format: cleanup still works.",
+  "scan.no_engine": "OpenCV engine not available: scan cleanup is disabled.",
+  "btn.scan": "Clean",
+  "btn.scanning": "Cleaning…",
 
   "pdf.edit.action": "Action",
   "pdf.edit.rotate": "🔄 Rotate pages",
@@ -375,6 +391,8 @@
   "dyn.img_ocr_pdf_ok": "Searchable PDF created ✓",
   "dyn.no_signature": "Upload or draw a signature first.",
   "dyn.sign_gen_failed": "Signature generation failed.",
+  "dyn.scan_pick_first": "Pick at least one file first.",
+  "dyn.scan_done": "Cleanup complete ✓ ({n} files)",
   "dyn.generic_error": "Error",
 
   "api.support_not_configured": "Support link not configured.",

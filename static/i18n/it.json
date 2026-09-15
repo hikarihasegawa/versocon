@@ -31,6 +31,7 @@
   "btn.images": "Scegli immagini (in ordine)",
   "btn.video": "Scegli video",
   "btn.pick": "Scegli file",
+  "btn.scan_pick": "Scegli foto o PDF",
 
   "btn.recheck": "↻ Ricontrolla",
   "ctl.all": "tutte",
@@ -42,6 +43,7 @@
   "pdf.sub.merge": "Unisci PDF",
   "pdf.sub.split": "Estrai pagine",
   "pdf.sub.edit": "Editor PDF",
+  "pdf.sub.scan": "Pulizia scansioni",
 
   "pdf.pages_hint": "Una foto per pagina, max 60 pagine.",
 
@@ -77,6 +79,20 @@
   "pdf.split_from": "Da pagina",
   "pdf.split_to": "A pagina",
   "btn.split": "Estrai",
+
+  "scan.hint": "Raddrizza, correggi le ombre, converti in bianco/nero; ritaglio prospettico con 4 angoli.",
+  "scan.deskew": "Raddrizza",
+  "scan.antishadow": "Correggi ombre",
+  "scan.binarize": "Bianco/nero adattivo",
+  "scan.fmt": "Formato immagini",
+  "scan.crop_hint": "Clicca sull'anteprima i 4 angoli del documento: in alto a sinistra, in alto a destra, in basso a destra, in basso a sinistra. Un quinto clic ricomincia.",
+  "scan.clear_pts": "Azzera angoli",
+  "scan.result": "Risultato",
+  "scan.preview_empty": "Scegli un file per vederne l'anteprima.",
+  "scan.preview_none": "Anteprima non disponibile per questo formato: la pulizia funziona comunque.",
+  "scan.no_engine": "Motore OpenCV non disponibile: la pulizia scansioni è disattivata.",
+  "btn.scan": "Pulisci",
+  "btn.scanning": "Pulizia in corso…",
 
   "pdf.edit.action": "Azione",
   "pdf.edit.rotate": "🔄 Ruota pagine",
@@ -377,6 +393,8 @@
   "dyn.img_ocr_pdf_ok": "PDF ricercabile creato ✓",
   "dyn.no_signature": "Carica o disegna prima la firma.",
   "dyn.sign_gen_failed": "Generazione firma fallita.",
+  "dyn.scan_pick_first": "Scegli prima almeno un file.",
+  "dyn.scan_done": "Pulizia completata ✓ ({n} file)",
   "dyn.generic_error": "Errore",
 
   "api.support_not_configured": "Link di supporto non configurato.",
