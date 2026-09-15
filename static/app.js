@@ -517,10 +517,17 @@
     });
   }
 
-  /* ---------- Video -> mp4/webm ---------- */
+  /* ---------- Video -> mp4/webm, audio (mp3/m4a), GIF ---------- */
   const videoIn = $("input#videoIn");
+  const videoOp = $("#videoOp");
   const videoFmt = $("#videoFmt");
   const videoCrf = $("#videoCrf");
+  const vidTranscodeRow = $("#vidTranscodeRow");
+  const vidGifRow = $("#vidGifRow");
+  const videoGifFps = $("#videoGifFps");
+  const videoGifWidth = $("#videoGifWidth");
+  const videoGifStart = $("#videoGifStart");
+  const videoGifDur = $("#videoGifDur");
   const videoStatus = $("#videoStatus");
   const btnVideoConvert = $("#btnVideoConvert");
   let videoFile = null;
@@ -530,21 +537,42 @@
     this.value = "";
   });
 
+  videoOp.addEventListener("change", function () {
+    vidTranscodeRow.hidden = this.value !== "convert";
+    vidGifRow.hidden = this.value !== "gif";
+  });
+
   btnVideoConvert.addEventListener("click", async () => {
     if (!videoFile) return showToast(IC.t("dyn.pick_video_first"), "err");
+    const op = videoOp.value;
     const fd = new FormData();
     fd.append("file", videoFile);
-    fd.append("fmt", videoFmt.value);
-    if (videoCrf.value) fd.append("crf", videoCrf.value);
+    let url = "/api/convert-video";
+    let okKey = "dyn.video_converted";
+    if (op === "gif") {
+      url = "/api/video-gif";
+      okKey = "dyn.gif_created";
+      if (videoGifFps.value) fd.append("fps", videoGifFps.value);
+      if (videoGifWidth.value) fd.append("width", videoGifWidth.value);
+      if (videoGifStart.value) fd.append("start", videoGifStart.value);
+      if (videoGifDur.value) fd.append("duration", videoGifDur.value);
+    } else if (op === "audio_mp3" || op === "audio_m4a") {
+      url = "/api/video-audio";
+      okKey = "dyn.audio_extracted";
+      fd.append("fmt", op === "audio_m4a" ? "m4a" : "mp3");
+    } else {
+      fd.append("fmt", videoFmt.value);
+      if (videoCrf.value) fd.append("crf", videoCrf.value);
+    }
     btnVideoConvert.disabled = true;
     btnVideoConvert.textContent = IC.t("btn.transcoding");
     try {
-      const res = await fetch("/api/convert-video", { method: "POST", body: fd });
+      const res = await fetch(url, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error((data && data.detail) || "Errore");
       results = data.results;
       renderResults();
-      showToast(IC.t("dyn.video_converted"), "ok");
+      showToast(IC.t(okKey), "ok");
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
