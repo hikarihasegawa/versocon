@@ -7,6 +7,8 @@ con round-trip reale dei file prodotti via `/api/file/<name>`.
 from __future__ import annotations
 
 import io
+import json
+import re
 import sys
 import time
 from pathlib import Path
@@ -237,3 +239,71 @@ def test_pulizia_completa_entro_soglia_tempo():
     t0 = time.perf_counter()
     scan.clean_bytes(_png(rot), deskew=True, antishadow=True, binarize=True, fmt="jpg", quality=80)
     assert time.perf_counter() - t0 < 10.0
+
+
+# ---------------- FEAT-D UI: controlli statici + motore in /api/config ----------------
+
+STATIC = ROOT / "static"
+I18N = STATIC / "i18n"
+SCAN_UI_KEYS = [
+    "pdf.sub.scan", "btn.scan_pick", "scan.hint", "scan.deskew",
+    "scan.antishadow", "scan.binarize", "scan.fmt", "scan.crop_hint",
+    "scan.clear_pts", "scan.result", "scan.preview_empty",
+    "scan.preview_none", "scan.no_engine", "btn.scan", "btn.scanning",
+    "dyn.scan_pick_first", "dyn.scan_done",
+]
+
+
+def test_config_espone_motore_scan(client):
+    body = client.get("/api/config").json()
+    assert body["scan"]["available"] is True
+    assert body["scan"]["version"] == cv2.__version__
+
+
+def test_config_motore_scan_assente(client, monkeypatch):
+    monkeypatch.setattr(scan, "_CV_AVAILABLE", False)
+    body = client.get("/api/config").json()
+    assert body["scan"] == {"available": False, "version": None}
+
+
+def test_subtab_scan_e_controlli():
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    assert 'data-sub="scan"' in html
+    assert 'id="subscan"' in html
+    for el in ['id="scanIn"', 'id="scanDeskew"', 'id="scanShadow"',
+               'id="scanBinarize"', 'id="scanFmt"', 'id="scanQ"', 'id="scanDpi"',
+               'id="btnScan"', 'id="btnScanClearPts"', 'id="scanStatus"',
+               'id="scanPage"', 'id="scanCanvas"', 'id="scanImg"', 'id="scanPoly"',
+               'id="scanPt1"', 'id="scanPt4"', 'id="scanOut"', 'id="scanOutImg"']:
+        assert el in html, f"{el} mancante"
+    assert 'type="file" id="scanIn" multiple' in html
+
+
+def test_js_invia_scansione_con_angoli_e_anteprima_risultato():
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert '"/api/scan-clean"' in js
+    for field in ["deskew", "antishadow", "binarize", "fmt", "quality", "dpi", "corners"]:
+        assert f'fd.append("{field}"' in js, f"FormData: {field} mancante"
+    assert "JSON.stringify(scanCorners)" in js
+    assert "scanCorners.length >= 4" in js          # quinto clic ricomincia
+    assert "function scanDrawCorners" in js
+    assert "function renderPdfFirstPage" in js
+    assert "scanShowResult" in js and "scanOutImg" in js
+    assert '#tabPdf .subtab.active[data-sub="scan"]' in js  # shell wide in Scansione
+    assert 'IC.t("scan.no_engine")' in js                    # avviso motore assente
+
+
+def test_scan_keys_translated_all_languages():
+    js = (STATIC / "i18n.js").read_text(encoding="utf-8")
+    langs = re.findall(r'"([a-z]{2})"', re.search(r"SUPPORTED\s*=\s*\[([^\]]+)\]", js).group(1))
+    for lang in langs:
+        data = json.loads((I18N / f"{lang}.json").read_text(encoding="utf-8"))
+        missing = [k for k in SCAN_UI_KEYS if not data.get(k)]
+        assert missing == [], f"{lang}.json: mancano {missing}"
+        assert "{n}" in data["dyn.scan_done"]
+
+
+def test_css_angoli_scan_presente():
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    for rule in [".scan-pt", ".scan-poly", ".scan-out-card", "scan-has-preview"]:
+        assert rule in css, f"{rule} mancante"

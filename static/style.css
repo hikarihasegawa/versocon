@@ -722,6 +722,40 @@ input[type="color"] { padding: 2px 4px; }
   background: rgba(255, 255, 255, .55);
   pointer-events: none;
 }
+
+/* ---- Scansione: anteprima con angoli di ritaglio ---- */
+#scanPage { cursor: crosshair; }
+#scanPage.scan-has-preview { min-height: 0; }
+#scanImg, #scanCanvas { display: block; width: 100%; height: auto; }
+#scanImg[hidden], #scanCanvas[hidden], .scan-poly[hidden] { display: none; }
+.scan-poly {
+  position: absolute; inset: 0; z-index: 2;
+  width: 100%; height: 100%; pointer-events: none;
+}
+.scan-poly polygon {
+  fill: rgba(239, 74, 60, .10);
+  stroke: var(--red-deep);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+.scan-pt {
+  position: absolute; z-index: 3;
+  width: 22px; height: 22px;
+  transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center;
+  font: 700 11px/1 var(--font-title);
+  color: #fff; background: var(--red-deep);
+  border: 2px solid #fff; border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--red-deep);
+  pointer-events: none;
+}
+.scan-pt[hidden] { display: none; }
+.scan-out-card {
+  background: #fff; border: var(--border); border-radius: 4px;
+  box-shadow: var(--shadow); padding: 10px; margin-top: 4px;
+}
+.scan-out-card img, .scan-out-card canvas { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.scan-out-card [hidden] { display: none; }
 .ed-form-fields { display: flex; flex-direction: column; gap: 6px; flex-basis: 100%; }
 .ed-form-fields label { font-size: .85em; }
 .ed-form-fields input { width: 100%; }

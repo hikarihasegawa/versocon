@@ -261,7 +261,9 @@
   function syncShellWide() {
     if (!shellEl) return;
     const editing =
-      !TABS.pdf.hidden && !!document.querySelector('#tabPdf .subtab.active[data-sub="pdf-edit"]');
+      !TABS.pdf.hidden && !!document.querySelector(
+        '#tabPdf .subtab.active[data-sub="pdf-edit"], #tabPdf .subtab.active[data-sub="scan"]'
+      );
     shellEl.classList.toggle("wide", editing);
   }
   const tabButtons = [...document.querySelectorAll(".tabs .tab")];
@@ -1884,6 +1886,277 @@
     }
   });
 
+  /* ---------- Pulizia scansioni (FEAT-D) ---------- */
+  const scanIn = $("input#scanIn");
+  const scanListEl = $("#scanList");
+  const scanPage = $("#scanPage");
+  const scanCanvas = $("#scanCanvas");
+  const scanImg = $("#scanImg");
+  const scanPoly = $("#scanPoly");
+  const scanPolyShape = $("#scanPolyShape");
+  const scanPageEmpty = $("#scanPageEmpty");
+  const scanEmptyMsg = scanPageEmpty ? scanPageEmpty.querySelector("p") : null;
+  const scanPts = [1, 2, 3, 4].map((i) => document.getElementById("scanPt" + i));
+  const btnScan = $("#btnScan");
+  const btnScanClearPts = $("#btnScanClearPts");
+  const scanStatus = $("#scanStatus");
+  const scanOut = $("#scanOut");
+  const scanOutImg = $("#scanOutImg");
+  const scanOutCanvas = $("#scanOutCanvas");
+  const scanFmt = $("#scanFmt");
+  const scanQRow = $("#scanQRow");
+  const scanQ = $("#scanQ");
+  const scanQVal = $("#scanQVal");
+  const scanDpi = $("#scanDpi");
+  const scanDeskew = $("#scanDeskew");
+  const scanShadow = $("#scanShadow");
+  const scanBinarize = $("#scanBinarize");
+  const scanPointsInfo = $("#scanPointsInfo");
+  const SCAN_EXT_RE = /\.(heic|heif|jpe?g|png|webp|bmp|tiff?|gif|pdf)$/i;
+  let scanFiles = [];
+  let scanCorners = [];   // [x,y] in % (TL,TR,BR,BL)
+  let scanUrl = null;     // object URL dell'anteprima immagine
+  let scanPreviewToken = 0;
+  let scanEmptyKey = "scan.preview_empty";
+
+  function scanPreviewReady() {
+    return !!(scanPage && scanPage.classList.contains("scan-has-preview"));
+  }
+
+  function renderScanList() {
+    if (!scanListEl) return;
+    if (!scanFiles.length) {
+      scanListEl.hidden = true;
+      scanListEl.innerHTML = "";
+      return;
+    }
+    scanListEl.hidden = false;
+    scanListEl.innerHTML = scanFiles
+      .map(
+        (f, i) => `<li class="file" data-i="${i}"><span class="ficon">${i + 1}</span>
+          <span class="fname">${esc(f.name)}</span><span class="fsize">${fmtBytes(f.size)}</span>
+          <button class="rm" data-rm aria-label="${IC.t("list.remove")}">✕</button></li>`
+      )
+      .join("");
+    scanListEl.onclick = (e) => {
+      const btn = e.target.closest(".rm");
+      if (!btn) return;
+      const li = btn.closest("[data-i]");
+      scanFiles.splice(+li.dataset.i, 1);
+      renderScanList();
+      refreshScanPreview();
+    };
+  }
+
+  function scanSetEmpty(msgKey) {
+    if (!scanPage || !scanPageEmpty) return;
+    scanEmptyKey = msgKey;
+    scanPage.classList.remove("scan-has-preview");
+    if (scanEmptyMsg) scanEmptyMsg.textContent = IC.t(msgKey);
+    scanPageEmpty.hidden = false;
+  }
+
+  async function renderPdfFirstPage(data, canvas) {
+    if (!window.pdfjsLib) throw new Error(IC.t("dyn.pdfjs_missing"));
+    const doc = await window.pdfjsLib.getDocument({ data }).promise;
+    try {
+      const page = await doc.getPage(1);
+      const base = page.getViewport({ scale: 1 });
+      const host = canvas.parentElement;
+      const avail = Math.max(240, (host ? host.clientWidth : 0) || 640);
+      const vp = page.getViewport({ scale: avail / base.width });
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(vp.width * dpr);
+      canvas.height = Math.floor(vp.height * dpr);
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      await page.render({
+        canvasContext: canvas.getContext("2d"),
+        viewport: vp,
+        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : null,
+      }).promise;
+    } finally {
+      try { doc.destroy(); } catch (_) {}
+    }
+  }
+
+  function scanDrawCorners() {
+    if (!scanPage) return;
+    const n = scanCorners.length;
+    scanPts.forEach((el, i) => {
+      if (!el) return;
+      el.hidden = i >= n;
+      if (i < n) {
+        el.style.left = scanCorners[i][0] + "%";
+        el.style.top = scanCorners[i][1] + "%";
+      }
+    });
+    if (scanPoly && scanPolyShape) {
+      scanPoly.hidden = n < 2;
+      scanPolyShape.setAttribute("points", scanCorners.map((p) => p[0] + "," + p[1]).join(" "));
+    }
+    if (btnScanClearPts) btnScanClearPts.hidden = n === 0;
+    if (scanPointsInfo) {
+      scanPointsInfo.hidden = n === 0;
+      scanPointsInfo.textContent = n + " / 4";
+    }
+  }
+
+  function scanClearCorners() {
+    scanCorners = [];
+    scanDrawCorners();
+  }
+
+  function scanShowResult(entry) {
+    if (!scanOut) return;
+    scanOut.hidden = false;
+    scanOutImg.hidden = true;
+    scanOutImg.removeAttribute("src");
+    scanOutCanvas.hidden = true;
+    if (/\.pdf$/i.test(entry.name)) {
+      fetch(entry.download)
+        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error("HTTP " + r.status))))
+        .then((buf) => renderPdfFirstPage(buf, scanOutCanvas))
+        .then(() => { scanOutCanvas.hidden = false; })
+        .catch(() => { scanOut.hidden = true; });
+    } else {
+      scanOutImg.src = encodeURI(entry.download);
+      scanOutImg.hidden = false;
+    }
+  }
+
+  async function refreshScanPreview() {
+    if (!scanPage || !scanCanvas || !scanImg) return;
+    scanPreviewToken += 1;
+    const token = scanPreviewToken;
+    if (scanUrl) {
+      URL.revokeObjectURL(scanUrl);
+      scanUrl = null;
+    }
+    scanCanvas.hidden = true;
+    scanImg.hidden = true;
+    scanOut.hidden = true;
+    scanOutImg.hidden = true;
+    scanOutImg.removeAttribute("src");
+    scanOutCanvas.hidden = true;
+    if (!scanFiles.length) {
+      scanSetEmpty("scan.preview_empty");
+      return;
+    }
+    scanSetEmpty("dyn.preview_loading");
+    const f = scanFiles[0];
+    try {
+      if (/\.pdf$/i.test(f.name)) {
+        const buf = await f.arrayBuffer();
+        if (token !== scanPreviewToken) return;
+        await renderPdfFirstPage(buf, scanCanvas);
+        if (token !== scanPreviewToken) return;
+        scanCanvas.hidden = false;
+      } else {
+        const url = URL.createObjectURL(f);
+        scanUrl = url;
+        await new Promise((resolve, reject) => {
+          scanImg.onload = resolve;
+          scanImg.onerror = () => reject(new Error("decode"));
+          scanImg.src = url;
+        });
+        if (token !== scanPreviewToken) return;
+        scanImg.hidden = false;
+      }
+      scanPage.classList.add("scan-has-preview");
+      scanPageEmpty.hidden = true;
+    } catch (_) {
+      if (token !== scanPreviewToken) return;
+      scanImg.hidden = true;
+      scanCanvas.hidden = true;
+      scanSetEmpty("scan.preview_none");
+    }
+  }
+
+  if (scanPage) {
+    scanPage.addEventListener("click", (e) => {
+      if (!scanPreviewReady()) return;
+      const r = scanPage.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+      const y = Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100));
+      if (scanCorners.length >= 4) scanCorners = [];   // quinto clic: ricomincia
+      scanCorners.push([Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+      scanDrawCorners();
+    });
+  }
+  if (btnScanClearPts) btnScanClearPts.addEventListener("click", scanClearCorners);
+
+  if (scanIn) {
+    scanIn.addEventListener("change", function () {
+      const added = [...this.files];
+      this.value = "";
+      let changed = false;
+      for (const f of added) {
+        if (!SCAN_EXT_RE.test(f.name)) {
+          showToast(IC.t("dyn.fmt_unsupported", { name: f.name }), "err");
+          continue;
+        }
+        if (scanFiles.some((x) => x.name === f.name && x.size === f.size)) continue;
+        scanFiles.push(f);
+        changed = true;
+      }
+      if (!changed) return;
+      renderScanList();
+      scanClearCorners();
+      refreshScanPreview();
+    });
+  }
+
+  function syncScanQuality() {
+    if (!scanFmt || !scanQRow) return;
+    scanQRow.hidden = scanFmt.value !== "jpg";
+    if (scanQVal && scanQ) scanQVal.textContent = scanQ.value;
+  }
+  if (scanFmt) scanFmt.addEventListener("change", syncScanQuality);
+  if (scanQ) scanQ.addEventListener("input", () => { if (scanQVal) scanQVal.textContent = scanQ.value; });
+  syncScanQuality();
+
+  if (btnScan) {
+    btnScan.addEventListener("click", async () => {
+      if (!scanFiles.length) return showToast(IC.t("dyn.scan_pick_first"), "err");
+      const fd = new FormData();
+      scanFiles.forEach((f) => fd.append("files", f));
+      fd.append("deskew", scanDeskew.checked ? "true" : "false");
+      fd.append("antishadow", scanShadow.checked ? "true" : "false");
+      fd.append("binarize", scanBinarize.checked ? "true" : "false");
+      fd.append("fmt", scanFmt.value);
+      if (scanFmt.value === "jpg" && scanQ.value) fd.append("quality", scanQ.value);
+      if (scanDpi.value) fd.append("dpi", scanDpi.value);
+      if (scanCorners.length === 4) fd.append("corners", JSON.stringify(scanCorners));
+
+      btnScan.disabled = true;
+      btnScan.textContent = IC.t("btn.scanning");
+      try {
+        const res = await fetch("/api/scan-clean", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          const d = data && data.detail;
+          if (d && typeof d === "object" && Array.isArray(d.results)) {
+            results = d.results;
+            renderResults();
+          }
+          throw new Error(typeof d === "string" ? d : (d && d.message) || IC.t("dyn.generic_error"));
+        }
+        results = data.results;
+        renderResults();
+        const ok = results.filter((r) => !r.error);
+        if (ok.length) scanShowResult(ok[0]);
+        showToast(IC.t("dyn.scan_done", { n: ok.length }), "ok");
+      } catch (err) {
+        showToast(err.message || String(err), "err");
+      } finally {
+        btnScan.disabled = false;
+        btnScan.textContent = IC.t("btn.scan");
+      }
+    });
+  }
+
   /* ---------- Ko-fi (supporto, URL da config globale) ---------- */
   let kofiUrl = null;
   const btnKofi = $("#btnKofi");
@@ -1922,6 +2195,12 @@
       txtOcrStatus.textContent = missing ? IC.t("dyn.ocr_off") : "";
       const btnO = document.getElementById("btnOcrRecheck");
       if (btnO) btnO.hidden = !missing;
+    }
+    if (scanStatus) {
+      const missing = !(cfg.scan && cfg.scan.available);
+      scanStatus.hidden = !missing;
+      scanStatus.textContent = missing ? IC.t("scan.no_engine") : "";
+      if (btnScan) btnScan.disabled = missing;
     }
   }
   fetch("/api/config")
@@ -1963,6 +2242,7 @@
     try { renderResults(); } catch (e) {}
     try { renderEdTools(); } catch (e) {}
     try { syncNavLabels(); } catch (e) {}
+    try { if (scanPageEmpty && !scanPageEmpty.hidden) scanSetEmpty(scanEmptyKey); } catch (e) {}
     renderConfigStatus(bootCfg);
     const btn = $("#btnConvert");
     if (btn && !btn.disabled) btn.textContent = IC.t("btn.convert");

@@ -139,6 +139,7 @@
       <button class="subtab" data-sub="pdf-merge" data-i18n="pdf.sub.merge">Unisci PDF</button>
       <button class="subtab" data-sub="pdf-split" data-i18n="pdf.sub.split">Estrai pagine</button>
       <button class="subtab" data-sub="pdf-edit" data-i18n="pdf.sub.edit">Editor PDF</button>
+      <button class="subtab" data-sub="scan" data-i18n="pdf.sub.scan">Pulizia scansioni</button>
     </div>
 
     <div class="subpane" id="subpdf-images">
@@ -689,6 +690,82 @@
         </div>
       </div>
 
+      </div>
+    </div>
+
+    <div class="subpane" id="subscan" hidden>
+      <div class="ed-work">
+      <div class="ed-left">
+      <div class="ed-head">
+        <label class="btn btn-ghost" data-i18n-text="btn.scan_pick">
+          <input type="file" id="scanIn" multiple
+                 accept=".heic,.heif,.jpg,.jpeg,.png,.webp,.bmp,.tif,.tiff,.gif,.pdf" hidden />
+          Scegli foto o PDF
+        </label>
+      </div>
+      <p class="hint" data-i18n="scan.hint">Raddrizza, correggi le ombre, converti in bianco/nero; ritaglio prospettico con 4 angoli.</p>
+      <ul class="filelist" id="scanList" hidden></ul>
+      <div class="ctlrow">
+        <label class="chk"><input type="checkbox" id="scanDeskew" checked /><span data-i18n="scan.deskew">Raddrizza</span></label>
+      </div>
+      <div class="ctlrow">
+        <label class="chk"><input type="checkbox" id="scanShadow" /><span data-i18n="scan.antishadow">Correggi ombre</span></label>
+      </div>
+      <div class="ctlrow">
+        <label class="chk"><input type="checkbox" id="scanBinarize" /><span data-i18n="scan.binarize">Bianco/nero adattivo</span></label>
+      </div>
+      <div class="ctlrow" id="scanQRow" hidden>
+        <label data-i18n-text="pdf.q">Qualità <span id="scanQVal" class="ctl-val">85</span></label>
+        <input type="range" id="scanQ" min="1" max="100" value="85" step="1" class="slider grow" />
+      </div>
+      <div class="ctlrow">
+        <label data-i18n="scan.fmt">Formato immagini</label>
+        <select id="scanFmt">
+          <option value="png" selected>PNG</option>
+          <option value="jpg">JPEG</option>
+        </select>
+        <label data-i18n="pdf.dpi">DPI</label>
+        <input type="number" id="scanDpi" min="72" max="600" value="200" step="8" class="numin" />
+      </div>
+      <p class="hint" data-i18n="scan.crop_hint">Clicca sull'anteprima i 4 angoli del documento: in alto a sinistra, in alto a destra, in basso a destra, in basso a sinistra. Un quinto clic ricomincia.</p>
+      <p class="hint" id="scanStatus" hidden role="status" aria-live="polite"></p>
+      <div class="ed-foot">
+        <div class="outrow">
+          <button class="btn btn-ghost" id="btnScanClearPts" type="button" hidden data-i18n="scan.clear_pts">Azzera angoli</button>
+          <button class="btn btn-primary" id="btnScan" type="button" data-i18n="btn.scan">Pulisci</button>
+        </div>
+        <p class="hint" id="scanPointsInfo" hidden></p>
+      </div>
+      </div>
+
+      <div class="ed-right">
+        <div class="ed-preview">
+          <div class="ed-page-wrap">
+            <div class="ed-page-card" id="scanPage">
+              <canvas id="scanCanvas" hidden></canvas>
+              <img id="scanImg" alt="" hidden />
+              <svg class="scan-poly" id="scanPoly" viewBox="0 0 100 100" preserveAspectRatio="none" hidden aria-hidden="true">
+                <polygon id="scanPolyShape" points="" vector-effect="non-scaling-stroke" />
+              </svg>
+              <span class="scan-pt" id="scanPt1" hidden>1</span>
+              <span class="scan-pt" id="scanPt2" hidden>2</span>
+              <span class="scan-pt" id="scanPt3" hidden>3</span>
+              <span class="scan-pt" id="scanPt4" hidden>4</span>
+              <div class="ed-page-empty" id="scanPageEmpty">
+                <span class="ed-page-empty-ic">🔍</span>
+                <p data-i18n="scan.preview_empty">Scegli un file per vederne l'anteprima.</p>
+              </div>
+            </div>
+          </div>
+          <div id="scanOut" hidden>
+            <p class="hint" data-i18n="scan.result">Risultato</p>
+            <div class="scan-out-card">
+              <img id="scanOutImg" alt="" hidden />
+              <canvas id="scanOutCanvas" hidden></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
       </div>
     </div>
   </section>
