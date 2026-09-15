@@ -1,11 +1,17 @@
 """Firma calligrafica da testo: genera un PNG a fondo trasparente
 a partire da nome + stile font.
 
-Font disponibili (bundle in `assets/fonts/`, tutti OFL — open licence):
+Font disponibili (bundle in `assets/fonts/`, tutti OFL — open licence,
+testo della licenza accanto a ogni file):
 - "caveat"      → Caveat (casual, leggermente inclinata)
 - "dancing"     → DancingScript (decorativa, elegante)
 - "greatvibes"  → GreatVibes (scritta fine, "autograppata")
 - "pacifico"    → Pacifico (large, moderna)
+- "pinyon"      → PinyonScript (copperplate formale)
+- "allura"      → Allura (corsiva elegante)
+- "parisienne"  → Parisienne (raffinata)
+- "sigla"       → iniziali del nome («Mario Rossi» → «M.R.») in Pinyon Script,
+                  per firme sintetiche da dirigente
 
 Zero dipendenze nuove: solo Pillow (già dipendenza del progetto).
 Entry-point: `generate()` + `list_styles()` per la GUI.
@@ -13,6 +19,7 @@ Entry-point: `generate()` + `list_styles()` per la GUI.
 from __future__ import annotations
 
 import io
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -23,13 +30,20 @@ FONTS_DIR = ROOT / "assets" / "fonts"
 
 # key → (file, label umano)
 _STYLES: "dict[str, tuple[str, str]]" = {
-    "caveat":     ("Caveat.ttf",              "Caveat (casual)"),
-    "dancing":    ("DancingScript.ttf",       "Dancing (elegante)"),
-    "greatvibes": ("GreatVibes-Regular.ttf",  "Great Vibes (fine)"),
-    "pacifico":   ("Pacifico-Regular.ttf",    "Pacifico (moderna)"),
+    "caveat":     ("Caveat.ttf",               "Caveat (casual)"),
+    "dancing":    ("DancingScript.ttf",        "Dancing (elegante)"),
+    "greatvibes": ("GreatVibes-Regular.ttf",   "Great Vibes (fine)"),
+    "pacifico":   ("Pacifico-Regular.ttf",     "Pacifico (moderna)"),
+    "pinyon":     ("PinyonScript-Regular.ttf", "Pinyon Script (formale)"),
+    "allura":     ("Allura-Regular.ttf",       "Allura (elegante)"),
+    "parisienne": ("Parisienne-Regular.ttf",   "Parisienne (raffinata)"),
+    "sigla":      ("PinyonScript-Regular.ttf", "Sigla (iniziali)"),
 }
 
-_ORDER = ("caveat", "dancing", "greatvibes", "pacifico")
+_ORDER = ("caveat", "dancing", "greatvibes", "pacifico",
+          "pinyon", "allura", "parisienne", "sigla")
+
+_SIGLA_KEY = "sigla"
 
 _HEIGHT_PX = 120
 _PAD_PX = 24
@@ -56,6 +70,24 @@ class Style:
 
 def _styles_map() -> "dict[str, Style]":
     return {k: Style(k, f, lab) for k, (f, lab) in _STYLES.items()}
+
+
+def _initials(name: str) -> str:
+    """«Mario Rossi» → «M.R.»: una lettera per parola, maiuscola, con i punti.
+
+    Le parole senza caratteri alfanumerici vengono ignorate; se non ne resta
+    nessuna solleva ValueError (non ci sono iniziali da firmare)."""
+    letters: list[str] = []
+    for word in re.split(r"\s+", (name or "").strip()):
+        if not word:
+            continue
+        first = next((ch for ch in word if ch.isalpha()), None)
+        if first is None:
+            continue
+        letters.append(first.upper())
+    if not letters:
+        raise ValueError("Nome senza iniziali valide")
+    return ".".join(letters) + "."
 
 
 def list_styles() -> "list[Style]":
@@ -120,6 +152,8 @@ def generate(
     ink = _hex_to_rgba(color)
 
     path = _font_path(style)
+    if (style or "").strip().lower() == _SIGLA_KEY:
+        name = _initials(name)
     font = _fit_font(path, name, height)
     w, h = _measure(font, name)
 

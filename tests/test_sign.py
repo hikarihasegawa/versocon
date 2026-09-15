@@ -20,12 +20,15 @@ def _png(data: bytes) -> Image.Image:
     return im
 
 
-def test_list_styles_has_four():
+def test_list_styles_ordinati():
     keys = [s.key for s in sign.list_styles()]
-    assert keys == ["caveat", "dancing", "greatvibes", "pacifico"]
+    assert keys == ["caveat", "dancing", "greatvibes", "pacifico",
+                    "pinyon", "allura", "parisienne", "sigla"]
+    assert all(s.label for s in sign.list_styles())
 
 
-@pytest.mark.parametrize("key", ["caveat", "dancing", "greatvibes", "pacifico"])
+@pytest.mark.parametrize("key", ["caveat", "dancing", "greatvibes", "pacifico",
+                                 "pinyon", "allura", "parisienne", "sigla"])
 def test_generate_each_style(key):
     data = sign.generate("Mario Rossi", style=key)
     im = _png(data)
@@ -34,6 +37,30 @@ def test_generate_each_style(key):
     # deve essere effettivamente trasparente almeno in un angolo
     corner = im.getpixel((0, 0))
     assert corner[3] == 0, f"angolo non trasparente in {im}"
+
+
+def test_sigla_riduce_il_nome_alle_iniziali():
+    assert sign._initials("Mario Rossi") == "M.R."
+    assert sign._initials("  anna   maria  ") == "A.M."
+    assert sign._initials("Cher") == "C."
+    assert sign._initials("Èlena D'Angelo") == "È.D."
+    assert sign._initials("'Ndrangheta Rossi") == "N.R."
+
+
+def test_sigla_ignora_parole_senza_lettere():
+    assert sign._initials("Mario *** Rossi 42") == "M.R."
+    with pytest.raises(ValueError, match="iniziali"):
+        sign._initials("*** 123!!!")
+    with pytest.raises(ValueError, match="iniziali"):
+        sign.generate("***", style="sigla")
+
+
+def test_sigla_e_piu_corta_del_nome_intero_stesso_font():
+    # "sigla" usa Pinyon Script: il PNG delle iniziali deve essere più stretto
+    # della firma completa con lo stesso font, a parità di altezza.
+    full = _png(sign.generate("Mario Rossi", style="pinyon", height=120))
+    sigla = _png(sign.generate("Mario Rossi", style="sigla", height=120))
+    assert sigla.width < full.width
 
 
 def test_height_param_is_respected():

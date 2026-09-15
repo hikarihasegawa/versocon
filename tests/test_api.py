@@ -488,11 +488,25 @@ def test_signature_generate_rejects_unknown_style(client):
     assert res.status_code == 400, res.text
 
 
-def test_signature_styles_lists_four_font(client):
+def test_signature_styles_lists_eight_font(client):
     res = client.get("/api/signature-styles")
     assert res.status_code == 200, res.text
     names = [s["key"] for s in res.json()["styles"]]
-    assert set(names) == {"caveat", "dancing", "greatvibes", "pacifico"}
+    assert set(names) == {"caveat", "dancing", "greatvibes", "pacifico",
+                          "pinyon", "allura", "parisienne", "sigla"}
+
+
+def test_signature_generate_sigla_contratto(client):
+    res = client.post(
+        "/api/signature-generate",
+        data={"name": "Mario Rossi", "style": "sigla", "size": "96"},
+    )
+    assert res.status_code == 200, res.text
+    assert res.content[:8] == b"\x89PNG\r\n\x1a\n"
+    from PIL import Image
+    import io
+    im = Image.open(io.BytesIO(res.content))
+    assert im.width > 0 and im.height > 0
 
 
 def test_pdf_edit_rejects_non_pdf(client):
