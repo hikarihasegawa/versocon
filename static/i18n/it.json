@@ -148,6 +148,8 @@
   "pdf.edit.pg_prev_title": "Pagina precedente",
   "pdf.edit.pg_next_title": "Pagina successiva",
   "pdf.edit.pg_goto_title": "Vai a pagina",
+  "pdf.edit.prev_live": "Anteprima live",
+  "pdf.edit.prev_fail": "Anteprima non disponibile",
   "pdf.edit.zoom_out": "Riduci zoom",
   "pdf.edit.zoom_in": "Aumenta zoom",
   "pdf.edit.zoom_fit": "Adatta",

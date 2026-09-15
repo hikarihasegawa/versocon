@@ -135,6 +135,8 @@
   "pdf.edit.pg_prev_title": "Página anterior",
   "pdf.edit.pg_next_title": "Página seguinte",
   "pdf.edit.pg_goto_title": "Ir para a página",
+  "pdf.edit.prev_live": "Pré-visualização ao vivo",
+  "pdf.edit.prev_fail": "Pré-visualização indisponível",
   "pdf.edit.zoom_out": "Diminuir zoom",
   "pdf.edit.zoom_in": "Aumentar zoom",
   "pdf.edit.zoom_fit": "Ajustar",

@@ -137,6 +137,8 @@
   "pdf.edit.pg_prev_title": "上一页",
   "pdf.edit.pg_next_title": "下一页",
   "pdf.edit.pg_goto_title": "跳转到页面",
+  "pdf.edit.prev_live": "实时预览",
+  "pdf.edit.prev_fail": "预览不可用",
   "pdf.edit.zoom_out": "缩小",
   "pdf.edit.zoom_in": "放大",
   "pdf.edit.zoom_fit": "适应宽度",

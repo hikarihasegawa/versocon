@@ -146,6 +146,8 @@
   "pdf.edit.pg_prev_title": "Previous page",
   "pdf.edit.pg_next_title": "Next page",
   "pdf.edit.pg_goto_title": "Go to page",
+  "pdf.edit.prev_live": "Live preview",
+  "pdf.edit.prev_fail": "Preview unavailable",
   "pdf.edit.zoom_out": "Zoom out",
   "pdf.edit.zoom_in": "Zoom in",
   "pdf.edit.zoom_fit": "Fit",

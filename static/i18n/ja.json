@@ -137,6 +137,8 @@
   "pdf.edit.pg_prev_title": "前のページ",
   "pdf.edit.pg_next_title": "次のページ",
   "pdf.edit.pg_goto_title": "ページへ移動",
+  "pdf.edit.prev_live": "ライブプレビュー",
+  "pdf.edit.prev_fail": "プレビューを表示できません",
   "pdf.edit.zoom_out": "縮小",
   "pdf.edit.zoom_in": "拡大",
   "pdf.edit.zoom_fit": "幅に合わせる",
