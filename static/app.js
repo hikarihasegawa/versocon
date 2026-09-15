@@ -798,6 +798,11 @@
   const edPgSel = document.getElementById("edPgSel");
   const edPgPrev = document.getElementById("edPgPrev");
   const edPgNext = document.getElementById("edPgNext");
+  const edZoomIn = document.getElementById("edZoomIn");
+  const edZoomOut = document.getElementById("edZoomOut");
+  const edZoomFit = document.getElementById("edZoomFit");
+  const edZoomLabel = document.getElementById("edZoomLabel");
+  const edPageWrap = edPageEl.parentElement;
 
   if (window.pdfjsLib) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
@@ -829,6 +834,39 @@
   }
 
   let edRenderToken = 0;
+  const ED_ZOOM_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+  let edZoom = 1;
+
+  function fitWidthCss() {
+    const avail = edPageWrap ? edPageWrap.clientWidth - 24 : 0;
+    return Math.min(1280, Math.max(240, avail || 640));
+  }
+
+  function syncZoomUI() {
+    if (edZoomLabel) edZoomLabel.textContent = Math.round(edZoom * 100) + "%";
+    if (edZoomOut) edZoomOut.disabled = edZoom <= ED_ZOOM_STEPS[0];
+    if (edZoomIn) edZoomIn.disabled = edZoom >= ED_ZOOM_STEPS[ED_ZOOM_STEPS.length - 1];
+    if (edPageWrap) edPageWrap.classList.toggle("ed-zoomed", edZoom > 1);
+  }
+
+  function resetWrapScroll() {
+    if (edPageWrap) { edPageWrap.scrollTop = 0; edPageWrap.scrollLeft = 0; }
+  }
+
+  function setZoom(z) {
+    const min = ED_ZOOM_STEPS[0], max = ED_ZOOM_STEPS[ED_ZOOM_STEPS.length - 1];
+    const clamped = Math.max(min, Math.min(max, z));
+    if (clamped === edZoom) return;
+    edZoom = clamped;
+    syncZoomUI();
+    renderEdPage();
+  }
+
+  function stepZoom(dir) {
+    const idx = ED_ZOOM_STEPS.findIndex((s) => (dir > 0 ? s > edZoom + 0.001 : s >= edZoom - 0.001));
+    if (idx === -1) return;
+    setZoom(dir > 0 ? ED_ZOOM_STEPS[idx] : ED_ZOOM_STEPS[Math.max(0, idx - 1)]);
+  }
 
   async function renderEdPage() {
     if (!edPdfDoc) return;
@@ -838,11 +876,15 @@
     setEmpty("");
     const vp1 = page.getViewport({ scale: 1 });
     const dpr = window.devicePixelRatio || 1;
-    const targetCss = Math.min(1280, Math.max(360, edPageEl.clientWidth - 8 || 900));
-    const scale = targetCss / vp1.width;
+    const scale = (fitWidthCss() / vp1.width) * edZoom;
     const vp2 = page.getViewport({ scale: scale });
+    const cssW = Math.round(vp2.width);
+    const cssH = Math.round(vp2.height);
     edCanvas.width  = Math.floor(vp2.width  * dpr);
     edCanvas.height = Math.floor(vp2.height * dpr);
+    edCanvas.style.width  = cssW + "px";
+    edCanvas.style.height = cssH + "px";
+    edPageEl.style.width = (cssW + 4) + "px";
     const ctx = edCanvas.getContext("2d");
     ctx.clearRect(0, 0, edCanvas.width, edCanvas.height);
     edCanvas.hidden = false;
@@ -852,6 +894,7 @@
       if (token === edRenderToken) {
         setEmpty(IC.t("dyn.render_err", { msg: (e && e.message ? e.message : e) }));
         edCanvas.hidden = true;
+        edPageEl.style.width = "";
         showToast(IC.t("dyn.render_failed"), "err");
       }
     }
@@ -862,6 +905,7 @@
       if (edPdfDoc) { try { edPdfDoc.destroy(); } catch (e) {} edPdfDoc = null; }
       edPreview.hidden = true;
       edPageCount = 0; edSigFile = null; edSigBox = { x: 50, y: 80, w: 30, rot: 0, op: 100 };
+      edPageEl.style.width = "";
       applySigBoxToDom();
       return;
     }
@@ -885,6 +929,9 @@
       edPageCount = edPdfDoc.numPages;
       edCurPage = 1;
       syncPager();
+      edZoom = 1;
+      syncZoomUI();
+      resetWrapScroll();
       edPgSel.innerHTML = "";
       for (let i = 1; i <= edPageCount; i++) {
         const o = document.createElement("option");
@@ -908,9 +955,51 @@
     if (edPgNext) edPgNext.disabled = !edPageCount || edCurPage >= edPageCount;
   }
 
-  edPgPrev.addEventListener("click", () => { if (edCurPage > 1) { edCurPage--; syncPager(); renderEdPage(); } });
-  edPgNext.addEventListener("click", () => { if (edCurPage < edPageCount) { edCurPage++; syncPager(); renderEdPage(); } });
-  edPgSel.addEventListener("change", () => { edCurPage = +edPgSel.value; syncPager(); renderEdPage(); });
+  edPgPrev.addEventListener("click", () => { if (edCurPage > 1) { edCurPage--; syncPager(); resetWrapScroll(); renderEdPage(); } });
+  edPgNext.addEventListener("click", () => { if (edCurPage < edPageCount) { edCurPage++; syncPager(); resetWrapScroll(); renderEdPage(); } });
+  edPgSel.addEventListener("change", () => { edCurPage = +edPgSel.value; syncPager(); resetWrapScroll(); renderEdPage(); });
+
+  if (edZoomIn) edZoomIn.addEventListener("click", () => stepZoom(1));
+  if (edZoomOut) edZoomOut.addEventListener("click", () => stepZoom(-1));
+  if (edZoomFit) edZoomFit.addEventListener("click", () => setZoom(1));
+  if (edPageWrap) edPageWrap.addEventListener("wheel", (e) => {
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    stepZoom(e.deltaY < 0 ? 1 : -1);
+  }, { passive: false });
+
+  let edResizeT = null;
+  window.addEventListener("resize", () => {
+    if (!edPdfDoc) return;
+    clearTimeout(edResizeT);
+    edResizeT = setTimeout(() => { renderEdPage(); }, 150);
+  });
+
+  let edPan = null;
+  if (edPageWrap) {
+    edPageWrap.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0 || edZoom <= 1) return;
+      if (edSigOverlay && edSigOverlay.contains(e.target)) return;
+      edPan = { x: e.clientX, y: e.clientY, sl: edPageWrap.scrollLeft, st: edPageWrap.scrollTop };
+      edPageWrap.classList.add("ed-panning");
+      edPageWrap.setPointerCapture(e.pointerId);
+    });
+    edPageWrap.addEventListener("pointermove", (e) => {
+      if (!edPan) return;
+      edPageWrap.scrollLeft = edPan.sl - (e.clientX - edPan.x);
+      edPageWrap.scrollTop  = edPan.st - (e.clientY - edPan.y);
+      e.preventDefault();
+    });
+    const edPanEnd = (e) => {
+      if (!edPan) return;
+      edPan = null;
+      edPageWrap.classList.remove("ed-panning");
+      try { edPageWrap.releasePointerCapture(e.pointerId); } catch (err) {}
+    };
+    edPageWrap.addEventListener("pointerup", edPanEnd);
+    edPageWrap.addEventListener("pointercancel", edPanEnd);
+  }
+  syncZoomUI();
 
   function bindOverlayGestures(overlay, pageHost, onBoxChange) {
     const getBox = () => {

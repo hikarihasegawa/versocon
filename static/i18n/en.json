@@ -121,6 +121,9 @@
   "pdf.edit.pg_prev_title": "Previous page",
   "pdf.edit.pg_next_title": "Next page",
   "pdf.edit.pg_goto_title": "Go to page",
+  "pdf.edit.zoom_out": "Zoom out",
+  "pdf.edit.zoom_in": "Zoom in",
+  "pdf.edit.zoom_fit": "Fit",
   "pdf.edit.loading": "Loading page…",
   "pdf.edit.hint_sig": "Drag the signature anywhere · corners to resize",
 

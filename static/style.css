@@ -569,12 +569,15 @@ input[type="color"] { padding: 2px 4px; }
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 .ed-pg-label { font-family: var(--font-title); font-weight: 700; color: var(--ink); min-width: 44px; text-align: center; }
+.ed-zoom-first { margin-left: auto; }
+.ed-zoom-label { font-family: var(--font-title); font-weight: 700; color: var(--ink); min-width: 50px; text-align: center; }
 .ed-pg-sel { width: 64px; }
 .ed-hint-sig { margin: 0; }
 .ed-page-wrap {
   overflow: auto;
-  max-height: calc(100vh - 140px);
-  min-height: 520px;
+  scrollbar-gutter: stable;
+  max-height: min(calc(100vh - 140px), 900px);
+  min-height: min(520px, 70vh);
   padding: 10px;
   background: rgba(5, 4, 3, .55);
   border-style: dashed;
@@ -582,10 +585,11 @@ input[type="color"] { padding: 2px 4px; }
   border-color: var(--ink-soft);
   border-radius: 8px;
 }
+.ed-page-wrap.ed-zoomed { cursor: grab; }
+.ed-page-wrap.ed-panning { cursor: grabbing; }
 .ed-page-card {
   position: relative;
   width: 100%;
-  max-width: 100%;
   min-height: 240px;
   margin: 0 auto;
   background: #fff;
@@ -594,7 +598,7 @@ input[type="color"] { padding: 2px 4px; }
   box-shadow: var(--shadow);
   touch-action: none;
 }
-#edCanvas { display: block; width: 100%; height: auto; }
+#edCanvas { display: block; max-width: none; }
 .ed-page-empty {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
@@ -636,7 +640,7 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
 
 @media (max-width: 900px) {
   .ed-work { grid-template-columns: 1fr; }
-  .ed-right { position: static; }
+  .ed-right { position: static; order: -1; }
   .ed-page-wrap { max-height: 60vh; }
 }
 
@@ -652,6 +656,7 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
   #dropzone h2 { font-size: 24px; }
   .slider { width: 140px; }
   .numin { width: 100px; }
+  .ed-zoom-first { margin-left: 0; }
   .dropzone-card::after { font-size: 16px; padding: 8px 14px 6px; top: -26px; right: -6px; }
 }
 

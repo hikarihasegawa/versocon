@@ -123,6 +123,9 @@
   "pdf.edit.pg_prev_title": "Pagina precedente",
   "pdf.edit.pg_next_title": "Pagina successiva",
   "pdf.edit.pg_goto_title": "Vai a pagina",
+  "pdf.edit.zoom_out": "Riduci zoom",
+  "pdf.edit.zoom_in": "Aumenta zoom",
+  "pdf.edit.zoom_fit": "Adatta",
   "pdf.edit.loading": "Caricamento pagina…",
   "pdf.edit.hint_sig": "Trascina la firma dove vuoi · angoli per ridimensionare",
 

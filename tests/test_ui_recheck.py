@@ -27,3 +27,26 @@ def test_new_keys_translated():
         data = json.loads((STATIC / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
         for key in ("btn.recheck", "dyn.recheck_ok", "dyn.recheck_err", "pdf.edit.sig_clear"):
             assert data.get(key), f"{lang}.json: manca {key}"
+
+
+def test_pdf_preview_zoom_controls():
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
+    for el in ('id="edZoomOut"', 'id="edZoomIn"', 'id="edZoomFit"', 'id="edZoomLabel"'):
+        assert el in html
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "ED_ZOOM_STEPS" in js
+    assert "syncZoomUI()" in js
+    for h in ("edZoomIn.addEventListener", "edZoomOut.addEventListener", "edZoomFit.addEventListener"):
+        assert h in js
+    assert "fitWidthCss" in js and "edZoom" in js
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    assert ".ed-zoom-label" in css
+    assert "order: -1" in css
+
+
+def test_zoom_keys_all_languages():
+    langs = ("it", "en", "es", "fr", "de", "pt", "zh", "ja")
+    for lang in langs:
+        data = json.loads((STATIC / "i18n" / f"{lang}.json").read_text(encoding="utf-8"))
+        for key in ("pdf.edit.zoom_in", "pdf.edit.zoom_out", "pdf.edit.zoom_fit"):
+            assert data.get(key), f"{lang}.json: manca {key}"
