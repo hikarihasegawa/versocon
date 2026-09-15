@@ -993,7 +993,7 @@ def api_pdf_edit(
     ink_strokes: str = Form(""),      # JSON [[[x,y],...], ...] in % pagina
     redact_rects: str = Form(""),     # JSON [[x,y,w,h], ...] in % pagina
     redact_fill: str = Form("#000000"),
-    replace_fill: str = Form("#ffffff"),
+    replace_fill: str = Form(""),
     # numerazione / intestazione / pagine / moduli
     num_start: int = Form(1),
     num_prefix: str = Form(""),
@@ -1106,7 +1106,7 @@ def api_pdf_edit(
                                      page=(page_num if rects else None), fill=redact_fill)
         elif act == "replace":
             out = pdfeditconv.find_replace(data, needle, replacement,
-                                           pages=_expand_pages(data, pages), fill=replace_fill)
+                                           pages=_expand_pages(data, pages), fill=replace_fill or None)
         elif act == "number":
             out = pdfeditconv.number_pages(
                 data, start=num_start, prefix=num_prefix, suffix=num_suffix,

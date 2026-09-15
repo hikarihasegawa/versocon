@@ -409,8 +409,8 @@ def _base14(fontname: str) -> str:
 
 
 def _style_at(page: "pymupdf.Page", rect: "pymupdf.Rect"):
-    """(font base14, size, colore RGB, origine baseline) dello span che copre `rect`."""
-    fallback = ("helv", 11.0, (0.0, 0.0, 0.0), pymupdf.Point(rect.x0, rect.y1))
+    """(font base14, size, colore RGB, origine baseline, direzione) dello span che copre `rect`."""
+    fallback = ("helv", 11.0, (0.0, 0.0, 0.0), pymupdf.Point(rect.x0, rect.y1), (1.0, 0.0))
     try:
         info = page.get_text("dict")
     except Exception:  # noqa: BLE001
@@ -423,13 +423,64 @@ def _style_at(page: "pymupdf.Page", rect: "pymupdf.Rect"):
                 if bbox.contains(center) or bbox.intersects(rect):
                     c = int(span.get("color", 0))
                     origin = span.get("origin") or (rect.x0, rect.y1)
+                    direction = tuple(line.get("dir") or (1.0, 0.0))
                     return (
                         _base14(span.get("font", "")),
                         max(4.0, min(200.0, float(span.get("size", 11)))),
                         (((c >> 16) & 255) / 255.0, ((c >> 8) & 255) / 255.0, (c & 255) / 255.0),
                         pymupdf.Point(origin),
+                        (float(direction[0]), float(direction[1])),
                     )
     return fallback
+
+
+def _rotate_for(direction: tuple[float, float]) -> int:
+    """Rotazione CCW (0/90/180/270) da usare in `insert_text` per la direzione data."""
+    dx, dy = (direction or (1.0, 0.0))[:2]
+    if abs(dx) >= abs(dy):
+        return 0 if dx >= 0 else 180
+    return 90 if dy < 0 else 270
+
+
+def _insert_replacement(pg: "pymupdf.Page", rect: "pymupdf.Rect", text: str,
+                        font: str, size: float, color, origin: "pymupdf.Point",
+                        direction: tuple[float, float]) -> None:
+    """Inserisce `text` alla posizione originale mantenendone la direzione.
+
+    Testo orizzontale: inserimento diretto se ci sta, altrimenti textbox che
+    rimpicciolisce. Testo ruotato: `insert_text(rotate=...)`, riducendo il
+    corpo quanto basta a restare dentro la pagina.
+    """
+    rot = _rotate_for(direction)
+    width = pymupdf.get_text_length(text, fontname=font, fontsize=size)
+    if rot == 0:
+        if "\n" not in text and width <= pg.rect.width - origin.x - 4:
+            pg.insert_text(origin, text, fontsize=size, fontname=font, color=color)
+            return
+        fs = size
+        while fs >= 4.0:
+            if pg.insert_textbox(rect, text, fontsize=fs, fontname=font,
+                                 color=color, align=0) >= 0:
+                return
+            fs *= 0.85
+        pg.insert_text((rect.x0, rect.y1 - 0.5), text,
+                       fontsize=max(4.0, size / 2), fontname=font, color=color)
+        return
+
+    if rot == 90:      # dal basso verso l'alto: spazio fino al bordo alto
+        avail = origin.y - pg.rect.y0
+    elif rot == 270:   # dall'alto verso il basso
+        avail = pg.rect.y1 - origin.y
+    else:              # 180: verso sinistra
+        avail = origin.x - pg.rect.x0
+    fs = size
+    while "\n" in text or width > avail - 4:
+        if fs <= 4.0:
+            break
+        fs *= 0.85
+        width = pymupdf.get_text_length(text, fontname=font, fontsize=fs)
+    pg.insert_text(origin, text, fontsize=max(4.0, fs), fontname=font,
+                   color=color, rotate=rot)
 
 
 def annotate_text(data: bytes, page: int, needle: str, kind: str = "highlight",
@@ -596,8 +647,13 @@ def redact(data: bytes, needle: str = "", rects=None, page=None,
 
 
 def find_replace(data: bytes, needle: str, replacement: str, pages=None,
-                 fill: str = "#ffffff") -> bytes:
-    """Trova&sostituisci con stile originale; `replacement` vuoto = rimozione."""
+                 fill: str | None = None) -> bytes:
+    """Trova&sostituisci con stile originale; `replacement` vuoto = rimozione.
+
+    Rimuove solo il testo e ne inserisce uno nuovo alla stessa posizione con
+    font/size/colore originali: lo sfondo (grafica e immagini della pagina)
+    resta intatto. `fill` opzionale dipinge il rettangolo di copertura.
+    """
     needle = (needle or "")
     if not needle.strip():
         raise ValueError("Testo da cercare vuoto")
@@ -609,33 +665,21 @@ def find_replace(data: bytes, needle: str, replacement: str, pages=None,
     for i in targets:
         pg = doc[i]
         for r in pg.search_for(needle):
-            font, size, color, origin = _style_at(pg, r)
-            jobs.append((i, pymupdf.Rect(r), font, size, color, origin))
+            font, size, color, origin, direction = _style_at(pg, r)
+            jobs.append((i, pymupdf.Rect(r), font, size, color, origin, direction))
     if not jobs:
         raise ValueError(f"Testo non trovato: {needle!r}")
-    rgb_fill = _rgb(fill, "colore copertura")
-    for i, r, _f, _s, _c, _o in jobs:
+    rgb_fill = _rgb(fill, "colore copertura") if fill else None
+    for i, r, _f, _s, _c, _o, _d in jobs:
         doc[i].add_redact_annot(r, fill=rgb_fill)
     for i in targets:
-        doc[i].apply_redactions()
+        doc[i].apply_redactions(
+            images=pymupdf.PDF_REDACT_IMAGE_NONE,
+            graphics=pymupdf.PDF_REDACT_LINE_ART_NONE,
+        )
     if replacement:
-        for i, r, font, size, color, origin in jobs:
-            pg = doc[i]
-            width = pymupdf.get_text_length(replacement, fontname=font, fontsize=size)
-            if "\n" not in replacement and width <= pg.rect.width - origin.x - 4:
-                pg.insert_text(origin, replacement, fontsize=size, fontname=font, color=color)
-                continue
-            fs = size
-            inserted = False
-            while fs >= 4.0:
-                if pg.insert_textbox(r, replacement, fontsize=fs, fontname=font,
-                                     color=color, align=0) >= 0:
-                    inserted = True
-                    break
-                fs *= 0.85
-            if not inserted:
-                pg.insert_text((r.x0, r.y1 - 0.5), replacement,
-                               fontsize=max(4.0, size / 2), fontname=font, color=color)
+        for i, r, font, size, color, origin, direction in jobs:
+            _insert_replacement(doc[i], r, replacement, font, size, color, origin, direction)
     return _save(doc)
 
 

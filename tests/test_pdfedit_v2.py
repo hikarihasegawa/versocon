@@ -33,6 +33,35 @@ def _make_pdf(n_pages: int = 2, text: str = "Ciao mondo") -> bytes:
     return buf.getvalue()
 
 
+def _make_colored_pdf() -> bytes:
+    """Pagina con fascia colorata a sinistra e testo sopra: serve a verificare che
+    la sostituzione preservi lo sfondo (non lo copra con un box bianco/nero)."""
+    doc = pymupdf.Document()
+    page = doc.new_page(width=300, height=200)
+    page.draw_rect(pymupdf.Rect(0, 0, 90, 200), color=None, fill=(0.12, 0.23, 0.37))
+    page.insert_text((20, 60), "Eden", fontsize=18, color=(0.9, 0.75, 0.3))
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def _make_rotated_pdf() -> bytes:
+    """Pagina con testo ruotato di 90° (come le fasce laterali delle copertine)."""
+    doc = pymupdf.Document()
+    page = doc.new_page(width=300, height=200)
+    page.insert_text((60, 180), "EDEN", fontsize=18, rotate=90)
+    buf = io.BytesIO()
+    doc.save(buf)
+    return buf.getvalue()
+
+
+def _pixel(pdf: bytes, x: int, y: int) -> tuple[int, int, int]:
+    """Colore RGB del pixel (x, y) della prima pagina renderizzata a 72 dpi."""
+    pix = _load(pdf)[0].get_pixmap(dpi=72)
+    i = (y * pix.width + x) * pix.n
+    return tuple(pix.samples[i:i + 3])
+
+
 def _make_form_pdf() -> bytes:
     doc = pymupdf.Document()
     page = doc.new_page(width=300, height=200)
@@ -259,6 +288,39 @@ def test_find_replace_not_found_rejected():
 def test_find_replace_empty_needle_rejected():
     with pytest.raises(ValueError, match="vuoto"):
         pdfedit.find_replace(_make_pdf(1), "  ", "x")
+
+
+def test_find_replace_preserva_sfondo_regressione():
+    """Regressione: la sostituzione non deve coprire lo sfondo con un box opaco."""
+    out = pdfedit.find_replace(_make_colored_pdf(), "Eden", "Test")
+    assert "Test" in _load(out)[0].get_text()
+    # il pixel centrale dell'area sostituita deve restare il blu della fascia
+    assert _pixel(out, 30, 52) == pytest.approx((31, 59, 94), abs=10)
+
+
+def test_find_replace_deletion_preserva_sfondo():
+    """Anche la cancellazione (replacement vuoto) deve lasciare intatto lo sfondo."""
+    out = pdfedit.find_replace(_make_colored_pdf(), "Eden", "")
+    assert "Eden" not in _load(out)[0].get_text()
+    assert _pixel(out, 30, 52) == pytest.approx((31, 59, 94), abs=10)
+
+
+def test_find_replace_fill_esplicito_copre():
+    """Il parametro `fill` resta disponibile come copertura esplicita (opt-in)."""
+    out = pdfedit.find_replace(_make_colored_pdf(), "Eden", "Test", fill="#000000")
+    assert _pixel(out, 30, 52) == pytest.approx((0, 0, 0), abs=12)
+
+
+def test_find_replace_testo_ruotato_resta_verticale():
+    """Regressione: un testo verticale sostituito deve restare verticale e in sede."""
+    out = pdfedit.find_replace(_make_rotated_pdf(), "EDEN", "TEST")
+    lines = [ln for b in _load(out)[0].get_text("dict")["blocks"]
+             for ln in b.get("lines", []) if any("TEST" in s["text"] for s in ln["spans"])]
+    assert lines, "sostituzione non trovata"
+    line = lines[0]
+    assert abs(line["dir"][1]) > 0.9, f"direzione non verticale: {line['dir']}"
+    x0, y0, x1, y1 = line["bbox"]
+    assert (x1 - x0) < (y1 - y0), f"bbox non verticale: {line['bbox']}"
 
 
 # --------------------------------------------------------------------------
