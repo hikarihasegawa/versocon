@@ -193,6 +193,7 @@ def convert(
     fmt: str = Form("jpeg"),
     quality: int | None = Form(None),
     max_side: int | None = Form(None),
+    strip_exif: bool = Form(False),
 ):
     fmt_l = (fmt or "jpeg").lower().lstrip(".")
     if fmt_l == "jpg":
@@ -223,7 +224,9 @@ def convert(
         ext = imgconv.output_ext(fmt_l)
         dst_name = f"{base}.{ext}"
         try:
-            out = imgconv.convert_bytes(data, fmt_l, quality=quality, max_side=max_side)
+            out = imgconv.convert_bytes(
+                data, fmt_l, quality=quality, max_side=max_side, strip_exif=strip_exif
+            )
         except Exception as e:  # noqa: BLE001 - report per-file errors to UI
             results.append({"name": uf.filename, "error": f"decode failed: {e}"})
             continue

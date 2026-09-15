@@ -141,11 +141,13 @@ def convert_bytes(
     out_format: str,
     quality: int | None = None,
     max_side: int | None = None,
+    strip_exif: bool = False,
 ) -> bytes:
     """Converti i byte di un'immagine in 'jpeg'|'png'|'webp'|'gif'.
 
     quality: 1-100 (solo JPEG/WebP, default 92). max_side: lato massimo in px
-    (0/None = nessuna). EXIF preservata (orientation applicata e normalizzata).
+    (0/None = nessuna). strip_exif: elimina i metadati EXIF/GPS dall'output
+    (l'orientamento viene comunque applicato fisicamente prima del salvataggio).
     GIF: se sorgente animata, output GIF animato (max MAX_FRAMES frame);
     altrimenti GIF statica. Sorgenti multi-frame verso formati single-frame
     usano il primo frame.
@@ -170,7 +172,10 @@ def convert_bytes(
         applied = False
         img = img.copy()
     img = _maybe_resize(img, max_side)
-    exif = _exif_payload(raw, applied) if n_frames == 1 else b""
+    if strip_exif or n_frames != 1:
+        exif = b""
+    else:
+        exif = _exif_payload(raw, applied)
 
     if out == "png":
         if img.mode not in ("RGB", "RGBA", "L", "LA", "P"):
@@ -199,8 +204,12 @@ def convert_file(
     out_format: str,
     quality: int | None = None,
     max_side: int | None = None,
+    strip_exif: bool = False,
 ) -> Path:
-    data = convert_bytes(src.read_bytes(), out_format, quality=quality, max_side=max_side)
+    data = convert_bytes(
+        src.read_bytes(), out_format, quality=quality, max_side=max_side,
+        strip_exif=strip_exif,
+    )
     dst = dst_dir / (src.stem + "." + output_ext(out_format))
     dst.write_bytes(data)
     return dst
