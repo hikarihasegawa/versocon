@@ -255,6 +255,15 @@
   const tabCompress = $("#tabCompress");
   const tabVideo = $("#tabVideo");
   const TABS = { photos: tabPhotos, pdf: tabPdf, compress: tabCompress, video: tabVideo };
+  const shellEl = document.querySelector(".shell");
+  /* La shell si allarga solo mentre si usa l'editor PDF: ricalcolata a ogni
+     cambio di sezione/subtab, altrimenti il rail resta collassato. */
+  function syncShellWide() {
+    if (!shellEl) return;
+    const editing =
+      !TABS.pdf.hidden && !!document.querySelector('#tabPdf .subtab.active[data-sub="pdf-edit"]');
+    shellEl.classList.toggle("wide", editing);
+  }
   const tabButtons = [...document.querySelectorAll(".tabs .tab")];
   function selectTab(btn, focus) {
     tabButtons.forEach((x) => {
@@ -265,6 +274,7 @@
     });
     const t = btn.dataset.tab;
     for (const k in TABS) TABS[k].hidden = k !== t;
+    syncShellWide();
     results = [];
     renderResults();
     setNavOpen(false);
@@ -298,8 +308,7 @@
       document.querySelectorAll("#tabPdf .subpane").forEach((p) => {
         p.hidden = (p.id !== "sub" + s);
       });
-      const shell = document.querySelector(".shell");
-      if (shell) shell.classList.toggle("wide", s === "pdf-edit");
+      syncShellWide();
     });
   });
 

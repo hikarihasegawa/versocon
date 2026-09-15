@@ -583,14 +583,14 @@ input[type="color"] { padding: 2px 4px; }
   position: sticky; top: 12px;
   max-height: calc(100vh - 140px);
   overflow-y: auto; overscroll-behavior: contain;
-  padding: 2px 6px 8px;
+  padding: 0 6px 8px;
   scrollbar-gutter: stable both-edges;
 }
 .ed-left .btn { align-self: stretch; text-align: center; }
 .ed-left .ctlrow { gap: 8px; }
 .ed-head {
   position: sticky; top: 0; z-index: 3;
-  background: var(--paper);
+  background: var(--paper-2);
   display: flex; flex-direction: column; gap: 8px;
   padding: 2px 0 8px;
   border-bottom: 2px solid var(--ink);
@@ -620,7 +620,7 @@ input[type="color"] { padding: 2px 4px; }
 .ed-tool[aria-pressed="true"] { background: var(--gold); color: var(--paper); }
 .ed-left .ed-foot {
   position: sticky; bottom: 0; z-index: 3;
-  background: var(--paper);
+  background: var(--paper-2);
   padding: 8px 0 4px; border-top: 2px solid var(--ink);
 }
 .ed-left .ed-foot .outrow { margin-top: 0; }

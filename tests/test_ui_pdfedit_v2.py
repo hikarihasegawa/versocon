@@ -100,3 +100,27 @@ def test_action_keys_translated_all_languages():
         data = json.loads((I18N / f"{lang}.json").read_text(encoding="utf-8"))
         missing = [k for k in keys if not data.get(k)]
         assert missing == [], f"{lang}.json: mancano {missing}"
+
+
+def test_barre_sticky_col_sfondo_della_card():
+    """Regressione: ed-head/ed-foot sticky con sfondo --paper creavano bande nere
+    che tagliavano il pannello (visibile soprattutto in Manga) mentre si scorre."""
+    css = (STATIC / "style.css").read_text(encoding="utf-8")
+    head = re.search(r"\.ed-head \{(.*?)\}", css, re.S)
+    foot = re.search(r"\.ed-left \.ed-foot \{(.*?)\}", css, re.S)
+    assert head, ".ed-head non trovato"
+    assert foot, ".ed-left .ed-foot non trovato"
+    assert "background: var(--paper-2)" in head.group(1), "ed-head non usa la superficie della card"
+    assert "background: var(--paper-2)" in foot.group(1), "ed-foot non usa la superficie della card"
+    assert "background: var(--paper);" not in head.group(1)
+    assert "background: var(--paper);" not in foot.group(1)
+
+
+def test_shell_wide_ricalcolata_al_cambio_sezione():
+    """Regressione: dopo l'editor PDF la shell restava larga (rail a icone) anche
+    cambiando sezione principale, perché `wide` era tolto solo dal click subtab."""
+    js = (STATIC / "app.js").read_text(encoding="utf-8")
+    assert "function syncShellWide()" in js
+    assert js.count("syncShellWide();") >= 2, "attesa la chiamata in selectTab e nel subtab PDF"
+    assert '#tabPdf .subtab.active[data-sub="pdf-edit"]' in js
+    assert 'classList.toggle("wide"' in js
