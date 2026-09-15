@@ -737,9 +737,9 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
 :root { --accent-on: #111111; }
 
 html.theme-pro {
-  --paper:      #181818;
-  --paper-2:    #232323;
-  --paper-3:    #2e2e2e;
+  --paper:      #1c1c1c;
+  --paper-2:    #2a2a2a;
+  --paper-3:    #333333;
   --ink:        #f2f2f2;
   --ink-soft:   #a6a6a6;
   --red:        #ff6b2c;
@@ -1079,5 +1079,88 @@ html.theme-pro :focus-visible {
 }
 html.theme-pro .numin:focus,
 html.theme-pro .ctlrow select:focus { outline: none; box-shadow: 0 0 0 3px rgba(255, 107, 44, .25); border-color: var(--red); }
+
+
+/* ===================================================================
+   UI-G — layout a rail (dashboard): navigazione laterale, drawer su
+   schermi stretti, superfici piatte, controlli a pillola.
+   La struttura vale per entrambi i temi; il tema Pro è la variante
+   neutra, il tema Manga resta il linguaggio fumetto.
+   =================================================================== */
+.app-body {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.app-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.app-body .tabs {
+  flex-direction: column; flex-wrap: nowrap;
+  position: sticky; top: 18px; align-self: start;
+  width: 100%; margin: 0;
+}
+.nav-ic, .tool-ic { display: none; }
+.nav-toggle { display: none; padding: 0 10px; }
+.nav-toggle svg { width: 20px; height: 20px; }
+.nav-scrim { display: none; }
+
+/* editor aperto: rail a sole icone per lasciare spazio all'anteprima */
+.shell.wide .app-body { grid-template-columns: 72px minmax(0, 1fr); gap: 16px; }
+.shell.wide .app-body .nav-label { display: none; }
+.shell.wide .app-body .tab { justify-content: center; padding: 0; }
+
+/* ---- Tema Pro ---- */
+html.theme-pro {
+  --ctl-h: 40px;
+}
+html.theme-pro .shell { max-width: 1200px; }
+html.theme-pro .shell.wide { max-width: min(1440px, 96vw); }
+html.theme-pro .app-main { gap: 16px; }
+html.theme-pro .app-body .tabs {
+  background: var(--paper-2); border-radius: 14px; padding: 8px; gap: 2px;
+}
+html.theme-pro .app-body .tab {
+  background: transparent; border: 0; border-radius: 999px;
+  color: var(--ink-soft); font-weight: 500; gap: 10px; padding: 0 14px;
+}
+html.theme-pro .app-body .tab:hover { background: #3a3a3a; color: var(--ink); }
+html.theme-pro .app-body .tab.active { background: var(--paper-3); color: #ffffff; font-weight: 600; }
+html.theme-pro .nav-ic { display: block; width: 18px; height: 18px; flex: none; }
+html.theme-pro .tool-ic { display: block; width: 16px; height: 16px; flex: none; opacity: .85; }
+html.theme-pro .card { border: 0; padding: 24px; }
+html.theme-pro .nav-toggle { display: none; }
+html.theme-pro .panel-title { font-size: 24px; letter-spacing: -.01em; margin: 0 0 6px; }
+html.theme-pro #dropzone h2 { font-size: 28px; }
+html.theme-pro .btn,
+html.theme-pro .subtab,
+html.theme-pro .seg,
+html.theme-pro .seg-btn,
+html.theme-pro .theme-btn,
+html.theme-pro .kofi-btn,
+html.theme-pro .lang-pick { border-radius: 999px; }
+
+/* ---- Drawer di navigazione sotto 900px ---- */
+@media (max-width: 900px) {
+  .app-body { display: block; }
+  html.theme-pro .nav-toggle,
+  .nav-toggle { display: inline-flex; }
+  html.theme-pro .app-body .tabs,
+  .app-body .tabs {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    width: min(300px, 86vw); z-index: 40;
+    margin: 0; padding: 18px; gap: 6px;
+    background: var(--paper-2); border-radius: 0;
+    overflow-y: auto; transform: translateX(-104%);
+    transition: transform .2s ease;
+  }
+  body.nav-open .app-body .tabs { transform: none; }
+  .nav-scrim { position: fixed; inset: 0 0 0 min(300px, 86vw); z-index: 30; background: rgba(0, 0, 0, .55); }
+  body.nav-open .nav-scrim { display: block; }
+  .shell.wide .app-body .nav-label { display: inline; }
+  .shell.wide .app-body .tab { justify-content: flex-start; padding: 0 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-body .tabs { transition: none; }
+}
 
 

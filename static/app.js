@@ -250,7 +250,25 @@
       for (const k in TABS) TABS[k].hidden = k !== t;
       results = [];
       renderResults();
+      setNavOpen(false);
     });
+  });
+
+  /* ---------- rail: drawer apribile sotto 900px ---------- */
+  const navToggle = $("#navToggle");
+  const navScrim = $("#navScrim");
+  function setNavOpen(open) {
+    document.body.classList.toggle("nav-open", !!open);
+    if (navToggle) navToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  if (navToggle) {
+    navToggle.addEventListener("click", () =>
+      setNavOpen(!document.body.classList.contains("nav-open"))
+    );
+  }
+  if (navScrim) navScrim.addEventListener("click", () => setNavOpen(false));
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") setNavOpen(false);
   });
 
    /* ---------- PDF sub-tabs ---------- */
@@ -1328,14 +1346,43 @@
     ["pdf.edit.group_secure", ["protect", "unprotect", "searchable"]],
   ];
   const ED_TOOL_KEY = { watermark: "wm", signature: "sig", headerfooter: "hf" };
+  /* Icone monocromatiche della griglia strumenti (solo tema Pro). */
+  const ED_TOOL_ICONS = {
+    rotate: '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>',
+    delete: '<path d="M4 6h16"/><path d="M9 6V4h6v2"/><path d="M6 6l1 15h10l1-15"/>',
+    reorder: '<path d="M8 4v16m0-16-3 3m3-3 3 3"/><path d="M16 20V4m0 16 3-3m-3 3-3-3"/>',
+    insertpage: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 12v4m-2-2h4"/>',
+    extract: '<path d="M6 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/><path d="M6 15a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/><path d="M20 4 7 9m13 11L7 15l10-6"/>',
+    annotate: '<path d="m9 11-6 6v3h3l6-6"/><path d="m13 7 4-4 4 4-4 4z"/><path d="m11 9 4 4"/>',
+    note: '<path d="M4 4h13l3 3v13H4z"/><path d="M8 9h8M8 13h5"/>',
+    ink: '<path d="M20 4c-4 1-8 4-10 8-1 2-2 5-4 8 3-1 6-3 8-5 3-3 5-7 6-11z"/><path d="m6 18 6-6"/>',
+    stamp: '<rect x="3" y="17" width="18" height="4" rx="1"/><path d="M6 13c0-2 2-3 2-5a4 4 0 0 1 8 0c0 2 2 3 2 5z"/>',
+    watermark: '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>',
+    text: '<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>',
+    redact: '<rect x="4" y="6" width="16" height="5" rx="1"/><path d="M4 15h16M4 19h10"/>',
+    replace: '<path d="M4 7h11m0 0-3-3m3 3-3 3"/><path d="M20 17H9m0 0 3-3m-3 3 3 3"/>',
+    signature: '<path d="M3 18c3 0 5-2 7-5s3-6 5-6 2 2 1 4-1 3 0 3 2 0 3-1"/><path d="M4 21h16"/>',
+    number: '<path d="M5 9h14M5 15h14M9 4 7 20M17 4l-2 16"/>',
+    headerfooter: '<rect x="4" y="5" width="16" height="4" rx="1"/><rect x="4" y="15" width="16" height="4" rx="1"/>',
+    form: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/>',
+    protect: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+    unprotect: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.5-2"/>',
+    searchable: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  };
+  function edToolLabel(k) {
+    const raw = IC.t("pdf.edit." + (ED_TOOL_KEY[k] || k));
+    return isProTheme() ? stripEmoji(raw) : raw;
+  }
   function renderEdTools() {
     const box = document.getElementById("edTools");
     if (!box) return;
     box.setAttribute("aria-label", IC.t("pdf.edit.action"));
     box.innerHTML = ED_TOOLS.map(([group, keys]) =>
       `<h5>${IC.t(group)}</h5>` + keys.map((k) => {
-        const label = IC.t("pdf.edit." + (ED_TOOL_KEY[k] || k));
-        return `<button class="ed-tool" type="button" data-tool="${k}" aria-pressed="${k === edAction.value}">${label}</button>`;
+        const ico = ED_TOOL_ICONS[k]
+          ? `<svg class="tool-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ED_TOOL_ICONS[k]}</svg>`
+          : "";
+        return `<button class="ed-tool" type="button" data-tool="${k}" aria-pressed="${k === edAction.value}">${ico}<span class="tool-lbl">${edToolLabel(k)}</span></button>`;
       }).join("")
     ).join("");
   }
@@ -1847,6 +1894,7 @@
     try { renderMergeList(); } catch (e) {}
     try { renderResults(); } catch (e) {}
     try { renderEdTools(); } catch (e) {}
+    try { syncNavLabels(); } catch (e) {}
     renderConfigStatus(bootCfg);
     const btn = $("#btnConvert");
     if (btn && !btn.disabled) btn.textContent = IC.t("btn.convert");
@@ -1856,4 +1904,30 @@
     });
   }
   document.addEventListener("vscon:lang", refreshDynamicI18n);
+
+  /* ---------- rail e strumenti: emoji fuori dal tema Pro ---------- */
+  function isProTheme() {
+    return document.documentElement.classList.contains("theme-pro");
+  }
+  function stripEmoji(s) {
+    return String(s).replace(/^[^\p{L}\p{N}]+/u, "").trim();
+  }
+  function syncNavLabels() {
+    const pro = isProTheme();
+    document.querySelectorAll(".tabs .tab").forEach((b) => {
+      const span = b.querySelector(".nav-label");
+      if (!span) return;
+      const key = span.getAttribute("data-i18n");
+      const raw = key ? IC.t(key) : span.textContent;
+      const txt = pro ? stripEmoji(raw) : raw;
+      span.textContent = txt;
+      b.setAttribute("aria-label", txt);
+      b.setAttribute("title", txt);
+    });
+  }
+  document.addEventListener("vscon:theme", () => {
+    try { syncNavLabels(); } catch (e) {}
+    try { renderEdTools(); } catch (e) {}
+  });
+  syncNavLabels();
 })();

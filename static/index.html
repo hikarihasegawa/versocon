@@ -18,6 +18,12 @@
 <main class="shell">
   <header class="masthead">
     <div class="logo">
+      <button type="button" class="btn btn-ghost nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mainTabs"
+              data-i18n-attr="aria-label:nav.menu;title:nav.menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16"/>
+        </svg>
+      </button>
       <img class="logo-mark-img" src="logo.png" alt="VersoCon" width="88" height="88" />
       <div>
         <h1>VersoCon</h1>
@@ -40,12 +46,34 @@
     </div>
   </header>
 
-  <nav class="tabs" role="tablist" aria-label="Tipo di conversione">
-    <button class="tab active" data-tab="photos" role="tab" aria-selected="true" data-i18n="nav.photos">🖼 Foto</button>
-    <button class="tab" data-tab="pdf" role="tab" aria-selected="false" data-i18n="nav.pdf">📄 PDF</button>
-    <button class="tab" data-tab="compress" role="tab" aria-selected="false" data-i18n="nav.compress">🗜 Comprimi</button>
-    <button class="tab" data-tab="video" role="tab" aria-selected="false" data-i18n="nav.video">🎬 Video</button>
+  <div class="app-body">
+  <nav class="tabs" id="mainTabs" role="tablist" data-i18n-attr="aria-label:nav.aria">
+    <button class="tab active" data-tab="photos" role="tab" aria-selected="true">
+      <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m21 15-5-5L5 21"/>
+      </svg>
+      <span class="nav-label" data-i18n="nav.photos">🖼 Foto</span>
+    </button>
+    <button class="tab" data-tab="pdf" role="tab" aria-selected="false">
+      <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>
+      </svg>
+      <span class="nav-label" data-i18n="nav.pdf">📄 PDF</span>
+    </button>
+    <button class="tab" data-tab="compress" role="tab" aria-selected="false">
+      <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M9 3v4a2 2 0 0 1-2 2H3"/><path d="M15 3v4a2 2 0 0 0 2 2h4"/><path d="M9 21v-4a2 2 0 0 0-2-2H3"/><path d="M15 21v-4a2 2 0 0 1 2-2h4"/>
+      </svg>
+      <span class="nav-label" data-i18n="nav.compress">🗜 Comprimi</span>
+    </button>
+    <button class="tab" data-tab="video" role="tab" aria-selected="false">
+      <svg class="nav-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>
+      </svg>
+      <span class="nav-label" data-i18n="nav.video">🎬 Video</span>
+    </button>
   </nav>
+  <div class="app-main">
 
   <div id="tabPhotos">
   <section class="card dropzone-card" id="dropCard">
@@ -827,7 +855,11 @@
       <span data-i18n="foot.kofi">Offrimi un caffè</span>
     </button>
   </footer>
+  </div>
+  </div>
 </main>
+
+<div class="nav-scrim" id="navScrim"></div>
 
 <div id="toast" class="toast" role="status"></div>
 <script src="app.js"></script>

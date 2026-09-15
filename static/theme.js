@@ -32,6 +32,7 @@
     btn.setAttribute("aria-pressed", name === "pro" ? "true" : "false");
     var labelEl = document.getElementById("themeLabel");
     if (labelEl) labelEl.textContent = label(name);
+    document.dispatchEvent(new CustomEvent("vscon:theme", { detail: { theme: name } }));
   }
 
   function currentTheme() {
