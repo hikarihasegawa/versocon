@@ -732,6 +732,35 @@ input[type="color"] { padding: 2px 4px; }
   background: rgba(255, 255, 255, .55);
   pointer-events: none;
 }
+/* Anteprima live (FEAT-E2): PNG dry-run sopra il canvas, badge di stato. */
+.ed-prev-img {
+  position: absolute; inset: 0; z-index: 1;
+  width: 100%; height: 100%;
+  display: block; pointer-events: none;
+}
+.ed-prev-img[hidden] { display: none; }
+.ed-prev-badge {
+  position: absolute; z-index: 4;
+  top: 8px; right: 8px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 9px; border-radius: 999px;
+  font: 600 11px/1.4 var(--font-title);
+  color: #fff; background: rgba(0, 0, 0, .62);
+  pointer-events: none; white-space: nowrap;
+}
+.ed-prev-badge[hidden] { display: none; }
+.ed-prev-badge[data-state="fail"] { background: rgba(201, 42, 30, .88); }
+.ed-prev-spin {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .35); border-top-color: #fff;
+  animation: edspin .7s linear infinite;
+}
+.ed-prev-badge[data-state="ok"] .ed-prev-spin,
+.ed-prev-badge[data-state="fail"] .ed-prev-spin { display: none; }
+@keyframes edspin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .ed-prev-spin { animation: none; opacity: .7; }
+}
 
 /* ---- Scansione: anteprima con angoli di ritaglio ---- */
 #scanPage { cursor: crosshair; }

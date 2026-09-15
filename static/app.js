@@ -1008,6 +1008,16 @@
   const edZoomFit = document.getElementById("edZoomFit");
   const edZoomLabel = document.getElementById("edZoomLabel");
   const edPageWrap = edPageEl.parentElement;
+  /* FEAT-E2: anteprima live dry-run (debounce + AbortController). */
+  const edPrevImg = document.getElementById("edPrevImg");
+  const edPrevBadge = document.getElementById("edPrevBadge");
+  const edLeftPanel = document.querySelector("#subpdf-edit .ed-left");
+  let edLastScale = 1;
+  let edPrevTimer = null;
+  let edPrevCtl = null;
+  let edPrevSeq = 0;
+  let edPrevUrl = null;
+  let edApplyBusy = false;
 
   if (window.pdfjsLib) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
@@ -1148,7 +1158,7 @@
     edRectLayer.addEventListener("pointerup", rectEnd);
     edRectLayer.addEventListener("pointercancel", rectEnd);
     const modeEl = document.getElementById("edRedactMode");
-    if (modeEl) modeEl.addEventListener("change", syncDrawLayers);
+    if (modeEl) modeEl.addEventListener("change", () => { syncDrawLayers(); scheduleEdPreview(0, true); });
     const fillEl = document.getElementById("edRedactFill");
     if (fillEl) fillEl.addEventListener("input", redrawRects);
     const clr = document.getElementById("btnRedactClear");
@@ -1267,6 +1277,7 @@
 
   async function renderEdPage() {
     if (!edPdfDoc) return;
+    scheduleEdPreview(0);
     const token = ++edRenderToken;
     const page = await edPdfDoc.getPage(edCurPage);
     if (token !== edRenderToken) return;
@@ -1274,6 +1285,7 @@
     const vp1 = page.getViewport({ scale: 1 });
     const dpr = window.devicePixelRatio || 1;
     const scale = (fitWidthCss() / vp1.width) * edZoom;
+    edLastScale = scale;
     const vp2 = page.getViewport({ scale: scale });
     const cssW = Math.round(vp2.width);
     const cssH = Math.round(vp2.height);
@@ -1302,6 +1314,7 @@
   async function loadEdPreview(file, keepView = false) {
     const keepPage = keepView ? edCurPage : 1;
     const keepZoom = keepView ? edZoom : 1;
+    if (!keepView) clearEdPreview();
     if (!file) {
       if (edPdfDoc) { try { edPdfDoc.destroy(); } catch (e) {} edPdfDoc = null; }
       edPreview.hidden = true;
@@ -1356,9 +1369,9 @@
     if (edPgNext) edPgNext.disabled = !edPageCount || edCurPage >= edPageCount;
   }
 
-  edPgPrev.addEventListener("click", () => { if (edCurPage > 1) { edCurPage--; syncPager(); resetWrapScroll(); renderEdPage(); } });
-  edPgNext.addEventListener("click", () => { if (edCurPage < edPageCount) { edCurPage++; syncPager(); resetWrapScroll(); renderEdPage(); } });
-  edPgSel.addEventListener("change", () => { edCurPage = +edPgSel.value; syncPager(); resetWrapScroll(); renderEdPage(); });
+  edPgPrev.addEventListener("click", () => { if (edCurPage > 1) { edCurPage--; syncPager(); resetWrapScroll(); scheduleEdPreview(0, true); renderEdPage(); } });
+  edPgNext.addEventListener("click", () => { if (edCurPage < edPageCount) { edCurPage++; syncPager(); resetWrapScroll(); scheduleEdPreview(0, true); renderEdPage(); } });
+  edPgSel.addEventListener("change", () => { edCurPage = +edPgSel.value; syncPager(); resetWrapScroll(); scheduleEdPreview(0, true); renderEdPage(); });
 
   if (edZoomIn) edZoomIn.addEventListener("click", () => stepZoom(1));
   if (edZoomOut) edZoomOut.addEventListener("click", () => stepZoom(-1));
@@ -1489,6 +1502,7 @@
     syncDrawLayers();
     redrawPlacePreview();
     updateEdToolsActive();
+    scheduleEdPreview(0, true);
   }
   /* Griglia strumenti (la select #edAction resta come stato, nascosta). */
   const ED_TOOLS = [
@@ -1795,152 +1809,252 @@
     return JSON.stringify(nums);
   }
 
-  btnEdApply.addEventListener("click", async () => {
-    if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
-    const act = edAction.value;
-    edDownload.hidden = true;
-    edStatus.textContent = "";
+  function buildEdForm() {
     const fd = new FormData();
     fd.append("file", edPdfFile);
-    fd.append("action", act);
-    try {
-      if (act === "rotate") {
-        fd.append("pages", pagesToPayload($("#edRotPages").value));
-        fd.append("angle", $("#edRotAngle").value);
-      } else if (act === "delete") {
-        fd.append("pages", pagesToPayload($("#edDelPages").value));
-      } else if (act === "reorder") {
-        fd.append("order", orderToPayload($("#edReOrder").value));
-      } else if (act === "watermark") {
-        fd.append("wm_text", $("#edWmText").value);
-        fd.append("wm_corner", $("#edWmCorner").value);
-        fd.append("wm_size", $("#edWmSize").value);
-        fd.append("wm_opacity", (+$("#edWmOpacity").value) / 100);
-        fd.append("wm_rotate", $("#edWmRotate").value);
-      } else if (act === "signature") {
-        if (!edSigFile) throw new Error(IC.t("dyn.no_signature"));
-        fd.append("signature", edSigFile);
-        fd.append("sig_page", $("#edSigPage").value);
-        // nuovo posizionamento libero (percentuali) + rotazione + opacità
-        fd.append("sig_pos_x", String(edSigBox.x));
-        fd.append("sig_pos_y", String(edSigBox.y));
-        fd.append("sig_w_pct", String(edSigBox.w));
-        fd.append("sig_rot", String(edSigBox.rot || 0));
-        fd.append("sig_opacity", String(edSigBox.op || 100));
-      } else if (act === "annotate") {
-        const needle = $("#edAnnoNeedle").value.trim();
+    fd.append("action", edAction.value);
+    buildEdParams(fd);
+    return fd;
+  }
+
+  /* Parametri Form dell'azione corrente: condivisi da "Applica" e anteprima live.
+     Solleva Error (messaggio tradotto) se i campi obbligatori mancano. */
+  function buildEdParams(fd) {
+    const act = edAction.value;
+    if (act === "rotate") {
+      fd.append("pages", pagesToPayload($("#edRotPages").value));
+      fd.append("angle", $("#edRotAngle").value);
+    } else if (act === "delete") {
+      fd.append("pages", pagesToPayload($("#edDelPages").value));
+    } else if (act === "reorder") {
+      fd.append("order", orderToPayload($("#edReOrder").value));
+    } else if (act === "watermark") {
+      fd.append("wm_text", $("#edWmText").value);
+      fd.append("wm_corner", $("#edWmCorner").value);
+      fd.append("wm_size", $("#edWmSize").value);
+      fd.append("wm_opacity", (+$("#edWmOpacity").value) / 100);
+      fd.append("wm_rotate", $("#edWmRotate").value);
+    } else if (act === "signature") {
+      if (!edSigFile) throw new Error(IC.t("dyn.no_signature"));
+      fd.append("signature", edSigFile);
+      fd.append("sig_page", $("#edSigPage").value);
+      // nuovo posizionamento libero (percentuali) + rotazione + opacità
+      fd.append("sig_pos_x", String(edSigBox.x));
+      fd.append("sig_pos_y", String(edSigBox.y));
+      fd.append("sig_w_pct", String(edSigBox.w));
+      fd.append("sig_rot", String(edSigBox.rot || 0));
+      fd.append("sig_opacity", String(edSigBox.op || 100));
+    } else if (act === "annotate") {
+      const needle = $("#edAnnoNeedle").value.trim();
+      if (!needle) throw new Error(IC.t("dyn.needle_required"));
+      fd.append("needle", needle);
+      fd.append("anno_kind", $("#edAnnoKind").value);
+      fd.append("page_num", $("#edAnnoPage").value);
+      fd.append("color", $("#edAnnoColor").value);
+      fd.append("annot_opacity", String((+$("#edAnnoOpacity").value) / 100));
+    } else if (act === "note") {
+      const txt = $("#edNoteText").value.trim();
+      if (!txt) throw new Error(IC.t("dyn.note_text_required"));
+      fd.append("page_num", $("#edNotePage").value);
+      fd.append("text_body", txt);
+      fd.append("note_icon", $("#edNoteIcon").value);
+      fd.append("x_pct", $("#edNoteX").value);
+      fd.append("y_pct", $("#edNoteY").value);
+      fd.append("color", $("#edNoteColor").value);
+    } else if (act === "ink") {
+      if (!edInkStrokes.length) throw new Error(IC.t("dyn.ink_empty"));
+      fd.append("page_num", $("#edInkPage").value);
+      fd.append("ink_strokes", JSON.stringify(edInkStrokes));
+      fd.append("color", edInkColor);
+      fd.append("text_size", String(edInkW));
+    } else if (act === "stamp") {
+      const txt = $("#edStampText").value.trim();
+      if (!txt) throw new Error(IC.t("dyn.note_text_required"));
+      fd.append("page_num", $("#edStampPage").value);
+      fd.append("text_body", txt);
+      fd.append("x_pct", $("#edStampX").value);
+      fd.append("y_pct", $("#edStampY").value);
+      fd.append("w_pct", $("#edStampW").value);
+      fd.append("h_pct", $("#edStampH").value);
+      fd.append("anno_rotate", $("#edStampRotate").value);
+      fd.append("text_size", $("#edStampSize").value);
+      fd.append("color", $("#edStampColor").value);
+    } else if (act === "text") {
+      const txt = $("#edTextBody").value.trim();
+      if (!txt) throw new Error(IC.t("dyn.note_text_required"));
+      fd.append("page_num", $("#edTextPage").value);
+      fd.append("text_body", txt);
+      fd.append("x_pct", $("#edTextX").value);
+      fd.append("y_pct", $("#edTextY").value);
+      fd.append("text_size", $("#edTextSize").value);
+      fd.append("font_family", $("#edTextFont").value);
+      fd.append("color", $("#edTextColor").value);
+    } else if (act === "redact") {
+      if ($("#edRedactMode").value === "rect") {
+        if (!edRedactRects.length) throw new Error(IC.t("dyn.redact_rects_empty"));
+        fd.append("redact_rects", JSON.stringify(edRedactRects));
+        fd.append("page_num", $("#edRedactPage").value);
+      } else {
+        const needle = $("#edRedactNeedle").value.trim();
         if (!needle) throw new Error(IC.t("dyn.needle_required"));
         fd.append("needle", needle);
-        fd.append("anno_kind", $("#edAnnoKind").value);
-        fd.append("page_num", $("#edAnnoPage").value);
-        fd.append("color", $("#edAnnoColor").value);
-        fd.append("annot_opacity", String((+$("#edAnnoOpacity").value) / 100));
-      } else if (act === "note") {
-        const txt = $("#edNoteText").value.trim();
-        if (!txt) throw new Error(IC.t("dyn.note_text_required"));
-        fd.append("page_num", $("#edNotePage").value);
-        fd.append("text_body", txt);
-        fd.append("note_icon", $("#edNoteIcon").value);
-        fd.append("x_pct", $("#edNoteX").value);
-        fd.append("y_pct", $("#edNoteY").value);
-        fd.append("color", $("#edNoteColor").value);
-      } else if (act === "ink") {
-        if (!edInkStrokes.length) throw new Error(IC.t("dyn.ink_empty"));
-        fd.append("page_num", $("#edInkPage").value);
-        fd.append("ink_strokes", JSON.stringify(edInkStrokes));
-        fd.append("color", edInkColor);
-        fd.append("text_size", String(edInkW));
-      } else if (act === "stamp") {
-        const txt = $("#edStampText").value.trim();
-        if (!txt) throw new Error(IC.t("dyn.note_text_required"));
-        fd.append("page_num", $("#edStampPage").value);
-        fd.append("text_body", txt);
-        fd.append("x_pct", $("#edStampX").value);
-        fd.append("y_pct", $("#edStampY").value);
-        fd.append("w_pct", $("#edStampW").value);
-        fd.append("h_pct", $("#edStampH").value);
-        fd.append("anno_rotate", $("#edStampRotate").value);
-        fd.append("text_size", $("#edStampSize").value);
-        fd.append("color", $("#edStampColor").value);
-      } else if (act === "text") {
-        const txt = $("#edTextBody").value.trim();
-        if (!txt) throw new Error(IC.t("dyn.note_text_required"));
-        fd.append("page_num", $("#edTextPage").value);
-        fd.append("text_body", txt);
-        fd.append("x_pct", $("#edTextX").value);
-        fd.append("y_pct", $("#edTextY").value);
-        fd.append("text_size", $("#edTextSize").value);
-        fd.append("font_family", $("#edTextFont").value);
-        fd.append("color", $("#edTextColor").value);
-      } else if (act === "redact") {
-        if ($("#edRedactMode").value === "rect") {
-          if (!edRedactRects.length) throw new Error(IC.t("dyn.redact_rects_empty"));
-          fd.append("redact_rects", JSON.stringify(edRedactRects));
-          fd.append("page_num", $("#edRedactPage").value);
-        } else {
-          const needle = $("#edRedactNeedle").value.trim();
-          if (!needle) throw new Error(IC.t("dyn.needle_required"));
-          fd.append("needle", needle);
-        }
-        fd.append("redact_fill", $("#edRedactFill").value);
-      } else if (act === "replace") {
-        const needle = $("#edReplNeedle").value.trim();
-        if (!needle) throw new Error(IC.t("dyn.needle_required"));
-        fd.append("needle", needle);
-        fd.append("replacement", $("#edReplWith").value);
-        fd.append("pages", pagesToPayload($("#edReplPages").value));
-      } else if (act === "number") {
-        fd.append("num_start", $("#edNumStart").value);
-        fd.append("num_prefix", $("#edNumPrefix").value);
-        fd.append("num_suffix", $("#edNumSuffix").value);
-        fd.append("num_digits", $("#edNumDigits").value);
-        fd.append("num_position", $("#edNumPos").value);
-        fd.append("text_size", $("#edNumSize").value);
-        fd.append("hf_margin", $("#edNumMargin").value);
-        fd.append("color", $("#edNumColor").value);
-        fd.append("pages", pagesToPayload($("#edNumPages").value));
-      } else if (act === "headerfooter") {
-        const head = $("#edHfHeader").value.trim();
-        const foot = $("#edHfFooter").value.trim();
-        if (!head && !foot) throw new Error(IC.t("dyn.hf_empty"));
-        fd.append("hf_header", head);
-        fd.append("hf_footer", foot);
-        fd.append("hf_position", $("#edHfPos").value);
-        fd.append("hf_size", $("#edHfSize").value);
-        fd.append("hf_margin", $("#edHfMargin").value);
-        fd.append("color", $("#edHfColor").value);
-        fd.append("pages", pagesToPayload($("#edHfPages").value));
-      } else if (act === "insertpage") {
-        fd.append("insert_at", $("#edInsertAt").value);
-        fd.append("insert_count", $("#edInsertCount").value);
-      } else if (act === "extract") {
-        fd.append("pages", pagesToPayload($("#edExtractPages").value));
-      } else if (act === "form") {
-        const vals = {};
-        document.querySelectorAll("#edFormFields [data-field]").forEach((el) => {
-          vals[el.getAttribute("data-field")] = el.value;
-        });
-        if (!Object.keys(vals).length) throw new Error(IC.t("dyn.form_no_fields"));
-        fd.append("form_values", JSON.stringify(vals));
-      } else if (act === "protect") {
-        const pw = $("#edPwA").value;
-        if (!pw) throw new Error(IC.t("dyn.pw_required"));
-        if (pw !== $("#edPwB").value) throw new Error(IC.t("dyn.pw_mismatch"));
-        fd.append("pdf_pw", pw);
-        fd.append("pdf_pw_owner", $("#edPwOwner").value);
-        fd.append("allow_print", $("#edAllowPrint").checked ? "true" : "false");
-        fd.append("allow_copy", $("#edAllowCopy").checked ? "true" : "false");
-        fd.append("allow_modify", $("#edAllowModify").checked ? "true" : "false");
-      } else if (act === "unprotect") {
-        fd.append("pdf_pw", $("#edPwUnlock").value);
-      } else if (act === "searchable") {
-        fd.append("ocr_lang", $("#edOcrLang").value);
-        const raw = $("#edOcrPages").value.trim();
-        if (raw) fd.append("pages", pagesToPayload(raw));
       }
-    } catch (e) {
-      return showToast(e.message || String(e), "err");
+      fd.append("redact_fill", $("#edRedactFill").value);
+    } else if (act === "replace") {
+      const needle = $("#edReplNeedle").value.trim();
+      if (!needle) throw new Error(IC.t("dyn.needle_required"));
+      fd.append("needle", needle);
+      fd.append("replacement", $("#edReplWith").value);
+      fd.append("pages", pagesToPayload($("#edReplPages").value));
+    } else if (act === "number") {
+      fd.append("num_start", $("#edNumStart").value);
+      fd.append("num_prefix", $("#edNumPrefix").value);
+      fd.append("num_suffix", $("#edNumSuffix").value);
+      fd.append("num_digits", $("#edNumDigits").value);
+      fd.append("num_position", $("#edNumPos").value);
+      fd.append("text_size", $("#edNumSize").value);
+      fd.append("hf_margin", $("#edNumMargin").value);
+      fd.append("color", $("#edNumColor").value);
+      fd.append("pages", pagesToPayload($("#edNumPages").value));
+    } else if (act === "headerfooter") {
+      const head = $("#edHfHeader").value.trim();
+      const foot = $("#edHfFooter").value.trim();
+      if (!head && !foot) throw new Error(IC.t("dyn.hf_empty"));
+      fd.append("hf_header", head);
+      fd.append("hf_footer", foot);
+      fd.append("hf_position", $("#edHfPos").value);
+      fd.append("hf_size", $("#edHfSize").value);
+      fd.append("hf_margin", $("#edHfMargin").value);
+      fd.append("color", $("#edHfColor").value);
+      fd.append("pages", pagesToPayload($("#edHfPages").value));
+    } else if (act === "insertpage") {
+      fd.append("insert_at", $("#edInsertAt").value);
+      fd.append("insert_count", $("#edInsertCount").value);
+    } else if (act === "extract") {
+      fd.append("pages", pagesToPayload($("#edExtractPages").value));
+    } else if (act === "form") {
+      const vals = {};
+      document.querySelectorAll("#edFormFields [data-field]").forEach((el) => {
+        vals[el.getAttribute("data-field")] = el.value;
+      });
+      if (!Object.keys(vals).length) throw new Error(IC.t("dyn.form_no_fields"));
+      fd.append("form_values", JSON.stringify(vals));
+    } else if (act === "protect") {
+      const pw = $("#edPwA").value;
+      if (!pw) throw new Error(IC.t("dyn.pw_required"));
+      if (pw !== $("#edPwB").value) throw new Error(IC.t("dyn.pw_mismatch"));
+      fd.append("pdf_pw", pw);
+      fd.append("pdf_pw_owner", $("#edPwOwner").value);
+      fd.append("allow_print", $("#edAllowPrint").checked ? "true" : "false");
+      fd.append("allow_copy", $("#edAllowCopy").checked ? "true" : "false");
+      fd.append("allow_modify", $("#edAllowModify").checked ? "true" : "false");
+    } else if (act === "unprotect") {
+      fd.append("pdf_pw", $("#edPwUnlock").value);
+    } else if (act === "searchable") {
+      fd.append("ocr_lang", $("#edOcrLang").value);
+      const raw = $("#edOcrPages").value.trim();
+      if (raw) fd.append("pages", pagesToPayload(raw));
     }
+  }
+
+  /* ---------- FEAT-E2: anteprima live (dry-run server, debounce ~400ms) ---------- */
+  /* Azioni con overlay geometrico client: l'anteprima è già istantanea, niente dry-run. */
+  const ED_OVERLAY_ACTIONS = ["stamp", "note", "text", "ink", "signature"];
+  function edPreviewIsOverlay() {
+    const act = edAction.value;
+    if (ED_OVERLAY_ACTIONS.includes(act)) return true;
+    const mode = document.getElementById("edRedactMode");
+    return act === "redact" && mode && mode.value === "rect";
+  }
+  function edPreviewDpi() {
+    return Math.max(30, Math.min(300, Math.round((edLastScale || 1) * 72)));
+  }
+  function edRenderPreviewBadgeText() {
+    if (!edPrevBadge || edPrevBadge.hidden) return;
+    const el = edPrevBadge.querySelector(".ed-prev-txt");
+    if (el) el.textContent = IC.t(edPrevBadge.dataset.state === "fail" ? "pdf.edit.prev_fail" : "pdf.edit.prev_live");
+  }
+  function edSetPreviewState(state) {
+    if (!edPrevBadge) return;
+    edPrevBadge.hidden = false;
+    edPrevBadge.dataset.state = state;
+    edRenderPreviewBadgeText();
+  }
+  function edHidePreview() {
+    if (edPrevImg) edPrevImg.hidden = true;
+    if (edPrevBadge) { edPrevBadge.hidden = true; edPrevBadge.title = ""; }
+  }
+  function clearEdPreview() {
+    if (edPrevTimer !== null) { clearTimeout(edPrevTimer); edPrevTimer = null; }
+    if (edPrevCtl) { try { edPrevCtl.abort(); } catch (e) {} edPrevCtl = null; }
+    edPrevSeq++;
+    if (edPrevUrl) { URL.revokeObjectURL(edPrevUrl); edPrevUrl = null; if (edPrevImg) edPrevImg.removeAttribute("src"); }
+    edHidePreview();
+  }
+  function scheduleEdPreview(delay = 400, hideNow = false) {
+    if (edPrevTimer !== null) { clearTimeout(edPrevTimer); edPrevTimer = null; }
+    if (edPrevCtl) { try { edPrevCtl.abort(); } catch (e) {} edPrevCtl = null; }
+    edPrevSeq++;
+    if (hideNow) edHidePreview();
+    if (!edPdfFile || !edPdfDoc || edApplyBusy || edPreviewIsOverlay()) { edHidePreview(); return; }
+    edPrevTimer = setTimeout(() => { edPrevTimer = null; refreshEdPreview(); }, delay);
+  }
+  async function refreshEdPreview() {
+    if (!edPdfFile || !edPdfDoc || edApplyBusy || edPreviewIsOverlay()) return;
+    let fd;
+    try {
+      fd = buildEdForm();
+    } catch (e) {
+      edHidePreview();
+      return;
+    }
+    fd.append("page", String(edCurPage));
+    fd.append("dpi", String(edPreviewDpi()));
+    const seq = ++edPrevSeq;
+    const ctl = new AbortController();
+    edPrevCtl = ctl;
+    edSetPreviewState("busy");
+    try {
+      const r = await fetch("/api/pdf-edit-preview", { method: "POST", body: fd, signal: ctl.signal });
+      if (seq !== edPrevSeq) return;
+      if (!r.ok) {
+        let detail = "";
+        try { const j = await r.json(); detail = (j && j.detail) || ""; } catch (e) {}
+        if (seq !== edPrevSeq) return;
+        if (edPrevImg) edPrevImg.hidden = true;
+        edSetPreviewState("fail");
+        if (edPrevBadge) edPrevBadge.title = typeof detail === "string" ? detail : "";
+        return;
+      }
+      const blob = await r.blob();
+      if (seq !== edPrevSeq) return;
+      if (edPrevUrl) URL.revokeObjectURL(edPrevUrl);
+      edPrevUrl = URL.createObjectURL(blob);
+      if (edPrevImg) { edPrevImg.src = edPrevUrl; edPrevImg.hidden = false; }
+      edSetPreviewState("ok");
+      if (edPrevBadge) edPrevBadge.title = "";
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+      if (seq !== edPrevSeq) return;
+      if (edPrevImg) edPrevImg.hidden = true;
+      edSetPreviewState("fail");
+    } finally {
+      if (edPrevCtl === ctl) edPrevCtl = null;
+    }
+  }
+  /* Cambio parametri nel pannello sinistro: ridisegno con debounce. */
+  if (edLeftPanel) {
+    edLeftPanel.addEventListener("input", () => scheduleEdPreview());
+    edLeftPanel.addEventListener("change", () => scheduleEdPreview());
+  }
+
+  btnEdApply.addEventListener("click", async () => {
+    if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
+    edDownload.hidden = true;
+    edStatus.textContent = "";
+    let fd;
+    try { fd = buildEdForm(); } catch (e) { return showToast(e.message || String(e), "err"); }
+    edApplyBusy = true;
     btnEdApply.disabled = true;
     btnEdApply.textContent = IC.t("btn.applying");
     try {
@@ -1964,8 +2078,10 @@
     } catch (err) {
       showToast(err.message || String(err), "err");
     } finally {
+      edApplyBusy = false;
       btnEdApply.disabled = false;
       btnEdApply.textContent = IC.t("btn.apply");
+      scheduleEdPreview(0);
     }
   });
 
@@ -2320,6 +2436,7 @@
     try { renderMergeList(); } catch (e) {}
     try { renderResults(); } catch (e) {}
     try { renderEdTools(); } catch (e) {}
+    try { edRenderPreviewBadgeText(); } catch (e) {}
     try { syncNavLabels(); } catch (e) {}
     try { if (scanPageEmpty && !scanPageEmpty.hidden) scanSetEmpty(scanEmptyKey); } catch (e) {}
     renderConfigStatus(bootCfg);
