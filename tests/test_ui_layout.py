@@ -174,3 +174,19 @@ def test_drawer_definito_prima_del_tablist():
     """Regressione TDZ: `navToggle` (const) va inizializzata prima di selectTab()."""
     js = _js()
     assert js.index("const navToggle") < js.index("function selectTab")
+
+
+def test_select_non_troncano_il_valore():
+    """Regressione: `select { width: 64px }` tagliava i valori ("Co", "MP") in ogni
+    sezione e tema. La larghezza deve seguire il contenuto; il mini-select pagina
+    e i campi colore restano fissi."""
+    css = _css()
+    m = re.search(r"(?m)^select \{(.*?)\}", css, re.S)
+    assert m, "regola base `select` non trovata"
+    body = m.group(1)
+    assert "width: auto" in body, "il select deve adattarsi al contenuto"
+    assert "min-width: 64px" in body
+    assert "max-width: 100%" in body
+    color = re.search(r'input\[type="color"\] \{(.*?)\}', css, re.S)
+    assert color and "width: 64px" in color.group(1)
+    assert ".ed-pg-sel { width: 64px; }" in css, "il select del salto pagina resta compatto"
