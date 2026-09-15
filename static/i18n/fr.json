@@ -76,7 +76,7 @@
   "scan.antishadow": "Corriger les ombres",
   "scan.binarize": "Noir et blanc adaptatif",
   "scan.fmt": "Format des images",
-  "scan.crop_hint": "Cliquez sur l'aperçu les 4 coins du document : en haut à gauche, en haut à droite, en bas à droite, en bas à gauche. Un cinquième clic recommence.",
+  "scan.crop_hint": "Dans l'aperçu, cliquez sur les 4 coins du document : en haut à gauche, en haut à droite, en bas à droite, en bas à gauche. Un cinquième clic recommence.",
   "scan.clear_pts": "Effacer les coins",
   "scan.result": "Résultat",
   "scan.preview_empty": "Choisissez un fichier pour voir son aperçu.",

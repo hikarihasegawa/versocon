@@ -76,7 +76,7 @@
   "scan.antishadow": "Corrigir sombras",
   "scan.binarize": "Preto e branco adaptativo",
   "scan.fmt": "Formato das imagens",
-  "scan.crop_hint": "Clique na pré-visualização os 4 cantos do documento: canto superior esquerdo, superior direito, inferior direito, inferior esquerdo. Um quinto clique recomeça.",
+  "scan.crop_hint": "Na pré-visualização, clique nos 4 cantos do documento: canto superior esquerdo, superior direito, inferior direito, inferior esquerdo. Um quinto clique recomeça.",
   "scan.clear_pts": "Limpar cantos",
   "scan.result": "Resultado",
   "scan.preview_empty": "Escolha um ficheiro para ver a pré-visualização.",

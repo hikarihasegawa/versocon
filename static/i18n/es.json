@@ -76,7 +76,7 @@
   "scan.antishadow": "Corregir sombras",
   "scan.binarize": "Blanco y negro adaptativo",
   "scan.fmt": "Formato de imágenes",
-  "scan.crop_hint": "Haz clic en la vista previa en las 4 esquinas del documento: arriba a la izquierda, arriba a la derecha, abajo a la derecha, abajo a la izquierda. Un quinto clic reinicia.",
+  "scan.crop_hint": "En la vista previa, haz clic en las 4 esquinas del documento: arriba a la izquierda, arriba a la derecha, abajo a la derecha, abajo a la izquierda. Un quinto clic reinicia.",
   "scan.clear_pts": "Borrar esquinas",
   "scan.result": "Resultado",
   "scan.preview_empty": "Elige un archivo para ver su vista previa.",

@@ -85,7 +85,7 @@
   "scan.antishadow": "Correggi ombre",
   "scan.binarize": "Bianco/nero adattivo",
   "scan.fmt": "Formato immagini",
-  "scan.crop_hint": "Clicca sull'anteprima i 4 angoli del documento: in alto a sinistra, in alto a destra, in basso a destra, in basso a sinistra. Un quinto clic ricomincia.",
+  "scan.crop_hint": "Nell'anteprima, clicca i 4 angoli del documento: in alto a sinistra, in alto a destra, in basso a destra, in basso a sinistra. Un quinto clic ricomincia.",
   "scan.clear_pts": "Azzera angoli",
   "scan.result": "Risultato",
   "scan.preview_empty": "Scegli un file per vederne l'anteprima.",
