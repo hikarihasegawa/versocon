@@ -164,6 +164,7 @@
   "pdf.edit.needle": "Texto a localizar",
   "pdf.edit.needle_ph": "ex. Contrato",
   "pdf.edit.replace_with": "Substituir por",
+  "pdf.edit.repl_hint": "Substitui o texto na posição e no estilo originais, sem alterar o fundo.",
   "pdf.edit.note_text": "Texto da nota",
   "pdf.edit.note_icon": "Ícone",
   "pdf.edit.pos_x": "X (%)",

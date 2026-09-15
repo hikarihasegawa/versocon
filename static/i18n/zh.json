@@ -164,6 +164,7 @@
   "pdf.edit.needle": "要查找的文本",
   "pdf.edit.needle_ph": "如 合同",
   "pdf.edit.replace_with": "替换为",
+  "pdf.edit.repl_hint": "在原位置以原样式替换文本，不改变背景。",
   "pdf.edit.note_text": "便签文本",
   "pdf.edit.note_icon": "图标",
   "pdf.edit.pos_x": "X (%)",

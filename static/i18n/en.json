@@ -172,6 +172,7 @@
   "pdf.edit.needle": "Text to find",
   "pdf.edit.needle_ph": "e.g. Contract",
   "pdf.edit.replace_with": "Replace with",
+  "pdf.edit.repl_hint": "Replaces the text at its original position and style, without altering the background.",
   "pdf.edit.note_text": "Note text",
   "pdf.edit.note_icon": "Icon",
   "pdf.edit.pos_x": "X (%)",

@@ -164,6 +164,7 @@
   "pdf.edit.needle": "検索するテキスト",
   "pdf.edit.needle_ph": "例: 契約",
   "pdf.edit.replace_with": "置換後のテキスト",
+  "pdf.edit.repl_hint": "元の位置とスタイルでテキストを置換し、背景は変更しません。",
   "pdf.edit.note_text": "付箋テキスト",
   "pdf.edit.note_icon": "アイコン",
   "pdf.edit.pos_x": "X (%)",

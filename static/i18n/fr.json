@@ -164,6 +164,7 @@
   "pdf.edit.needle": "Texte à rechercher",
   "pdf.edit.needle_ph": "ex. Contrat",
   "pdf.edit.replace_with": "Remplacer par",
+  "pdf.edit.repl_hint": "Remplace le texte à sa position et dans son style d'origine, sans modifier l'arrière-plan.",
   "pdf.edit.note_text": "Texte de la note",
   "pdf.edit.note_icon": "Icône",
   "pdf.edit.pos_x": "X (%)",
