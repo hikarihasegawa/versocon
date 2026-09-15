@@ -492,18 +492,23 @@ input[type="color"] { padding: 2px 4px; }
 .sep { border: 0; border-top: 2px dashed rgba(20, 18, 16, .25); margin: 18px 0 12px; }
 .grow { flex: 1; }
 .hint { color: var(--ink-soft); font-size: 12px; margin: 10px 2px 0; font-weight: 600; letter-spacing: .02em; }
-.session-note { margin-top: 12px; text-wrap: pretty; }
-.session-note[hidden] { display: none; }
-.txtbox .session-note, .ed-left .session-note { margin-top: 0; }
+.ed-status { margin: 4px 0 0; overflow-wrap: anywhere; }
+.ed-status:empty { display: none; }
 
 /* ---- Footer ---- */
 .foot {
   display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px 14px;
   color: var(--ink-soft); font-size: 12px; margin-top: 6px;
   font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
 }
 .foot i { font-style: italic; font-family: var(--font-title); color: var(--red-deep); font-weight: 900; }
 .foot-ver { white-space: nowrap; }
+.foot-note {
+  flex: 1 1 260px; min-width: 0; text-align: center;
+  text-transform: none; letter-spacing: .02em; font-weight: 600;
+  opacity: .85; text-wrap: pretty;
+}
 
 /* ---- Ko-fi support badge (footer, non invasivo) ---- */
 .kofi-btn {
@@ -565,7 +570,8 @@ input[type="color"] { padding: 2px 4px; }
   position: sticky; top: 12px;
   max-height: calc(100vh - 140px);
   overflow-y: auto; overscroll-behavior: contain;
-  padding-right: 4px;
+  padding: 2px 6px 8px;
+  scrollbar-gutter: stable both-edges;
 }
 .ed-left .btn { align-self: stretch; text-align: center; }
 .ed-left .ctlrow { gap: 8px; }
@@ -703,6 +709,7 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
 /* ---- Responsive ---- */
 @media (max-width: 640px) {
   .shell { padding: 30px 14px 44px; }
+  .foot-note { order: 3; flex-basis: 100%; }
   .masthead { flex-direction: column; align-items: flex-start; gap: 14px; }
   .masthead-right { align-items: flex-start; }
   h1 { font-size: 34px; }

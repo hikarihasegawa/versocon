@@ -1,16 +1,18 @@
-"""L'avviso "file eliminati alla chiusura" deve esistere in UI e in ogni lingua shipped."""
+"""L'avviso "file eliminati alla chiusura" deve esistere in UI (una sola volta, nel footer) e in ogni lingua shipped."""
 import json
-import re
 from pathlib import Path
 
 STATIC = Path(__file__).resolve().parent.parent / "static"
 
 
-def test_session_note_present_in_all_download_surfaces():
+def test_session_note_single_in_global_footer():
     html = (STATIC / "index.html").read_text(encoding="utf-8")
-    notes = re.findall(r'<p class="hint session-note"[^>]*data-i18n="res.session_note"', html)
-    assert len(notes) == 3  # risultati, PDF->testo, editor PDF
-    assert 'id="edSessionNote" hidden' in html
+    assert html.count('data-i18n="res.session_note"') == 1
+    assert 'class="foot-note" data-i18n="res.session_note"' in html
+    # niente più banner ripetuti per funzionalità
+    assert 'class="hint session-note"' not in html
+    assert "edSessionNote" not in html
+    assert "edSessionNote" not in (STATIC / "app.js").read_text(encoding="utf-8")
 
 
 def test_session_note_translated():

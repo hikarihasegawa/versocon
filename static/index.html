@@ -195,7 +195,6 @@
         <pre id="txtPreview"></pre>
         <a class="btn btn-ghost" id="txtCopy" href="#" data-i18n="btn.copy">⧉ Copia testo</a>
         <a class="btn btn-ghost" id="txtDownload" href="#" download data-i18n="btn.dl_txt">⬇ Scarica .txt</a>
-        <p class="hint session-note" data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</p>
       </div>
     </div>
 
@@ -606,8 +605,7 @@
           <button class="btn btn-primary" id="btnEdApply" data-i18n="btn.apply">Applica</button>
           <a class="btn btn-ghost" id="edDownload" href="#" download hidden data-i18n="pdf.edit.dl">⬇ Scarica PDF modificato</a>
         </div>
-        <p class="hint" id="edStatus"></p>
-        <p class="hint session-note" id="edSessionNote" hidden data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</p>
+        <p class="hint ed-status" id="edStatus" role="status" aria-live="polite"></p>
       </div>
       </div>
 
@@ -782,11 +780,11 @@
     <div class="outrow" style="margin-top:14px">
       <button class="btn btn-ghost" id="btnResultsZip" hidden data-i18n="btn.zip">⬇ Scarica ZIP</button>
     </div>
-    <p class="hint session-note" data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</p>
   </section>
 
   <footer class="foot">
     <span class="foot-ver">VersoCon <i id="appVersion">v0.2.6</i></span>
+    <span class="foot-note" data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</span>
     <button class="kofi-btn" id="btnKofi" type="button" title="Supporta su Ko-fi" data-i18n-attr="title:foot.kofi_title">
       <svg class="kofi-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor"
            stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
