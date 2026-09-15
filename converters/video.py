@@ -306,14 +306,15 @@ def video_to_gif(
     fps: int = 10,
     width: int = 480,
     start: float | None = None,
-    duration: float | None = None,
+    end: float | None = None,
     *,
     progress=None,
     cancel=None,
 ) -> int:
     """Crea una GIF animata in loop (palette ottimizzata) e restituisce la dimensione in byte.
 
-    `start`/`duration` (secondi) ritagliano il segmento; `width` è il lato largo in px.
+    `start`/`end` (secondi) delimitano l'intervallo da estrarre; `width` è il
+    lato largo in px. Con solo `start` si arriva alla fine del video.
     """
     if not Path(src_path).is_file():
         raise ValueError("File sorgente non trovato")
@@ -330,8 +331,10 @@ def video_to_gif(
         raise ValueError(f"larghezza GIF fuori intervallo ({MIN_GIF_WIDTH}-{MAX_GIF_WIDTH})")
     if start is not None and float(start) < 0:
         raise ValueError("inizio GIF deve essere >= 0")
-    if duration is not None and float(duration) <= 0:
-        raise ValueError("durata GIF deve essere > 0")
+    if end is not None and float(end) <= 0:
+        raise ValueError("fine GIF deve essere > 0")
+    if end is not None and start is not None and float(end) <= float(start):
+        raise ValueError("fine GIF deve essere maggiore dell'inizio")
 
     ff = _find_ffmpeg_or_raise()
     vf = (
@@ -342,11 +345,13 @@ def video_to_gif(
     if start is not None:
         args += ["-ss", str(float(start))]
     args += ["-i", str(src_path)]
-    if duration is not None:
-        args += ["-t", str(float(duration))]
+    cut: float | None = None
+    if end is not None:
+        cut = float(end) - (float(start) if start is not None else 0.0)
+        args += ["-t", str(cut)]
     args += ["-vf", vf, "-loop", "0"]
-    if duration is not None:
-        total: float | None = float(duration)
+    if cut is not None:
+        total: float | None = cut
     else:
         src_total = _probe_duration(ff, str(src_path))
         total = max(0.1, src_total - (float(start) if start is not None else 0.0)) if src_total else None

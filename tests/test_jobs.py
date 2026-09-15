@@ -303,3 +303,33 @@ def test_api_job_sconosciuto(client):
     r = client.get("/api/jobs/inesistente")
     assert r.status_code == 404 and "trovata" in r.json()["detail"]
     assert client.post("/api/jobs/inesistente/cancel").status_code == 404
+
+
+def test_api_job_video_rifiuta_input_non_video(client):
+    for url in ("/api/jobs/video-convert", "/api/jobs/video-audio", "/api/jobs/video-gif"):
+        r = client.post(url, files={"file": ("nota.txt", b"x", "text/plain")})
+        assert r.status_code == 400, (url, r.text)
+
+
+@requires_ffmpeg
+def test_api_job_video_gif_roundtrip(client, tmp_path):
+    """Contratto dell'endpoint usato dalla UI: avvio, polling, GIF con intervallo start/end."""
+    src = _make_video(tmp_path, seconds=1)
+    with src.open("rb") as fh:
+        r = client.post(
+            "/api/jobs/video-gif",
+            files={"file": ("clip.mp4", fh, "video/mp4")},
+            data={"fps": "10", "width": "96", "start": "0.2", "end": "0.6"},
+        )
+    assert r.status_code == 202, r.text
+    state = _poll(client, r.json()["id"])
+    assert state["status"] == "done", state
+    entry = state["result"]["results"][0]
+    assert entry["name"] == "clip.gif"
+    dl = client.get(entry["download"])
+    assert dl.status_code == 200 and dl.content[:6] in (b"GIF87a", b"GIF89a")
+    import io
+
+    from PIL import Image
+    with Image.open(io.BytesIO(dl.content)) as im:
+        assert im.is_animated and 3 <= im.n_frames <= 5, im.n_frames

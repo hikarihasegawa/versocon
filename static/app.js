@@ -657,7 +657,7 @@
   const videoGifFps = $("#videoGifFps");
   const videoGifWidth = $("#videoGifWidth");
   const videoGifStart = $("#videoGifStart");
-  const videoGifDur = $("#videoGifDur");
+  const videoGifEnd = $("#videoGifEnd");
   const videoStatus = $("#videoStatus");
   const btnVideoConvert = $("#btnVideoConvert");
   let videoFile = null;
@@ -685,7 +685,7 @@
       if (videoGifFps.value) fd.append("fps", videoGifFps.value);
       if (videoGifWidth.value) fd.append("width", videoGifWidth.value);
       if (videoGifStart.value) fd.append("start", videoGifStart.value);
-      if (videoGifDur.value) fd.append("duration", videoGifDur.value);
+      if (videoGifEnd.value) fd.append("end", videoGifEnd.value);
     } else if (op === "audio_mp3" || op === "audio_m4a") {
       url = "/api/jobs/video-audio";
       okKey = "dyn.audio_extracted";

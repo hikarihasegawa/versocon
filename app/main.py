@@ -507,13 +507,13 @@ def _video_audio_run(lang: str, src: Path, src_name: str, fmt: str,
     return _video_run(src_name, src, out_ext, task)
 
 
-def _video_gif_run(lang: str, src: Path, src_name: str, fps, width, start, duration,
+def _video_gif_run(lang: str, src: Path, src_name: str, fps, width, start, end,
                    *, progress=None, cancel=None) -> dict:
     """GIF animata, condivisa tra endpoint sincrono e job."""
     def task(dst):
         try:
             return vidconv.video_to_gif(str(src), str(dst), fps=fps, width=width,
-                                        start=start, duration=duration,
+                                        start=start, end=end,
                                         progress=progress, cancel=cancel)
         except OperationCancelled:
             raise
@@ -567,12 +567,12 @@ def video_gif(
     fps: int = Form(10),
     width: int = Form(480),
     start: float | None = Form(None),
-    duration: float | None = Form(None),
+    end: float | None = Form(None),
 ):
     """Crea una GIF animata in loop da un video (palette ottimizzata)."""
     src, src_name = _save_video_upload(request, file)
     try:
-        return _video_gif_run(lang_of(request), src, src_name, fps, width, start, duration)
+        return _video_gif_run(lang_of(request), src, src_name, fps, width, start, end)
     except HTTPException:
         src.unlink(missing_ok=True)
         raise
@@ -1240,7 +1240,7 @@ def job_video_gif(
     fps: int = Form(10),
     width: int = Form(480),
     start: float | None = Form(None),
-    duration: float | None = Form(None),
+    end: float | None = Form(None),
 ):
     """Avvia in background la creazione della GIF e ritorna {id} per il polling."""
     lang = lang_of(request)
@@ -1251,7 +1251,7 @@ def job_video_gif(
         JOBS.discard(job)
         raise
     JOBS.start(job, lambda j: _job_http(lambda: _video_gif_run(
-        lang, src, src_name, fps, width, start, duration,
+        lang, src, src_name, fps, width, start, end,
         progress=_job_progress(j, "job.gif", "second"), cancel=lambda: j.cancelled,
     )))
     return {"id": job.id}

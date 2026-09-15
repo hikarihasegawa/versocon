@@ -74,7 +74,7 @@ def test_gif_rejects_out_of_range_params():
         src.write_bytes(b"finto")
         out = Path(d) / "out.gif"
         for kwargs in ({"fps": 0}, {"fps": 99}, {"width": 10}, {"width": 99999},
-                       {"start": -1}, {"duration": 0}):
+                       {"start": -1}, {"end": 0}, {"start": 1, "end": 1}):
             with pytest.raises(ValueError):
                 vidconv.video_to_gif(str(src), str(out), **kwargs)
 
@@ -153,13 +153,13 @@ def test_gif_is_animated_and_scaled():
 
 
 @requires_ffmpeg
-def test_gif_start_duration_trims():
-    """Il ritaglio (start/duration) deve ridurre i frame rispetto al video intero."""
+def test_gif_start_end_trims():
+    """Il ritaglio (start/end) deve ridurre i frame rispetto al video intero."""
     with tempfile.TemporaryDirectory() as d:
         src = _make_video(Path(d))
         full, cut = Path(d) / "full.gif", Path(d) / "cut.gif"
         vidconv.video_to_gif(str(src), str(full), fps=10, width=96)
-        vidconv.video_to_gif(str(src), str(cut), fps=10, width=96, start=0.2, duration=0.4)
+        vidconv.video_to_gif(str(src), str(cut), fps=10, width=96, start=0.2, end=0.6)
         with Image.open(full) as a, Image.open(cut) as b:
             assert b.n_frames < a.n_frames, (b.n_frames, a.n_frames)
 
@@ -233,7 +233,7 @@ def test_api_video_gif_real_unicode_name(client):
 def test_video_tab_has_operation_selector():
     html = (STATIC / "index.html").read_text(encoding="utf-8")
     for el in ['id="videoOp"', 'id="vidTranscodeRow"', 'id="vidGifRow"',
-               'id="videoGifFps"', 'id="videoGifWidth"', 'id="videoGifStart"', 'id="videoGifDur"']:
+               'id="videoGifFps"', 'id="videoGifWidth"', 'id="videoGifStart"', 'id="videoGifEnd"']:
         assert el in html, f"{el} mancante"
     assert html.count('<option value="audio_') == 2
 
@@ -250,6 +250,6 @@ def test_i18n_keys_present_all_languages():
     for lang in LANGS:
         data = json.loads((I18N / f"{lang}.json").read_text(encoding="utf-8"))
         for key in ("vid.op", "vid.op_gif", "vid.gif_fps", "vid.gif_width",
-                    "vid.gif_start", "vid.gif_duration", "dyn.audio_extracted",
+                    "vid.gif_start", "vid.gif_end", "dyn.audio_extracted",
                     "dyn.gif_created", "api.video_no_audio"):
             assert key in data, f"{lang}: manca {key}"

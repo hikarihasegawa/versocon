@@ -292,9 +292,9 @@
   "vid.crf": "Quality (CRF)",
   "vid.crf_title": "lower = higher quality / larger file",
   "vid.gif_fps": "GIF FPS",
-  "vid.gif_width": "GIF width (px)",
+  "vid.gif_width": "Width (px)",
   "vid.gif_start": "Start (s)",
-  "vid.gif_duration": "Duration (s)",
+  "vid.gif_end": "End (s)",
 
   "res.title": "Results",
   "res.session_note": "🔒 Files stay on this PC only and are deleted when VersoCon closes: download them before quitting.",
