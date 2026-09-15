@@ -487,6 +487,9 @@ input[type="color"] { padding: 2px 4px; }
   padding: 9px 12px; font: inherit; font-weight: 700; outline: none;
 }
 .ctlrow select:focus { border-color: var(--red); }
+.ctlrow label.chk { text-transform: none; letter-spacing: .02em; cursor: pointer; }
+.ctlrow label.chk input { accent-color: var(--red); width: 16px; height: 16px; margin: 0; }
+.sep { border: 0; border-top: 2px dashed rgba(20, 18, 16, .25); margin: 18px 0 12px; }
 .grow { flex: 1; }
 .hint { color: var(--ink-soft); font-size: 12px; margin: 10px 2px 0; font-weight: 600; letter-spacing: .02em; }
 .session-note { margin-top: 12px; text-wrap: pretty; }

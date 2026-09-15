@@ -471,6 +471,50 @@
     }
   });
 
+  /* ---------- Immagine -> testo / PDF ricercabile (OCR) ---------- */
+  const txtImgIn = $("input#txtImgIn");
+  const txtImgMode = $("#txtImgMode");
+  const txtImgLang = $("#txtImgLang");
+  const btnImgOcr = $("#btnImgOcr");
+  let txtImgFile = null;
+
+  if (txtImgIn && btnImgOcr) {
+    txtImgIn.addEventListener("change", function () {
+      txtImgFile = this.files[0] || null;
+      this.value = "";
+    });
+
+    btnImgOcr.addEventListener("click", async () => {
+      if (!txtImgFile) return showToast(IC.t("dyn.pick_image_first"), "err");
+      const isText = txtImgMode.value === "text";
+      const fd = new FormData();
+      fd.append("file", txtImgFile);
+      fd.append("mode", txtImgMode.value);
+      fd.append("lang", txtImgLang.value);
+
+      btnImgOcr.disabled = true;
+      btnImgOcr.textContent = IC.t("btn.extracing");
+      try {
+        const res = await fetch("/api/image-ocr", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error((data && data.detail) || IC.t("dyn.generic_error"));
+        lastText = isText ? (data.text || "") : "";
+        txtPreview.hidden = !isText;
+        txtPreview.textContent = isText ? (lastText || IC.t("dyn.no_text")) : "";
+        txtCopy.hidden = !isText;
+        txtResult.hidden = false;
+        txtDownload.href = data.results[0].download;
+        txtDownload.textContent = IC.t("dyn.download_named", { name: data.results[0].name });
+        showToast(isText ? IC.t("dyn.img_ocr_ok") : IC.t("dyn.img_ocr_pdf_ok"), "ok");
+      } catch (err) {
+        showToast(err.message || String(err), "err");
+      } finally {
+        btnImgOcr.disabled = false;
+        btnImgOcr.textContent = IC.t("btn.img_ocr");
+      }
+    });
+  }
+
   /* ---------- Video -> mp4/webm ---------- */
   const videoIn = $("input#videoIn");
   const videoFmt = $("#videoFmt");
@@ -1226,7 +1270,8 @@
   });
   const ED_ACTIONS = ["rotate", "delete", "reorder", "watermark", "signature",
     "annotate", "note", "ink", "stamp", "text", "redact", "replace",
-    "number", "headerfooter", "insertpage", "extract", "form"];
+    "number", "headerfooter", "insertpage", "extract", "form",
+    "protect", "unprotect", "searchable"];
   const edBlocks = {};
   ED_ACTIONS.forEach((a) => { edBlocks[a] = document.getElementById("edBlock-" + a); });
   let inkPadOpen = false;
@@ -1249,6 +1294,7 @@
     ["pdf.edit.group_text", ["watermark", "text", "redact", "replace"]],
     ["pdf.edit.group_doc", ["signature", "number", "headerfooter"]],
     ["pdf.edit.group_form", ["form"]],
+    ["pdf.edit.group_secure", ["protect", "unprotect", "searchable"]],
   ];
   const ED_TOOL_KEY = { watermark: "wm", signature: "sig", headerfooter: "hf" };
   function renderEdTools() {
@@ -1645,6 +1691,21 @@
         });
         if (!Object.keys(vals).length) throw new Error(IC.t("dyn.form_no_fields"));
         fd.append("form_values", JSON.stringify(vals));
+      } else if (act === "protect") {
+        const pw = $("#edPwA").value;
+        if (!pw) throw new Error(IC.t("dyn.pw_required"));
+        if (pw !== $("#edPwB").value) throw new Error(IC.t("dyn.pw_mismatch"));
+        fd.append("pdf_pw", pw);
+        fd.append("pdf_pw_owner", $("#edPwOwner").value);
+        fd.append("allow_print", $("#edAllowPrint").checked ? "true" : "false");
+        fd.append("allow_copy", $("#edAllowCopy").checked ? "true" : "false");
+        fd.append("allow_modify", $("#edAllowModify").checked ? "true" : "false");
+      } else if (act === "unprotect") {
+        fd.append("pdf_pw", $("#edPwUnlock").value);
+      } else if (act === "searchable") {
+        fd.append("ocr_lang", $("#edOcrLang").value);
+        const raw = $("#edOcrPages").value.trim();
+        if (raw) fd.append("pages", pagesToPayload(raw));
       }
     } catch (e) {
       return showToast(e.message || String(e), "err");

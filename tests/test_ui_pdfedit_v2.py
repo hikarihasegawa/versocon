@@ -14,7 +14,8 @@ NEW_ACTIONS = [
     "annotate", "note", "ink", "stamp", "text", "redact", "replace",
     "number", "headerfooter", "insertpage", "extract", "form",
 ]
-ALL_ACTIONS = ["rotate", "delete", "reorder", "watermark", "signature"] + NEW_ACTIONS
+SECURE_ACTIONS = ["protect", "unprotect", "searchable"]
+ALL_ACTIONS = ["rotate", "delete", "reorder", "watermark", "signature"] + NEW_ACTIONS + SECURE_ACTIONS
 
 
 def test_all_actions_in_select():

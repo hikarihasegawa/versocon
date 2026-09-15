@@ -30,6 +30,21 @@ def test_all_supported_files_exist():
     assert missing == []
 
 
+def test_no_duplicate_keys():
+    """Una chiave ripetuta è valida per json.load (vince l'ultima) ma è un errore di merge."""
+    dupes = {}
+    for lang in _supported():
+        raw = (I18N / f"{lang}.json").read_text(encoding="utf-8")
+        seen, dup = set(), []
+        for k in re.findall(r'^\s*"([^"]+)"\s*:', raw, re.M):
+            if k in seen:
+                dup.append(k)
+            seen.add(k)
+        if dup:
+            dupes[lang] = sorted(set(dup))
+    assert dupes == {}
+
+
 def test_same_keys_it_en():
     assert set(_load("it")) == set(_load("en"))
 

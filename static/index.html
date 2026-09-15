@@ -169,6 +169,28 @@
       <div class="outrow">
         <button class="btn btn-primary" id="btnTxtExtract" data-i18n="btn.extract">Estrai testo</button>
       </div>
+      <hr class="sep" />
+      <p class="hint" data-i18n="pdf.img_ocr_hint">Oppure carica una foto o scansione (JPG, PNG, HEIC, TIFF…).</p>
+      <label class="btn btn-ghost" data-i18n-text="btn.image">
+        <input type="file" id="txtImgIn" accept="image/*,.heic,.heif" hidden />
+        Scegli immagine
+      </label>
+      <div class="ctlrow">
+        <label data-i18n="pdf.img_ocr_mode">Risultato</label>
+        <select id="txtImgMode">
+          <option value="text" selected data-i18n="pdf.img_ocr_text">Testo (.txt)</option>
+          <option value="pdf" data-i18n="pdf.img_ocr_pdf">PDF ricercabile</option>
+        </select>
+        <label data-i18n="pdf.ocr_lang">Lingua</label>
+        <select id="txtImgLang">
+          <option value="ita" selected data-i18n="pdf.ocr_lang_it">Italiano</option>
+          <option value="eng" data-i18n="pdf.ocr_lang_en">Inglese</option>
+          <option value="ita+eng" data-i18n="pdf.ocr_lang_iten">Italiano + Inglese</option>
+        </select>
+      </div>
+      <div class="outrow">
+        <button class="btn btn-primary" id="btnImgOcr" data-i18n="btn.img_ocr">Riconosci testo</button>
+      </div>
       <div id="txtResult" class="txtbox" hidden>
         <pre id="txtPreview"></pre>
         <a class="btn btn-ghost" id="txtCopy" href="#" data-i18n="btn.copy">⧉ Copia testo</a>
@@ -236,10 +258,13 @@
           <option value="insertpage" data-i18n="pdf.edit.insertpage">➕ Pagina bianca</option>
           <option value="extract" data-i18n="pdf.edit.extract">✂ Estrai pagine</option>
           <option value="form" data-i18n="pdf.edit.form">🧾 Compila modulo</option>
+          <option value="protect" data-i18n="pdf.edit.protect">🔒 Proteggi con password</option>
+          <option value="unprotect" data-i18n="pdf.edit.unprotect">🔓 Rimuovi password</option>
+          <option value="searchable" data-i18n="pdf.edit.searchable">🔍 PDF ricercabile (OCR)</option>
         </select>
-        <div class="ed-tools" id="edTools" role="group"></div>
       </div>
       </div>
+      <div class="ed-tools" id="edTools" role="group"></div>
 
       <div class="ctlrow" id="edBlock-reorder" hidden>
         <label data-i18n="pdf.edit.reorder_label">Nuovo ordine</label>
@@ -324,7 +349,7 @@
           <input type="color" id="inkColor" value="#1a1a2e" />
           <input type="range" id="inkSize" min="2" max="12" value="4" step="1" class="slider" title="Spessore pennello"
                  data-i18n-attr="title:pdf.edit.ink_size_title" />
-          <button class="btn btn-ghost" id="inkClear" type="button" data-i18n="pdf.edit.ink_clear">Cancella</button>
+          <button class="btn btn-ghost" id="inkClear" type="button" data-i18n="pdf.edit.ink_clear">Pulisci</button>
           <button class="btn btn-ghost" id="inkUndo" type="button" data-i18n="pdf.edit.ink_undo">↶ Annulla</button>
           <button class="btn btn-primary" id="inkOk" type="button" data-i18n="pdf.edit.ink_use">Usa come firma</button>
         </div>
@@ -532,6 +557,48 @@
         <button class="btn btn-ghost" id="btnFormLoad" type="button" data-i18n="pdf.edit.form_load">Carica campi</button>
         <div id="edFormFields" class="ed-form-fields"></div>
         <p class="hint" id="edFormHint" data-i18n="pdf.edit.form_hint">Scegli un PDF con campi modulo, poi premi «Carica campi».</p>
+      </div>
+
+      <div id="edBlock-protect" hidden>
+        <div class="ctlrow">
+          <label data-i18n="pdf.edit.pw">Password</label>
+          <input type="password" id="edPwA" class="numin grow" autocomplete="new-password" />
+          <label data-i18n="pdf.edit.pw_repeat">Conferma</label>
+          <input type="password" id="edPwB" class="numin grow" autocomplete="new-password" />
+        </div>
+        <div class="ctlrow">
+          <label data-i18n="pdf.edit.pw_owner">Password proprietario (opzionale)</label>
+          <input type="password" id="edPwOwner" class="numin grow" autocomplete="new-password" />
+        </div>
+        <div class="ctlrow">
+          <label class="chk"><input type="checkbox" id="edAllowPrint" checked /> <span data-i18n="pdf.edit.allow_print">Consenti stampa</span></label>
+          <label class="chk"><input type="checkbox" id="edAllowCopy" checked /> <span data-i18n="pdf.edit.allow_copy">Consenti copia testo</span></label>
+          <label class="chk"><input type="checkbox" id="edAllowModify" /> <span data-i18n="pdf.edit.allow_modify">Consenti modifica</span></label>
+        </div>
+        <p class="hint" data-i18n="pdf.edit.protect_hint">Cifratura AES-256. Serve la password per riaprire il PDF: conservala.</p>
+      </div>
+
+      <div id="edBlock-unprotect" hidden>
+        <div class="ctlrow">
+          <label data-i18n="pdf.edit.pw">Password</label>
+          <input type="password" id="edPwUnlock" class="numin grow" autocomplete="current-password" />
+        </div>
+        <p class="hint" data-i18n="pdf.edit.unprotect_hint">Rimuove la password di apertura. Un PDF non protetto viene riconsegnato invariato.</p>
+      </div>
+
+      <div id="edBlock-searchable" hidden>
+        <div class="ctlrow">
+          <label data-i18n="pdf.edit.ocr_lang">Lingua OCR</label>
+          <select id="edOcrLang">
+            <option value="ita" selected data-i18n="pdf.ocr_lang_it">Italiano</option>
+            <option value="eng" data-i18n="pdf.ocr_lang_en">Inglese</option>
+            <option value="ita+eng" data-i18n="pdf.ocr_lang_iten">Italiano + Inglese</option>
+          </select>
+          <label data-i18n="pdf.edit.pages">Pagine</label>
+          <input type="text" id="edOcrPages" placeholder="tutte | 1 | 1,3,5" class="numin grow"
+                 data-i18n-attr="placeholder:pdf.edit.pages_ph" />
+        </div>
+        <p class="hint" data-i18n="pdf.edit.searchable_hint">Aggiunge il testo invisibile alle scansioni: il PDF diventa selezionabile e ricercabile. Vuoto = solo le pagine senza testo nativo.</p>
       </div>
 
       <div class="ed-foot">
