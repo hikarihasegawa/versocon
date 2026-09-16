@@ -6,9 +6,12 @@ includerla), l'artefatto esce mutilato: qui il controllo statico, nel turno di
 rilascio, mentre l'esecuzione reale del bundle è verificata prima del tag.
 """
 import ast
+import importlib.util
 import re
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCES = [ROOT / "run.py", *sorted((ROOT / "app").glob("*.py")), *sorted((ROOT / "converters").glob("*.py"))]
@@ -65,3 +68,47 @@ def test_msix_copia_lintero_dist_senza_filtrare_file():
     """Se un giorno il builder filtrasse i file, le dipendenze sparirebbero dal pacchetto."""
     src = (ROOT / "packaging" / "msix" / "build_msix.py").read_text(encoding="utf-8")
     assert "shutil.copytree(args.dist, layout)" in src
+
+
+def _bundle_engines():
+    """Carica packaging/bundle_engines.py senza dipendere dal sys.path dei test."""
+    path = ROOT / "packaging" / "bundle_engines.py"
+    spec = importlib.util.spec_from_file_location("bundle_engines", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_engine_datas_vuoto_senza_variabili():
+    be = _bundle_engines()
+    assert be.engine_datas({}) == []
+    assert be.engine_datas({"VERSOCON_TESSERACT_DIR": "", "VERSOCON_FFMPEG_DIR": "  "}) == []
+
+
+def test_engine_datas_mappa_le_cartelle(tmp_path):
+    be = _bundle_engines()
+    tess, ff = tmp_path / "tess", tmp_path / "ff"
+    tess.mkdir(), ff.mkdir()
+    assert be.engine_datas(
+        {"VERSOCON_TESSERACT_DIR": str(tess), "VERSOCON_FFMPEG_DIR": str(ff)}
+    ) == [(str(tess), "tesseract"), (str(ff), "ffmpeg")]
+
+
+def test_engine_datas_cartella_invalida_fallisce():
+    be = _bundle_engines()
+    with pytest.raises(ValueError):
+        be.engine_datas({"VERSOCON_TESSERACT_DIR": r"C:\cartella\che\non\esiste"})
+
+
+def test_engine_datas_release_senza_motori_fallisce():
+    """Un rilascio non deve poter uscire senza i motori."""
+    be = _bundle_engines()
+    with pytest.raises(ValueError):
+        be.engine_datas({"VERSOCON_REQUIRE_ENGINES": "1"})
+    assert be.engine_datas({"VERSOCON_REQUIRE_ENGINES": "0"}) == []
+
+
+def test_spec_impacchetta_motori_da_env():
+    spec = (ROOT / "packaging" / "versacon.spec").read_text(encoding="utf-8")
+    assert "from bundle_engines import engine_datas" in spec
+    assert "+ engine_datas()" in spec

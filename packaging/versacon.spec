@@ -4,9 +4,17 @@
 Esecuzione:
     .venv\\Scripts\\pyinstaller packaging\\versacon.spec --noconfirm --clean
 
-Produce:  dist\\Versocon\\Versocon.exe  +  dist\\Versocon\\_internal\
+Produce:  dist\\Versocon\\Versocon.exe  +  dist\\Versocon\\_internal\\
+
+I motori inclusi (Tesseract, ffmpeg) arrivano dalle variabili
+`VERSOCON_TESSERACT_DIR` / `VERSOCON_FFMPEG_DIR` (vedi bundle_engines.py) e
+finiscono in `_internal/tesseract` e `_internal/ffmpeg`.
 """
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(SPECPATH))
+from bundle_engines import engine_datas  # noqa: E402
 
 ROOT = Path(SPECPATH).parent
 STATIC = ROOT / "static"
@@ -20,7 +28,8 @@ a = Analysis(
     datas=[
         (str(STATIC), "static"),
         (str(FONTS),  "assets/fonts"),
-    ],
+    ] + engine_datas(),
+
     hiddenimports=[
         "uvicorn.logging",
         "uvicorn.loops",
