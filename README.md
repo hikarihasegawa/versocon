@@ -154,6 +154,13 @@ versocon/
 python -m pytest tests -q
 ```
 
+Smoke E2E on a real browser (Playwright, pinned; excluded from the normal run):
+
+```bash
+pip install -r requirements-e2e.txt && python -m playwright install chromium
+VERSOCON_E2E=1 python -m pytest tests/test_smoke_e2e.py -q   # Windows: $env:VERSOCON_E2E="1"
+```
+
 ## 🤝 Contributing & support
 
 Open an issue or a pull request. If it's useful to you, you can
