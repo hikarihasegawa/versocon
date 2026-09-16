@@ -52,6 +52,64 @@ def test_find_binary_which_priority(monkeypatch):
         assert engines.find_binary(("ffmpeg", "ffmpeg.exe"), extra_dirs=[d]) == r"C:\tools\ffmpeg.exe"
 
 
+def _set_bundle(monkeypatch, root: Path) -> Path:
+    """Simula un bundle PyInstaller in `root`; ritorna `_internal` (sys._MEIPASS)."""
+    meipass = root / "bundle"
+    monkeypatch.setattr(engines.sys, "_MEIPASS", str(meipass), raising=False)
+    monkeypatch.setattr(engines.sys, "executable", str(root / "app" / "Versocon.exe"))
+    return meipass
+
+
+def test_bundled_dirs_layout(monkeypatch):
+    """_internal/tesseract, _internal/ffmpeg, bin/ prima, poi accanto all'exe."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        meipass = _set_bundle(monkeypatch, root)
+        exe_dir = root / "app"
+        assert engines.bundled_dirs() == [
+            meipass / "tesseract",
+            meipass / "ffmpeg",
+            meipass / "bin",
+            exe_dir / "tesseract",
+            exe_dir / "ffmpeg",
+            exe_dir / "bin",
+        ]
+
+
+def test_find_binary_bundle_priority(monkeypatch):
+    """Il motore bundle vince su PATH e cartelle di sistema."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        bundled = _touch(_set_bundle(monkeypatch, root) / "tesseract" / "tesseract.exe")
+        monkeypatch.setattr(engines.shutil, "which", lambda name: r"C:\tools\tesseract.exe")
+        monkeypatch.setattr(engines, "search_dirs", lambda **kw: [Path(r"C:\system")])
+        assert engines.find_binary(("tesseract", "tesseract.exe")) == str(bundled)
+
+
+def test_video_prefers_bundled_ffmpeg(monkeypatch):
+    """ffmpeg bundle usato al posto di quello nel PATH."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        bundled = _touch(_set_bundle(monkeypatch, root) / "ffmpeg" / "ffmpeg.exe")
+        monkeypatch.setattr(engines.shutil, "which", lambda name: r"C:\tools\ffmpeg.exe")
+        monkeypatch.setattr(vid, "_FFMPEG_CACHE", None)
+        monkeypatch.setattr(vid.subprocess, "run", lambda *a, **kw: _Done())
+        assert vid._find_ffmpeg() == str(bundled)
+        vid._reset_ffmpeg_cache()
+
+
+def test_extract_prefers_bundled_tesseract(monkeypatch):
+    """tesseract bundle usato al posto di quello nel PATH."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        bundled = _touch(_set_bundle(monkeypatch, root) / "tesseract" / "tesseract.exe")
+        monkeypatch.setattr(engines.shutil, "which", lambda name: r"C:\tools\tesseract.exe")
+        monkeypatch.setenv("TESSERACT_CMD", "")
+        monkeypatch.setattr(ex, "_TESS_RESOLVED", False)
+        monkeypatch.setattr(ex, "_TESS_CACHE", None)
+        assert ex._get_tesseract_cmd() == str(bundled)
+
+
 def test_search_dirs_windows_layout():
     """WinGet Packages/*/bin (bug winget PATH root) e le altre cartelle note."""
     with tempfile.TemporaryDirectory() as d:

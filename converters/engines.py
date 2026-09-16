@@ -1,4 +1,9 @@
-"""Ricerca dei motori esterni opzionali (ffmpeg, Tesseract).
+"""Ricerca dei motori esterni (ffmpeg, Tesseract).
+
+I motori **inclusi nel pacchetto** hanno la precedenza: la ricerca guarda per
+prima `_internal/tesseract`, `_internal/ffmpeg` e `bin/` accanto all'eseguibile
+(bundle PyInstaller onedir e bundle portable), così l'app funziona out-of-the-box
+senza installazioni separate. Solo se il bundle non c'è si cerca sul sistema.
 
 `shutil.which` da solo non basta su Windows: l'installer winget in modalità
 utente mette nel PATH la cartella *radice* del pacchetto e non `...\\bin`,
@@ -14,7 +19,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import Iterator, Mapping, Sequence
+from typing import Iterable, Iterator, Mapping, Sequence
 
 # Pacchetti winget installati per-utente che contengono i motori.
 _PACKAGE_GLOBS = (
@@ -24,8 +29,26 @@ _PACKAGE_GLOBS = (
 )
 
 
+def bundled_dirs() -> list[Path]:
+    """Cartelle dei motori inclusi nel pacchetto, in ordine di priorità.
+
+    PyInstaller onedir mette gli asset in `_internal` (`sys._MEIPASS`), quindi
+    i motori vivono in `_internal/tesseract`, `_internal/ffmpeg` e
+    `_internal/bin`; le stesse sottocartelle accanto all'exe coprono i bundle
+    portable. La ricerca dei motori usa prima queste, poi il sistema.
+    """
+    dirs: list[Path] = []
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        base = Path(meipass)
+        dirs += [base / "tesseract", base / "ffmpeg", base / "bin"]
+    exe_dir = Path(sys.executable).parent
+    dirs += [exe_dir / "tesseract", exe_dir / "ffmpeg", exe_dir / "bin"]
+    return dirs
+
+
 def app_dirs() -> list[Path]:
-    """Cartelle accanto all'app: bundle portable, `bin/` e `tools/`."""
+    """Cartelle di fallback accanto all'app: radice, `bin/` e `tools/`."""
     dirs: list[Path] = []
     meipass = getattr(sys, "_MEIPASS", None)
     if meipass:
@@ -81,29 +104,10 @@ def search_dirs(
     return dirs
 
 
-def iter_candidates(
-    names: Sequence[str],
-    *,
-    env: Mapping[str, str] | None = None,
-    extra_dirs: Sequence[str | Path] | None = None,
+def _iter_in_dirs(
+    dirs: Iterable[Path], names: Sequence[str], seen: set[str]
 ) -> Iterator[str]:
-    """Percorsi candidati per i nomi dati, in ordine di priorità.
-
-    Ordine: PATH, `extra_dirs`, cartelle dei gestori pacchetti e cartelle
-    comuni. Un percorso rotto (esiste ma non parte) resta compito del
-    chiamante: qui si verifica solo l'esistenza.
-    """
-    seen: set[str] = set()
-    for name in names:
-        if env is None:
-            found = shutil.which(name)
-        else:
-            found = shutil.which(name, path=env.get("PATH", ""))
-        if found and found not in seen:
-            seen.add(found)
-            yield found
-    dirs = [Path(d) for d in (extra_dirs or [])]
-    dirs += search_dirs(env=env)
+    """Percorsi esistenti `dir/name` non ancora visti, aggiornando `seen`."""
     for d in dirs:
         for name in names:
             p = d / name
@@ -114,6 +118,35 @@ def iter_candidates(
             if ok and str(p) not in seen:
                 seen.add(str(p))
                 yield str(p)
+
+
+def iter_candidates(
+    names: Sequence[str],
+    *,
+    env: Mapping[str, str] | None = None,
+    extra_dirs: Sequence[str | Path] | None = None,
+) -> Iterator[str]:
+    """Percorsi candidati per i nomi dati, in ordine di priorità.
+
+    Ordine: cartelle bundle (`_internal/tesseract`, `_internal/ffmpeg`,
+    `bin/`), PATH, `extra_dirs`, cartelle dei gestori pacchetti e cartelle
+    comuni. I motori inclusi nel pacchetto vincono su quelli di sistema. Un
+    percorso rotto (esiste ma non parte) resta compito del chiamante: qui si
+    verifica solo l'esistenza.
+    """
+    seen: set[str] = set()
+    yield from _iter_in_dirs(bundled_dirs(), names, seen)
+    for name in names:
+        if env is None:
+            found = shutil.which(name)
+        else:
+            found = shutil.which(name, path=env.get("PATH", ""))
+        if found and found not in seen:
+            seen.add(found)
+            yield found
+    dirs = [Path(d) for d in (extra_dirs or [])]
+    dirs += search_dirs(env=env)
+    yield from _iter_in_dirs(dirs, names, seen)
 
 
 def find_binary(
