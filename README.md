@@ -14,6 +14,12 @@ PDFs to edit and sign, scans to clean, videos to convert. Everything runs on
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&logoColor=white)](#from-source)
 
 <p align="center">
+  VersoCon is free, with no paid tier. If it saves you time, you can support its development:
+  <br>
+  <a href="https://ko-fi.com/hikari22"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy the developer a coffee on Ko-fi" height="32"></a>
+</p>
+
+<p align="center">
   <img src="assets/demo/versocon-demo.gif" alt="VersoCon demo: HEIC photo conversion, live PDF editor preview, PDF compression, Pro and Manga themes" width="900">
 </p>
 
@@ -156,12 +162,6 @@ VERSOCON_E2E=1 python -m pytest tests/test_smoke_e2e.py -q   # Windows: $env:VER
 
 Issues and pull requests are welcome. VersoCon is free, with no paid tier: if it saves
 you time, you can [buy the developer a coffee](https://ko-fi.com/hikari22) — thank you.
-
-<p align="center">
-  <a href="https://ko-fi.com/hikari22" target="_blank">
-    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support VersoCon on Ko-fi" height="36">
-  </a>
-</p>
 
 ## License
 
