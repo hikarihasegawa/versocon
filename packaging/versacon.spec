@@ -48,6 +48,8 @@ a = Analysis(
         "heif",
         "fitz",
         "pytesseract",
+        "cv2",
+        "numpy",
     ],
     hookspath=[],
     hooksconfig={},
