@@ -1,10 +1,13 @@
 """Ricerca dei motori esterni (ffmpeg/Tesseract): PATH, WinGet, choco, scoop, bundle."""
 from __future__ import annotations
 
+import os
+import re
 import sys
 import tempfile
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -108,6 +111,50 @@ def test_extract_prefers_bundled_tesseract(monkeypatch):
         monkeypatch.setattr(ex, "_TESS_RESOLVED", False)
         monkeypatch.setattr(ex, "_TESS_CACHE", None)
         assert ex._get_tesseract_cmd() == str(bundled)
+
+
+def test_tessdata_prefix_accanto_al_binario(monkeypatch):
+    """TESSDATA_PREFIX = cartella `tessdata` accanto al binario risolto (Tesseract 5)."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        bundled = _touch(_set_bundle(monkeypatch, root) / "tesseract" / "tesseract.exe")
+        tessdata = bundled.parent / "tessdata"
+        tessdata.mkdir()
+        monkeypatch.setattr(engines.shutil, "which", lambda name: r"C:\tools\tesseract.exe")
+        monkeypatch.setenv("TESSERACT_CMD", "")
+        monkeypatch.delenv("TESSDATA_PREFIX", raising=False)
+        monkeypatch.setattr(ex, "_TESS_RESOLVED", False)
+        monkeypatch.setattr(ex, "_TESS_CACHE", None)
+        assert ex._get_tesseract_cmd() == str(bundled)
+        assert os.environ["TESSDATA_PREFIX"] == str(tessdata)
+
+
+def test_tessdata_prefix_assente_senza_cartella(monkeypatch):
+    """Senza `tessdata` accanto al binario non si inventa un TESSDATA_PREFIX."""
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        bundled = _touch(_set_bundle(monkeypatch, root) / "tesseract" / "tesseract.exe")
+        monkeypatch.setattr(engines.shutil, "which", lambda name: None)
+        monkeypatch.setenv("TESSERACT_CMD", "")
+        monkeypatch.delenv("TESSDATA_PREFIX", raising=False)
+        monkeypatch.setattr(ex, "_TESS_RESOLVED", False)
+        monkeypatch.setattr(ex, "_TESS_CACHE", None)
+        assert ex._get_tesseract_cmd() == str(bundled)
+        assert "TESSDATA_PREFIX" not in os.environ
+
+
+def test_messaggi_motori_non_invitano_installazioni_separate(monkeypatch):
+    """v0.3.1: i motori sono inclusi nel pacchetto; gli errori non rimandano a installer esterni."""
+    monkeypatch.setattr(vid, "_find_ffmpeg", lambda: None)
+    with pytest.raises(vid.MissingFfmpegError) as err:
+        vid._find_ffmpeg_or_raise()
+    for msg in (str(ex.OcrEngineMissingError("ita")), str(err.value)):
+        low = msg.lower()
+        assert "winget" not in low
+        assert "apt install" not in low
+        assert "choco install" not in low
+        assert re.findall(r"\binstalla\w*", low) == []  # ammesso solo "reinstalla"
+        assert "reinstalla" in low
 
 
 def test_search_dirs_windows_layout():

@@ -1,14 +1,14 @@
 """PDF → testo: estrazione nativa (pymupdf) + OCR opzionale (Tesseract).
 
-OCR è FACOLTATIVO: se `tesseract` è raggiungibile (PATH o path di installazione
-nota) viene usato (auto quando una pagina è senza testo, o on=forza sempre);
-se non è presente l'app funziona comunque (solo testo nativo) e segnala la
-lacuna in modo chiaro. Zero dipendenze online: Tesseract si installa UNA
-VOLTA via gestore pacchetti (winget/apt/brew/choco) e resta locale offline
-per sempre.
+Tesseract è **incluso nel pacchetto** (nella build PyInstaller/MSIX): l'app lo
+cerca prima nel bundle (`engines.bundled_dirs()`), poi sul sistema. Se il
+componente incluso manca o è danneggiato l'app funziona comunque (solo testo
+nativo) e lo segnala: non serve — e non viene chiesto — installare nulla a
+parte. Zero dipendenze online, tutto locale e offline.
 
-L'app NON dipende dal PATH di sistema: prova in ordine (1) PATH, (2) path di
-installazione tipici di Windows / macOS / Linux, e usa il primo che esiste.
+La cartella `tessdata` accanto al binario viene passata a Tesseract via
+`TESSDATA_PREFIX` (Tesseract 5 vuole la cartella `tessdata` stessa), così le
+lingue incluse (ita/eng) si trovano anche quando il binario non è nel PATH.
 """
 from __future__ import annotations
 
@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import threading
+from pathlib import Path
 
 import pymupdf
 from PIL import Image, ImageOps
@@ -47,15 +48,24 @@ def _resolve_tesseract_cmd() -> str | None:
 
 
 class OcrEngineMissingError(Exception):
-    """L'utente ha richiesto OCR ma il motore (Tesseract) non è installato."""
+    """L'utente ha richiesto OCR ma il componente OCR incluso non è utilizzabile."""
 
     def __init__(self, lang: str = "eng"):
         super().__init__(
-            "Motore OCR non disponibile: Tesseract non è installato "
-            f"o le lingue ['{lang}'] non sono pronte. "
-            "Installa Tesseract (winget install Tesseract-OCR / apt install tesseract-ocr) "
-            "per abilitare OCR."
+            "Motore OCR non disponibile: il componente OCR incluso risulta "
+            f"mancante o danneggiato (lingue richieste: ['{lang}']). "
+            "Reinstalla l'app per ripristinarlo."
         )
+
+
+def _tessdata_dir(tess_cmd: str) -> str | None:
+    """Cartella `tessdata` accanto al binario Tesseract, se esiste.
+
+    Tesseract 5 vuole `TESSDATA_PREFIX` = la cartella `tessdata` stessa (non la
+    sua cartella padre): verificato con `tesseract --list-langs` (v5.5.3).
+    """
+    d = Path(tess_cmd).parent / "tessdata"
+    return str(d) if d.is_dir() else None
 
 
 _TESS_CACHE: str | None = None
@@ -72,6 +82,11 @@ def _get_tesseract_cmd() -> str | None:
     # Se abbiamo trovato un binario ma non è nel PATH, glielo diciamo a pytesseract.
     if _TESS_CACHE:
         os.environ["TESSERACT_CMD"] = _TESS_CACHE
+        data = _tessdata_dir(_TESS_CACHE)
+        if data:
+            # Lingue accanto al binario (bundle o installazione): Tesseract 5 le
+            # cerca in TESSDATA_PREFIX, che deve puntare alla cartella `tessdata`.
+            os.environ["TESSDATA_PREFIX"] = data
     return _TESS_CACHE
 
 

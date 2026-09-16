@@ -70,3 +70,33 @@ def test_same_placeholders_all_languages():
         if bad:
             diffs[lang] = bad
     assert diffs == {}
+
+
+# v0.3.1: Tesseract e ffmpeg sono inclusi nel pacchetto (bundle/installer/MSIX):
+# i messaggi non devono più rimandare a installazioni separate.
+_MOTORI_KEYS = (
+    "api.ocr_not_installed",
+    "api.ffmpeg_missing",
+    "dyn.ocr_off",
+    "dyn.ffmpeg_missing",
+    "api.scan_engine_missing",
+    "api.ocr_warning",
+)
+_REINSTALL_KEYS = tuple(k for k in _MOTORI_KEYS if k != "api.ffmpeg_missing")
+
+
+def test_messaggi_motori_senza_invito_all_installazione():
+    bad = ("winget", "choco install", "apt install", "brew install", "pip install")
+    for lang in _supported():
+        d = _load(lang)
+        for k in _MOTORI_KEYS:
+            low = d[k].lower()
+            assert not any(b in low for b in bad), (lang, k, d[k])
+
+
+def test_messaggi_motori_indicano_reinstallazione_it_en():
+    for lang in ("it", "en"):
+        d = _load(lang)
+        for k in _REINSTALL_KEYS:
+            low = d[k].lower()
+            assert ("reinstalla" in low or "reinstall" in low), (lang, k, d[k])

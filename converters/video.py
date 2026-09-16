@@ -42,7 +42,7 @@ MIN_GIF_WIDTH = 64
 
 
 class MissingFfmpegError(RuntimeError):
-    """ffmpeg non disponibile sul sistema."""
+    """Il componente ffmpeg incluso non è disponibile o non è avviabile."""
 
 
 class VideoTimeoutError(RuntimeError):
@@ -220,7 +220,8 @@ def _find_ffmpeg_or_raise() -> str:
     ff = _find_ffmpeg()
     if not ff:
         raise MissingFfmpegError(
-            "ffmpeg non trovato: installa ffmpeg (winget install Gyan.FFmpeg) e riprova."
+            "ffmpeg non trovato o non avviabile: il componente incluso risulta "
+            "mancante o danneggiato. Reinstalla l'app per ripristinarlo."
         )
     return ff
 
