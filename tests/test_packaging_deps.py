@@ -112,3 +112,21 @@ def test_spec_impacchetta_motori_da_env():
     spec = (ROOT / "packaging" / "versacon.spec").read_text(encoding="utf-8")
     assert "from bundle_engines import engine_datas" in spec
     assert "+ engine_datas()" in spec
+
+
+def test_fetch_engines_pinna_versioni_e_sha256():
+    """I motori di release sono pinnati: niente URL mobili, hash verificati."""
+    script = (ROOT / "packaging" / "fetch_engines.ps1").read_text(encoding="utf-8")
+    assert "5.5.3.20260724" in script
+    assert "8.1.2-essentials_build.zip" in script
+    assert len(re.findall(r"[0-9A-F]{64}", script)) >= 2  # ita + ffmpeg
+    for line in script.splitlines():
+        if "http" in line:
+            assert "latest" not in line.lower(), line
+    assert "VERSOCON_REQUIRE_ENGINES=1" in script
+
+
+def test_release_e_msix_scaricano_i_motori():
+    for wf in ("release.yml", "msix.yml"):
+        text = (ROOT / ".github" / "workflows" / wf).read_text(encoding="utf-8")
+        assert "packaging/fetch_engines.ps1" in text, wf

@@ -29,6 +29,10 @@ jobs:
           pip install -r requirements-lock.txt
           pip install pyinstaller
 
+      - name: Fetch pinned engines (Tesseract + ffmpeg)
+        shell: pwsh
+        run: ./packaging/fetch_engines.ps1
+
       - name: Set app + installer version from tag/manual input
         id: ver
         shell: pwsh
