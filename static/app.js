@@ -2399,11 +2399,140 @@
     });
   }
 
+  /* ---------- benvenuto (primo avvio) + aggiornamenti ---------- */
+  // Update-check opt-in: default OFF, nessuna connessione se non richiesto.
+  const UPDATE_KEY = "versocon.updatecheck";
+  const ONBOARD_KEY = "versocon.onboarded";
+  const welcomeDlg = $("#welcomeDlg");
+  const welcomeUpdate = $("#welcomeUpdate");
+  const welcomeOk = $("#welcomeOk");
+  const welcomeState = $("#welcomeUpdateState");
+  const welcomeOpenBtn = $("#welcomeOpenBtn");
+  const updateNote = $("#updateNote");
+  const updateNoteText = $("#updateNoteText");
+  let welcomeFirstRun = true;
+  let updateLatest = null;
+  let welcomeBooted = false;
+
+  function updateCheckEnabled() {
+    try { return localStorage.getItem(UPDATE_KEY) === "1"; } catch (e) { return false; }
+  }
+  function setUpdateCheckEnabled(on) {
+    try { localStorage.setItem(UPDATE_KEY, on ? "1" : "0"); } catch (e) {}
+  }
+  function showUpdateNote(latest) {
+    updateLatest = latest;
+    if (!updateNote) return;
+    updateNoteText.textContent = IC.t("update.available", { version: "v" + latest });
+    updateNote.hidden = false;
+  }
+  function hideUpdateNote() {
+    if (updateNote) updateNote.hidden = true;
+  }
+
+  async function runUpdateCheck() {
+    const r = await fetch("/api/update-check", { method: "POST" });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(
+      (data && typeof data.detail === "string" && data.detail) || IC.t("welcome.check_fail")
+    );
+    return data;
+  }
+
+  async function openUpdatePage() {
+    try {
+      const r = await fetch("/api/update-open", { method: "POST" });
+      if (!r.ok) throw new Error("HTTP " + r.status);
+    } catch (_) {
+      showToast(IC.t("welcome.check_fail"), "err");
+    }
+  }
+
+  async function welcomeCheckNow() {
+    if (welcomeState) welcomeState.textContent = IC.t("welcome.checking");
+    if (welcomeOpenBtn) welcomeOpenBtn.hidden = true;
+    try {
+      const data = await runUpdateCheck();
+      if (data.update_available) {
+        showUpdateNote(data.latest);
+        if (welcomeState) welcomeState.textContent = IC.t("update.available", { version: "v" + data.latest });
+        if (welcomeOpenBtn) welcomeOpenBtn.hidden = false;
+      } else if (welcomeState) {
+        welcomeState.textContent = IC.t("welcome.uptodate", { version: "v" + data.current });
+      }
+    } catch (e) {
+      if (welcomeState) welcomeState.textContent = e.message || IC.t("welcome.check_fail");
+    }
+  }
+
+  function openWelcome(firstRun) {
+    if (!welcomeDlg) return;
+    welcomeFirstRun = !!firstRun;
+    const title = $("#welcomeTitle");
+    if (title) title.textContent = IC.t(firstRun ? "welcome.title" : "about.title");
+    if (welcomeOk) welcomeOk.textContent = IC.t(firstRun ? "welcome.cta_start" : "welcome.cta_close");
+    const wl = $("#welcomeLang");
+    if (wl) wl.value = IC.lang;
+    const wt = $("#welcomeTheme");
+    if (wt && window.VTheme) wt.value = VTheme.get();
+    if (welcomeUpdate) welcomeUpdate.checked = updateCheckEnabled();
+    if (welcomeState) welcomeState.textContent = "";
+    if (welcomeOpenBtn) welcomeOpenBtn.hidden = true;
+    if (typeof welcomeDlg.showModal === "function") welcomeDlg.showModal();
+  }
+
+  if (welcomeDlg) {
+    try { welcomeFirstRun = localStorage.getItem(ONBOARD_KEY) !== "1"; } catch (e) {}
+    // Chiusura (pulsante o Escape): il benvenuto non si ripete, l'opzione si salva.
+    welcomeDlg.addEventListener("close", () => {
+      try { localStorage.setItem(ONBOARD_KEY, "1"); } catch (e) {}
+      setUpdateCheckEnabled(!!(welcomeUpdate && welcomeUpdate.checked));
+    });
+    if (welcomeUpdate) {
+      welcomeUpdate.addEventListener("change", () => setUpdateCheckEnabled(welcomeUpdate.checked));
+    }
+    if (welcomeOk) welcomeOk.addEventListener("click", () => welcomeDlg.close());
+    const wCheck = $("#welcomeCheckBtn");
+    if (wCheck) wCheck.addEventListener("click", welcomeCheckNow);
+    if (welcomeOpenBtn) welcomeOpenBtn.addEventListener("click", openUpdatePage);
+    const wt = $("#welcomeTheme");
+    if (wt) wt.addEventListener("change", () => { if (window.VTheme) VTheme.set(wt.value); });
+    document.addEventListener("vscon:theme", () => {
+      const sel = $("#welcomeTheme");
+      if (sel && window.VTheme) sel.value = VTheme.get();
+    });
+  }
+  const btnAbout = $("#btnAbout");
+  if (btnAbout) btnAbout.addEventListener("click", () => openWelcome(false));
+  const btnAboutHead = $("#btnAboutHead");
+  if (btnAboutHead) btnAboutHead.addEventListener("click", () => openWelcome(false));
+  const updateNoteOpen = $("#updateNoteOpen");
+  if (updateNoteOpen) updateNoteOpen.addEventListener("click", openUpdatePage);
+  const updateNoteX = $("#updateNoteX");
+  if (updateNoteX) updateNoteX.addEventListener("click", hideUpdateNote);
+
+  // Dopo l'i18n di init (evento vscon:lang): benvenuto al primo avvio e,
+  // solo se l'utente ha attivato l'opzione, il controllo aggiornamenti.
+  document.addEventListener("vscon:lang", function welcomeBoot() {
+    if (welcomeBooted) return;
+    welcomeBooted = true;
+    if (welcomeFirstRun) openWelcome(true);
+    if (updateCheckEnabled()) {
+      runUpdateCheck()
+        .then((data) => { if (data.update_available) showUpdateNote(data.latest); })
+        .catch(() => { /* controllo silenzioso: nessun avviso se la rete manca */ });
+    }
+  });
+
   /* ---------- boot ---------- */
   function renderConfigStatus(cfg) {
     if (!cfg) return;
     const appVersion = $("#appVersion");
     if (appVersion && cfg.version) appVersion.textContent = "v" + cfg.version;
+    const welcomeVer = $("#welcomeVer");
+    if (welcomeVer && cfg.version) {
+      welcomeVer.textContent = IC.t("welcome.ver", { version: "v" + cfg.version });
+    }
     if (cfg.support && cfg.support.kofi_url) kofiUrl = cfg.support.kofi_url;
     if (videoStatus) {
       const missing = !!(cfg.video && cfg.video.ffmpeg_available === false);
@@ -2468,6 +2597,12 @@
     try { syncNavLabels(); } catch (e) {}
     try { if (scanPageEmpty && !scanPageEmpty.hidden) scanSetEmpty(scanEmptyKey); } catch (e) {}
     renderConfigStatus(bootCfg);
+    const welcomeT = $("#welcomeTitle");
+    if (welcomeT) welcomeT.textContent = IC.t(welcomeFirstRun ? "welcome.title" : "about.title");
+    if (welcomeOk) welcomeOk.textContent = IC.t(welcomeFirstRun ? "welcome.cta_start" : "welcome.cta_close");
+    if (updateNote && !updateNote.hidden && updateLatest) {
+      updateNoteText.textContent = IC.t("update.available", { version: "v" + updateLatest });
+    }
     const btn = $("#btnConvert");
     if (btn && !btn.disabled) btn.textContent = IC.t("btn.convert");
     if (renameValueLabel) renameValueLabel.textContent = renameLabelFor(renameMode.value);

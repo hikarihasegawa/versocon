@@ -40,6 +40,20 @@
     return t === "manga" ? "manga" : "pro";
   }
 
+  /* API per altri componenti (es. dialog benvenuto): legge/imposta il tema. */
+  window.VTheme = {
+    get: currentTheme,
+    set: function (name) {
+      var t = name === "manga" ? "manga" : "pro";
+      try {
+        localStorage.setItem(KEY, t);
+      } catch (e) {
+        /* modalità privata: la scelta vale solo per questa sessione */
+      }
+      applyTheme(t);
+    },
+  };
+
   applyTheme(currentTheme());
 
   document.addEventListener("DOMContentLoaded", function () {

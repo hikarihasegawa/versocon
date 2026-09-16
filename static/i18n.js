@@ -83,8 +83,10 @@
       await load(lang);
       localStorage.setItem(STORE_KEY, lang);
       apply();
-      const sel = document.getElementById("langSel");
-      if (sel) sel.value = lang;
+      for (const id of ["langSel", "welcomeLang"]) {
+        const sel = document.getElementById(id);
+        if (sel) sel.value = lang;
+      }
       document.dispatchEvent(new CustomEvent("vscon:lang", { detail: { lang } }));
     },
     apply,
@@ -137,13 +139,14 @@
     await load("en"); // ensure fallback loaded
     if (cur !== "it") await load("it");
 
-    const sel = document.getElementById("langSel");
-    if (sel) {
-      sel.innerHTML = SUPPORTED.map(
+    for (const id of ["langSel", "welcomeLang"]) {
+      const el = document.getElementById(id);
+      if (!el) continue;
+      el.innerHTML = SUPPORTED.map(
         (l) => `<option value="${l}">${NAMES[l]}</option>`
       ).join("");
-      sel.value = cur;
-      sel.addEventListener("change", () => { IC.setLang(sel.value); });
+      el.value = cur;
+      el.addEventListener("change", () => { IC.setLang(el.value); });
     }
     apply();
     document.dispatchEvent(new CustomEvent("vscon:lang", { detail: { lang: cur } }));

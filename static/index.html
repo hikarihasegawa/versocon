@@ -43,8 +43,25 @@
           <span id="themeLabel">Pro</span>
         </button>
       </div>
+      <div class="lang-pick">
+        <button type="button" id="btnAboutHead" class="theme-btn about-btn" aria-haspopup="dialog"
+                data-i18n-attr="title:about.title;aria-label:about.title" title="Impostazioni e aggiornamenti">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </header>
+
+  <div class="update-note" id="updateNote" hidden role="status">
+    <span id="updateNoteText"></span>
+    <button type="button" class="btn btn-ghost" id="updateNoteOpen" data-i18n="update.open">Aggiorna</button>
+    <button type="button" class="btn btn-ghost update-note-x" id="updateNoteX"
+            data-i18n-attr="aria-label:update.dismiss;title:update.dismiss" aria-label="Chiudi avviso">×</button>
+  </div>
 
   <div class="app-body">
   <nav class="tabs" id="mainTabs" role="tablist" aria-orientation="vertical" data-i18n-attr="aria-label:nav.aria">
@@ -948,7 +965,8 @@
   </section>
 
   <footer class="foot">
-    <span class="foot-ver">VersoCon <i id="appVersion">v0.2.6</i></span>
+    <button class="foot-ver foot-about" id="btnAbout" type="button" aria-haspopup="dialog"
+            data-i18n-attr="title:about.title;aria-label:about.title" title="Impostazioni e aggiornamenti">VersoCon <i id="appVersion">v0.2.6</i></button>
     <span class="foot-note" data-i18n="res.session_note">🔒 I file restano solo su questo PC e vengono eliminati alla chiusura di VersoCon: scaricali prima di uscire.</span>
     <button class="kofi-btn" id="btnKofi" type="button" title="Supporta su Ko-fi" data-i18n-attr="title:foot.kofi_title">
       <svg class="kofi-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -965,6 +983,38 @@
 </main>
 
 <div class="nav-scrim" id="navScrim"></div>
+
+<dialog id="welcomeDlg" class="welcome" aria-labelledby="welcomeTitle">
+  <h2 id="welcomeTitle">Benvenuto in VersoCon</h2>
+  <p class="welcome-lead" data-i18n="welcome.lead">Converti foto, PDF e video senza inviare nulla in rete: i file restano su questo PC e vengono eliminati alla chiusura.</p>
+  <div class="welcome-row">
+    <label for="welcomeLang" data-i18n="welcome.lang">Lingua</label>
+    <select id="welcomeLang"></select>
+  </div>
+  <div class="welcome-row">
+    <label for="welcomeTheme" data-i18n="welcome.theme">Tema</label>
+    <select id="welcomeTheme">
+      <option value="pro" data-i18n="theme.pro">Pro</option>
+      <option value="manga" data-i18n="theme.manga">Manga</option>
+    </select>
+  </div>
+  <div class="welcome-upd">
+    <label class="welcome-check" for="welcomeUpdate">
+      <input type="checkbox" id="welcomeUpdate" />
+      <span data-i18n="welcome.update">Controlla gli aggiornamenti all'avvio</span>
+    </label>
+    <p class="hint" data-i18n="welcome.update_hint">Se attivo, all'avvio viene chiesta a GitHub l'ultima versione pubblicata. Disattivato (predefinito): nessuna connessione.</p>
+    <div class="welcome-check-row">
+      <button type="button" class="btn btn-ghost" id="welcomeCheckBtn" data-i18n="welcome.check_now">Controlla ora</button>
+      <button type="button" class="btn btn-ghost" id="welcomeOpenBtn" hidden data-i18n="update.open">Aggiorna</button>
+    </div>
+    <p class="hint" id="welcomeUpdateState" role="status"></p>
+  </div>
+  <p class="welcome-ver" id="welcomeVer"></p>
+  <div class="welcome-foot">
+    <button type="button" class="btn btn-primary" id="welcomeOk">Inizia</button>
+  </div>
+</dialog>
 
 <div id="jobBar" class="jobbar" hidden role="status" aria-live="polite">
   <span class="jobbar-label" id="jobLabel"></span>

@@ -563,6 +563,46 @@ input[type="color"] { padding: 2px 4px; }
 .kofi-btn:active { transform: translate(1px, 1px); box-shadow: 0 0 0 rgba(0, 0, 0, .9); }
 .kofi-cup { width: 17px; height: 17px; color: var(--gold); flex: none; }
 
+/* ---- Benvenuto / aggiornamenti ---- */
+.foot-about {
+  appearance: none; background: none; border: 0; padding: 0; cursor: pointer;
+  color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.foot-about:hover i { text-decoration: underline; }
+.foot-about:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }
+
+.update-note {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 10px 0 0; padding: 10px 14px;
+  background: var(--paper-2); border: var(--border); border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  color: var(--ink); font-weight: 700; font-size: 13px;
+}
+.update-note > span { flex: 1 1 220px; min-width: 0; }
+.update-note-x { padding: 2px 10px; font-size: 16px; line-height: 1; }
+
+.welcome {
+  width: min(520px, 92vw); max-height: min(88vh, 640px); overflow: auto;
+  background: var(--paper-2); color: var(--ink);
+  border: var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+}
+.welcome::backdrop { background: rgba(0, 0, 0, .62); }
+.welcome h2 { margin: 0 0 8px; font-family: var(--font-title); font-size: 22px; line-height: 1.25; }
+.welcome-lead { margin: 0 0 14px; color: var(--ink-soft); line-height: 1.5; }
+.welcome-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.welcome-row label { flex: 0 0 84px; font-weight: 700; }
+.welcome-row select { flex: 1 1 auto; min-width: 0; width: auto; }
+.welcome-upd { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(128, 128, 128, .35); }
+.welcome-check { display: flex; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; }
+.welcome-check input { width: 16px; height: 16px; flex: none; accent-color: var(--red); }
+.welcome-upd .hint { margin: 8px 0; }
+.welcome-check-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.welcome #welcomeUpdateState:empty { display: none; }
+.welcome-ver { margin: 14px 0 0; color: var(--ink-soft); font-size: 12px; }
+.welcome-foot { display: flex; justify-content: flex-end; margin-top: 14px; }
+
 /* ---- Toast ---- */
 .toast {
   position: fixed; left: 50%; bottom: 28px;
@@ -1080,6 +1120,7 @@ html.theme-pro #inkPad { background: #ffffff; border: 1px solid #333333; }
   padding: 7px 12px; white-space: nowrap;
 }
 .theme-btn:hover { border-color: var(--red); }
+.about-btn { display: inline-flex; align-items: center; justify-content: center; padding: 7px 10px; }
 
 /* ===================================================================
    Tema Pro — rifinitura "dashboard": scala tipografica, ritmo, altezze
