@@ -1,0 +1,13 @@
+Convert and edit photos, PDFs and videos — 100% on your own PC.
+Free, fully offline, no account and no telemetry: your files never leave your computer.
+
+• Photos: HEIC/HEIF, JPG, PNG, WebP, BMP, TIFF and GIF → JPEG, PNG or WebP. Up to 500 files at once, adjustable quality, resize, ZIP download and one-click EXIF/GPS removal.
+• PDF: to and from images, merge, split/extract pages, batch rename, compression (low/medium/high) and text extraction with OCR.
+• PDF editor (20 tools): rotate, delete, reorder, insert and extract pages; watermark, text, stamps, sticky notes, highlight and underline, freehand ink; redaction, find & replace, Bates numbering, header and footer; fill PDF forms; sign with 8 styles or draw your own; password protect/unprotect and make a PDF searchable. Every change has a live preview before you apply it, and results chain together.
+• Scan cleanup: straighten tilted scans, remove shadows, adaptive black & white, 4-corner perspective crop — for photos and scanned PDFs.
+• Video: convert to MP4 or WebM, extract audio (MP3/M4A), export animated GIFs. Long jobs show a real progress bar with a cancel button.
+• Private by design: everything runs locally on 127.0.0.1; no uploads, no account, no ads and no telemetry. The session folder is removed when the app closes.
+• Comfort: 8 languages (Italian, English, Spanish, French, German, Portuguese, Chinese, Japanese), Pro or Manga theme, accessible contrast, keyboard navigation and reduced-motion support.
+• Genuinely free: no subscription, no watermark, no "Pro" paywall.
+
+Optional engines: if ffmpeg and Tesseract are installed (also via winget, Chocolatey or Scoop), VersoCon finds them automatically and the "Recheck" button picks them up without restarting the app.

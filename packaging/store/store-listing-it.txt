@@ -1,0 +1,13 @@
+Converti ed edita foto, PDF e video — tutto sul tuo PC.
+Gratis, 100% offline, senza account e senza telemetria: i tuoi file non lasciano mai il computer.
+
+• Foto: HEIC/HEIF, JPG, PNG, WebP, BMP, TIFF e GIF → JPEG, PNG o WebP. Fino a 500 file per volta, qualità regolabile, ridimensionamento, download ZIP e rimozione di EXIF/GPS con un clic.
+• PDF: da e verso immagini, unione, divisione/estrazione pagine, rinomina in blocco, compressione (bassa/media/alta) ed estrazione del testo con OCR.
+• Editor PDF (20 strumenti): ruota, elimina, riordina, inserisci ed estrai pagine; filigrana, testo, timbri, note adesive, evidenzia e sottolinea, inchiostro libero; redazione, trova e sostituisci, numerazione Bates, intestazione e piè di pagina; compilazione moduli; firma con 8 stili o disegnata a mano; protezione con password, rimozione password e PDF ricercabile. Ogni modifica è visibile in anteprima prima di applicarla e i risultati si concatenano.
+• Pulizia scansioni: raddrizza le scansioni inclinate, correggi le ombre, bianco e nero adattivo, ritaglio prospettico a 4 angoli — su foto e PDF scansionati.
+• Video: converti in MP4 o WebM, estrai l'audio in MP3 o M4A, crea GIF animate. Le operazioni lunghe hanno una barra di avanzamento reale e il pulsante Annulla.
+• Privacy by design: tutto gira in locale su 127.0.0.1; nessun upload, nessun account, nessuna pubblicità e nessuna telemetria. La cartella della sessione viene rimossa alla chiusura dell'app.
+• Comfort: 8 lingue (italiano, inglese, spagnolo, francese, tedesco, portoghese, cinese, giapponese), tema Pro o Manga, contrasto accessibile, navigazione da tastiera e rispetto della riduzione del movimento.
+• Gratis davvero: nessun abbonamento, nessuna filigrana, nessun limite "Pro".
+
+Motori opzionali: se ffmpeg e Tesseract sono installati (anche via winget, Chocolatey o Scoop), VersoCon li rileva da solo e il pulsante "Ricontrolla" li aggiorna senza riavviare l'app.
