@@ -28,6 +28,7 @@ WizardStyle=modern
 ShowLanguageDialog=no
 SetupIconFile=..\versocon.ico
 LicenseFile=..\..\LICENSE.md
+InfoAfterFile=..\licenses\THIRD-PARTY-NOTICES.txt
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

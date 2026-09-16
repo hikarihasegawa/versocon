@@ -130,3 +130,28 @@ def test_release_e_msix_scaricano_i_motori():
     for wf in ("release.yml", "msix.yml"):
         text = (ROOT / ".github" / "workflows" / wf).read_text(encoding="utf-8")
         assert "packaging/fetch_engines.ps1" in text, wf
+
+
+def test_licenze_terze_parti_nel_bundle():
+    """I motori inclusi sono distribuiti: licenze e nota di terze parti devono esserci."""
+    spec = (ROOT / "packaging" / "versacon.spec").read_text(encoding="utf-8")
+    assert '(str(LICENSES), "licenses")' in spec
+
+    lic = ROOT / "packaging" / "licenses"
+    for name, min_size in (
+        ("Apache-2.0.txt", 10000),
+        ("BSD-2-Clause-Leptonica.txt", 1000),
+        ("GPL-3.0.txt", 30000),
+        ("THIRD-PARTY-NOTICES.txt", 500),
+    ):
+        f = lic / name
+        assert f.is_file(), name
+        assert f.stat().st_size >= min_size, name
+
+    notices = (lic / "THIRD-PARTY-NOTICES.txt").read_text(encoding="utf-8")
+    for needle in ("Tesseract", "Apache", "Leptonica", "BSD", "FFmpeg", "GPL"):
+        assert needle in notices, needle
+    assert "ffmpeg.org" in notices
+
+    iss = (ROOT / "packaging" / "inno" / "versocon.iss").read_text(encoding="utf-8")
+    assert "THIRD-PARTY-NOTICES.txt" in iss

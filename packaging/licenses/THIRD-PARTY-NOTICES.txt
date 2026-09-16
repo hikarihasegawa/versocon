@@ -1,0 +1,34 @@
+VersoCon — Third-party components / Componenti di terze parti
+=============================================================
+
+VersoCon itself is licensed under the MIT License (see LICENSE.md).
+VersoCon itself is distributed with the following separate programs and
+libraries. Their licenses apply to those components, not to VersoCon.
+
+VersoCon è distribuito con i programmi e le librerie elencati qui sotto.
+Le rispettive licenze valgono per quei componenti, non per VersoCon.
+
+1) Tesseract OCR 5.5.3.20260724 — Apache License 2.0
+   Copyright 2014-2026 Google LLC and contributors.
+   License: licenses/Apache-2.0.txt
+   Source:  https://github.com/tesseract-ocr/tesseract
+
+2) Leptonica (bundled with Tesseract) — BSD 2-Clause License
+   Copyright (C) 2001-2020 Leptonica. All rights reserved.
+   License: licenses/BSD-2-Clause-Leptonica.txt
+   Source:  https://github.com/DanBloomberg/leptonica
+
+3) FFmpeg (ffmpeg.exe, ffprobe.exe) — GNU General Public License v3
+   Build: ffmpeg 8.1.2-essentials_build-www.gyan.dev (static, GPLv3).
+   License shipped with the binaries: ffmpeg/LICENSE
+   License (copy): licenses/GPL-3.0.txt
+   Source code:    https://ffmpeg.org/download.html
+   The corresponding source code for the binaries distributed with this
+   application is available from the build provider
+   (https://www.gyan.dev/ffmpeg/builds/ — source commit on the build page)
+   and, for three years from distribution, on request through the project
+   repository: https://github.com/hikarihasegawa/VersoCon
+
+Il codice sorgente corrispondente dei binari ffmpeg qui distribuiti è
+disponibile presso il fornitore della build (pagina sopra) e, per tre anni
+dalla distribuzione, su richiesta tramite il repository del progetto.

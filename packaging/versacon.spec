@@ -8,7 +8,9 @@ Produce:  dist\\Versocon\\Versocon.exe  +  dist\\Versocon\\_internal\\
 
 I motori inclusi (Tesseract, ffmpeg) arrivano dalle variabili
 `VERSOCON_TESSERACT_DIR` / `VERSOCON_FFMPEG_DIR` (vedi bundle_engines.py) e
-finiscono in `_internal/tesseract` e `_internal/ffmpeg`.
+finiscono in `_internal/tesseract` e `_internal/ffmpeg`. Le licenze dei
+componenti di terze parti sono in `_internal/licenses` (vedi
+packaging/licenses/THIRD-PARTY-NOTICES.txt).
 """
 import sys
 from pathlib import Path
@@ -19,6 +21,7 @@ from bundle_engines import engine_datas  # noqa: E402
 ROOT = Path(SPECPATH).parent
 STATIC = ROOT / "static"
 FONTS  = ROOT / "assets" / "fonts"
+LICENSES = ROOT / "packaging" / "licenses"
 ICO    = Path(SPECPATH) / "versocon.ico"
 
 a = Analysis(
@@ -28,6 +31,7 @@ a = Analysis(
     datas=[
         (str(STATIC), "static"),
         (str(FONTS),  "assets/fonts"),
+        (str(LICENSES), "licenses"),
     ] + engine_datas(),
 
     hiddenimports=[
