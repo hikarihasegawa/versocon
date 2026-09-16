@@ -986,6 +986,7 @@
   let edPdfFile = null;
   let edSigFile = null;
   let edPdfDoc = null;
+  let edPdfPw = "";
   let edCurPage = 1;
   let edPageCount = 0;
   let edSigBox = { x: 50, y: 80, w: 30, rot: 0, op: 100 };
@@ -1339,7 +1340,7 @@
     setEmpty(IC.t("dyn.ed_page_loading"));
     try {
       const buf = await file.arrayBuffer();
-      edPdfDoc = await window.pdfjsLib.getDocument({ data: buf }).promise;
+      edPdfDoc = await window.pdfjsLib.getDocument({ data: buf, password: edPdfPw || undefined }).promise;
       edPageCount = edPdfDoc.numPages;
       edCurPage = Math.min(Math.max(1, keepPage), edPageCount);
       syncPager();
@@ -1356,8 +1357,20 @@
       edStatus.textContent = "";
       await renderEdPage();
     } catch (e) {
-      edStatus.textContent = IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) });
-      setEmpty(IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) }));
+      const locked = e && (e.name === "PasswordException" || e.code === 1);
+      edPdfDoc = null;
+      edPageCount = 0;
+      edPgSel.innerHTML = "";
+      syncPager();
+      clearEdPreview();
+      edCanvas.hidden = true;
+      if (locked) {
+        edStatus.textContent = "";
+        setEmpty(IC.t("dyn.pdf_locked"));
+      } else {
+        edStatus.textContent = IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) });
+        setEmpty(IC.t("dyn.err_preview", { msg: (e && e.message ? e.message : e) }));
+      }
     }
     applySigBoxToDom();
   }
@@ -1469,7 +1482,10 @@
 
   $("input#edPdfIn").addEventListener("change", function () {
     edPdfFile = this.files[0] || null;
+    edPdfPw = "";
     edSigBox = { x: 50, y: 80, w: 30, rot: 0, op: 100 };
+    const formBox = document.getElementById("edFormFields");
+    if (formBox) formBox.innerHTML = "";
     loadEdPreview(edPdfFile);
   });
   $("input#edSigImg").addEventListener("change", function () {
@@ -1781,6 +1797,7 @@
           box.appendChild(lab);
           box.appendChild(inp);
         });
+        scheduleEdPreview(0);
       }
     } catch (err) {
       showToast(err.message || String(err), "err");
@@ -1825,7 +1842,9 @@
       fd.append("pages", pagesToPayload($("#edRotPages").value));
       fd.append("angle", $("#edRotAngle").value);
     } else if (act === "delete") {
-      fd.append("pages", pagesToPayload($("#edDelPages").value));
+      const payload = pagesToPayload($("#edDelPages").value);
+      if (!payload) throw new Error(IC.t("dyn.pages_required"));
+      fd.append("pages", payload);
     } else if (act === "reorder") {
       fd.append("order", orderToPayload($("#edReOrder").value));
     } else if (act === "watermark") {
@@ -2047,6 +2066,15 @@
     edLeftPanel.addEventListener("input", () => scheduleEdPreview());
     edLeftPanel.addEventListener("change", () => scheduleEdPreview());
   }
+  /* PDF protetto: la password di «Rimuovi password» sblocca l'anteprima pdf.js. */
+  const edPwUnlockEl = document.getElementById("edPwUnlock");
+  if (edPwUnlockEl) edPwUnlockEl.addEventListener("input", () => {
+    if (edAction.value !== "unprotect" || !edPdfFile || edPdfDoc) return;
+    const v = edPwUnlockEl.value;
+    if (!v) return;
+    edPdfPw = v;
+    loadEdPreview(edPdfFile);
+  });
 
   btnEdApply.addEventListener("click", async () => {
     if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
