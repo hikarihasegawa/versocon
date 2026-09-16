@@ -1,86 +1,78 @@
 # VersoCon 変
 
-> **Convert photos, PDFs, and videos — 100% on your own machine.** No cloud, no account, no upload: your files never leave your PC.
+**Convert photos, PDFs and videos — 100% on your own machine.**
 
+VersoCon is a desktop file converter with a real PDF editor, built for people who
+don't want their documents in someone else's cloud: HEIC photos from your iPhone,
+PDFs to edit and sign, scans to clean, videos to convert. Everything runs on
+`127.0.0.1`, offline, with no account and no telemetry.
+
+[![Latest release](https://img.shields.io/github/v/release/hikarihasegawa/versocon?label=release&color=4dabf7)](https://github.com/hikarihasegawa/versocon/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-4dabf7?logo=mit&logoColor=white)](LICENSE.md)
-[![Python](https://img.shields.io/badge/Python-3.11+-3776ab?logo=python&logoColor=white)](requirements.txt)
-[![Windows](https://img.shields.io/badge/Windows-Setup-0078d6?logo=windows&logoColor=white)](#)
-[![Linux](https://img.shields.io/badge/Linux-from%20source-2b8a3e?logo=linux&logoColor=white)](#)
-[![Support the project](https://img.shields.io/badge/Ko--fi-Support-ff5f5f?logo=ko-fi&logoColor=white)](https://ko-fi.com/hikari22)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078d6?logo=windows&logoColor=white)](#install)
+[![Offline](https://img.shields.io/badge/network-not%20required-2b8a3e)](#privacy-and-security)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&logoColor=white)](#from-source)
 
 <p align="center">
-  <img src="assets/demo/versocon-demo.gif" alt="VersoCon demo: HEIC conversion, PDF editor with signature, and PDF compression" width="640">
+  <img src="assets/demo/versocon-demo.gif" alt="VersoCon demo: HEIC photo conversion, live PDF editor preview, PDF compression, Pro and Manga themes" width="900">
 </p>
 
-<p align="center">
-  <a href="https://ko-fi.com/hikari22" target="_blank">
-    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy me a coffee 🧡" height="38">
-  </a>
-</p>
+## Why VersoCon
 
-<p align="center" style="line-height:1.6; max-width:62ch; margin:8px auto 20px;">
-  💗 <b>VersoCon is free &amp; 100% local.</b><br>
-  If it saves you time, a
-  <a href="https://ko-fi.com/hikari22" target="_blank" style="text-decoration:none; font-weight:600; color:inherit;">coffee for the dev</a> ☕
-  would be a lovely thank-you — <i>zero strings, full support</i>.
-</p>
+- **Private by design.** Files are converted on your machine; nothing is uploaded.
+  No account, no cloud, no telemetry. The session folder is removed when the app closes.
+- **One app instead of five.** Photos, PDFs and video live in the same window:
+  convert, edit, compress, OCR, clean scans — no subscription, no watermark, no paywall.
+- **A PDF editor, not a toy.** 20 tools — watermark, redact, sign, forms, passwords,
+  searchable OCR — with **live preview**: every change is shown before you apply it,
+  and each result becomes the next working copy.
+- **8 languages, two themes.** Switch between the Pro dashboard and the Manga theme,
+  or between Italian, English, Spanish, French, German, Portuguese, Chinese and Japanese,
+  without restarting.
 
-VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handles HEIC photos, PDFs (edit, sign, merge, compress, extract text), and video transcode — **all locally**. Available in **Italian and English** (switchable via the in-app language selector); more languages are on the roadmap.
+## What it does
 
-## ⚡ Why VersoCon
+| Area | Highlights |
+|------|------------|
+| **Photos** | HEIC / HEIF / JPG / PNG / WebP / BMP / TIFF / GIF → JPEG, PNG, WebP, GIF. Batch up to 500 files, quality slider, max-side resize, animated GIFs preserved. One-click **EXIF/GPS removal** before saving. Download single files or a ZIP. |
+| **PDF** | PDF → images · images → PDF · merge · split / extract pages · batch rename · compress (Low / Medium / High) · text extraction and OCR. |
+| **PDF editor** | Pages: rotate, delete, reorder, insert blank, extract. Review: highlight, sticky notes, freehand ink, text, stamps. Privacy: redaction, find & replace (background and rotated text preserved). Document: watermark, Bates numbering, header/footer, PDF forms. Sign: 8 styles generated from your name (script fonts or your initials), or draw your own. Security: password protect/unprotect, searchable PDF. |
+| **Scan cleanup** | Straighten tilted scans, remove shadows, adaptive black & white, 4-corner perspective crop — for both photos and scanned PDFs. |
+| **Video** | Transcode to MP4 / WebM, extract audio (MP3 / M4A), export animated GIFs. Long jobs show a real progress bar with a cancel button. |
+| **Comfort** | Drag & drop, keyboard navigation, WCAG-measured contrast, animated Manga theme or sober Pro theme, 8 languages. |
 
-- 🔒 **Total privacy**: everything runs on `127.0.0.1`, nothing ever goes online.
-- 📸 **Native HEIC**: open and convert iPhone photos (`.heic`) without any third-party app.
-- 📄 **Full PDF kit**: live preview editor, signature (drawn or generated from your name), reordering, rotation, watermark, merge & split.
-- 🎬 **Video**: MP4/WebM transcode (if you have `ffmpeg`).
-- 🪶 **Lightweight & offline**: one executable, no web services, no telemetry.
-- 🎨 **Careful UI**: shonen manga theme, drag & drop, toasts, animations.
+## Install
 
-## ✨ Features
+### Windows (recommended)
 
-| Area | What it does |
-|------|-------------|
-| **Photos** | HEIC / HEIF / JPG / PNG / WebP / BMP / TIFF / GIF → JPEG, PNG or WebP. Quality slider, max-side resize, EXIF / rotation preserved, animated GIFs kept, batch up to 500 files, single download or ZIP. |
-| **PDF** | PDF → images · images → PDF · merge · split · batch rename. |
-| **PDF Editor** | In-browser live preview, drawn or text-generated signature (4 calligraphy styles), signature from image, free placement / resize, rotation and opacity, watermark, reorder / rotate / delete pages, text. |
-| **Compress** | Shrink images (target bytes or quality) and PDFs (low/medium/high), with a "saved %" badge. |
-| **PDF → text** | Plain-text extraction and OCR (Tesseract, optional). |
-| **Video** | Transcode to MP4 or WebM (requires `ffmpeg`). |
+1. Download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases/latest) and run it.
+2. Or use a package manager:
 
-## 🚀 Installation
+```powershell
+winget install HikariHasegawa.VersoCon     # official Windows package manager (submission under review)
+scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket
+scoop install versocon                      # Scoop, from the author's bucket (live)
+```
 
-### From installer / store (recommended)
-- **Windows**: download `versocon-setup-X.Y.Z.exe` from [Releases](https://github.com/hikarihasegawa/versocon/releases) and run it. Or with [Scoop](https://scoop.sh): `scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket`, then `scoop install versocon`. winget (`winget install HikariHasegawa.VersoCon`) is under review.
-- **Linux** *(for developers)*: no ready-made package yet — run from source with `bash install.sh` (see [From source](#from-source)); native `.deb`/`.AppImage` builds are on the roadmap.
-- **macOS** *(untested)*: the same from-source steps should work, but VersoCon has not been tested on macOS yet.
+<details>
+<summary><b>Windows shows "Windows protected your PC" — why, and what to check</b></summary>
 
-> Every platform: local install, no account required.
+The installer is not code-signed yet, so SmartScreen warns about any unsigned
+open-source build. That is a generic caution, not a malware report.
 
-> ### 🛡️ "Windows protected your PC" (SmartScreen)
->
-> On first launch Windows may show a SmartScreen warning because VersoCon is not yet
-> **code-signed** — normal for unsigned open-source software.
->
-> **VersoCon is 100% local, open-source, no telemetry, no account required.**
->
-> Before you proceed:
-> 1. Verify the **SHA-256** checksum (v0.3.0):
->    `E73CA7EC1E3B0DBB917537BFBC2AF2B430B05DAE1DA0C253B2B65C30AA3256CD`
->    (full hash on the [Releases page](https://github.com/hikarihasegawa/versocon/releases)).
-> 2. *(Optional)* Upload the installer to
->    [VirusTotal](https://www.virustotal.com/gui/home/url), and check the result.
->
-> If OK → click **More info → Run anyway / Esegui comunque**.
->
-> Prefer no warning at all? Install via:
-> ```
-> winget install HikariHasegawa.VersoCon    # official Windows package manager (submission under review)
-> scoop bucket add HikariHasegawa https://github.com/HikariHasegawa/bucket
-> scoop install versocon                     # Scoop, from the author's bucket above (live)
-> ```
-> Both channels eliminate SmartScreen alerts over time; winget packages are also reviewed by Microsoft.
->
-> 📄 [Full "Is it safe?" guide (EN/IT) → docs/security.md](docs/security.md)
+Before you run it:
+1. Verify the **SHA-256** of the downloaded file against the one on the
+   [Releases page](https://github.com/hikarihasegawa/versocon/releases/latest)
+   (v0.3.0: `E73CA7EC1E3B0DBB917537BFBC2AF2B430B05DAE1DA0C253B2B65C30AA3256CD`).
+2. Optional: upload your copy to [VirusTotal](https://www.virustotal.com/gui/home/url).
+3. If everything checks out: **More info → Run anyway / Esegui comunque**.
+
+The full guide is in [docs/security.md](docs/security.md) (English / Italiano).
+
+</details>
+
+- **Linux** *(from source)*: no ready-made package yet — run `bash install.sh`. Native `.deb`/`.AppImage` builds are on the roadmap.
+- **macOS** *(untested)*: the same from-source steps should work; VersoCon has not been tested on macOS yet.
 
 ### From source
 
@@ -88,84 +80,89 @@ VersoCon is a file converter with a **shonen-manga-styled** desktop UI. It handl
 git clone https://github.com/hikarihasegawa/versocon.git
 cd versocon
 python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-# Linux / macOS
-# source .venv/bin/activate
-
+.venv\Scripts\activate        # Windows
+# source .venv/bin/activate   # Linux / macOS
 pip install --upgrade pip
 pip install -r requirements.txt
-
-# Optional OCR (Tesseract on the system + pytesseract)
-pip install -r requirements-ocr.txt
 ```
 
-Or use the setup scripts (which also install Tesseract):
+Setup scripts (Windows / Linux) also install Tesseract for OCR:
 
 ```powershell
-# Windows (PowerShell)
-powershell -ExecutionPolicy Bypass -File .\install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1     # Windows
 ```
 
 ```bash
-# Linux / macOS
-bash install.sh
+bash install.sh                                            # Linux / macOS
 ```
 
 ### Running
 
 ```bash
-python run.py              # desktop window (pywebview) or browser if unavailable
+python run.py              # desktop window (pywebview), or browser if unavailable
 python run.py --browser    # force the default browser
-# or, without pywebview:
+# or without pywebview:
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8321
-# then open: http://127.0.0.1:8321
+# then open http://127.0.0.1:8321
 ```
 
-## 📋 Requirements
+## Requirements
 
-- **Python 3.11+** for running from source.
-- **Base dependencies**: `fastapi`, `uvicorn`, `pillow`, `pillow-heif`, `pymupdf`, `pywebview` (see `requirements.txt`).
-- **Optional**:
-  - `ffmpeg` on your PATH for video conversion.
-  - `Tesseract` for OCR (optional).
+- **Windows 10/11** for the installer; **Python 3.11+** to run from source
+  (base dependencies in [requirements.txt](requirements.txt)).
+- **Optional engines**, detected automatically in PATH, WinGet, Chocolatey, Scoop and
+  standard install folders:
+  - `ffmpeg` — video conversion, audio extraction, GIF export.
+  - `Tesseract` — OCR and searchable PDFs.
 
-## 🗂️ Project structure
+## Privacy and security
+
+- The app listens only on `127.0.0.1` and validates every request (CSRF / DNS-rebinding
+  protection, no path traversal); conversion never calls the network.
+- The **update check is off by default**: when enabled it only asks GitHub for the latest
+  version number and tells you if something newer exists.
+- Output files are written to a temporary session folder and deleted when the app closes.
+- Details and verification steps: [docs/security.md](docs/security.md).
+
+## Project structure
 
 ```
 versocon/
-├─ app/            # FastAPI: API endpoints + constants
-├─ converters/     # conversion logic (images, documents, video, PDF, signature, compression)
+├─ app/            # FastAPI: API endpoints, jobs, security, update check
+├─ converters/     # conversion engines (images, documents, video, PDF, signature, scan)
 ├─ static/         # frontend HTML+CSS+JS (no build step) + vendor (pdf.js)
-├─ assets/         # fonts, logo, demo
-├─ packaging/      # PyInstaller spec, icons, Inno Setup, make_icon
-├─ tests/          # pytest suite
+├─ assets/         # fonts, logo, demo GIF
+├─ packaging/      # PyInstaller spec, icons, Inno Setup, MSIX
+├─ tests/          # pytest suite + real-browser smoke test
 ├─ run.py          # desktop/browser launcher
-├─ requirements.txt
-└─ PROGRESS.md     # dev state & roadmap (source of truth)
+└─ PROGRESS.md     # development state & roadmap
 ```
 
-## 🧪 Tests
+## Tests
 
 ```bash
 .venv\Scripts\python -m pytest tests -q   # Windows
-# or:
-python -m pytest tests -q
+python -m pytest tests -q                 # Linux / macOS
 ```
 
-Smoke E2E on a real browser (Playwright, pinned; excluded from the normal run):
+Real-browser smoke test (Playwright, pinned; excluded from the normal run):
 
 ```bash
 pip install -r requirements-e2e.txt && python -m playwright install chromium
 VERSOCON_E2E=1 python -m pytest tests/test_smoke_e2e.py -q   # Windows: $env:VERSOCON_E2E="1"
 ```
 
-## 🤝 Contributing & support
+## Contributing and support
 
-Open an issue or a pull request. If it's useful to you, you can
-[sponsor the development ☕](https://ko-fi.com/hikari22).
+Issues and pull requests are welcome. VersoCon is free, with no paid tier: if it saves
+you time, you can [buy the developer a coffee](https://ko-fi.com/hikari22) — thank you.
 
-## 📄 License
+<p align="center">
+  <a href="https://ko-fi.com/hikari22" target="_blank">
+    <img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support VersoCon on Ko-fi" height="36">
+  </a>
+</p>
 
-[MIT](LICENSE.md) — free to use, modify, and redistribute.
+## License
+
+[MIT](LICENSE.md) — free to use, modify and redistribute.
