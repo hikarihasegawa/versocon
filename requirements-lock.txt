@@ -1,3 +1,4 @@
+altgraph==0.17.5
 annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
@@ -14,16 +15,20 @@ httptools==0.8.0
 httpx==0.28.1
 idna==3.19
 iniconfig==2.3.0
+numpy==2.4.6
+opencv-python-headless==4.14.0.94
 packaging==26.3
 pefile==2024.8.26
-pillow==12.3.0
 pillow_heif==1.7.0
+pillow==12.3.0
 pluggy==1.6.0
 proxy_tools==0.1.0
 pycparser==3.0
-pydantic==2.13.5
 pydantic_core==2.46.5
+pydantic==2.13.5
 Pygments==2.21.0
+pyinstaller==6.22.2
+pyinstaller-hooks-contrib==2026.7
 pymupdf==1.28.2
 pytesseract==0.3.13
 pytest==9.1.1
@@ -34,8 +39,8 @@ pywebview==6.2.1
 pywin32-ctypes==0.2.3
 PyYAML==6.0.3
 starlette==1.6.0
-typing-inspection==0.4.4
 typing_extensions==4.16.0
+typing-inspection==0.4.4
 uvicorn==0.52.4
 watchfiles==1.2.0
 websockets==17.1

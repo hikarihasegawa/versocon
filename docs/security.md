@@ -1,10 +1,16 @@
-# VersoCon — v0.2.6 — Release notes
+# VersoCon — v0.3.0 — Release notes
 
 ## ✨ What's new
-- 🪟 **No more flashing console windows**: Tesseract and ffmpeg now run hidden — no command-prompt windows at startup, during PDF text extraction or video conversion.
-- 📄 **Cleaner PDF → text**: justified paragraphs and table rows are no longer split one word per line. If you force OCR on a PDF that already contains text, VersoCon now tells you that "Automatic" gives the exact text.
-- 🇮🇹 **Italian translation fixes** (e.g. "Estrazione in corso…") and the correct version number in the footer.
-- 🛡️ Includes the v0.2.5 security fix (path traversal, DNS-rebinding / CSRF protection) — update recommended if you are on v0.2.4 or older.
+- ✍️ **Complete PDF editor** — 17 tools: rotate, delete/reorder/insert/extract pages, watermark, text and stamps, sticky notes, highlight/underline, freehand ink, redaction, find & replace, Bates numbering, header/footer, fill PDF forms, sign (5 handwriting fonts or draw your own), password protect/unprotect and searchable OCR. **Every change is now previewed live** before you apply it, and edits chain: each result becomes the working document.
+- 🎨 **New look, two themes** — a dashboard-style **Pro** theme (default) and the original anime **Manga** theme, switchable in the header; a first-run welcome dialog lets you pick language, theme and (optionally) update checks.
+- 🔎 **Scan cleanup** — straighten tilted scans, remove shadows, adaptive black & white and 4-corner perspective crop, for both photos and scanned PDFs (OpenCV engine bundled).
+- 🛡️ **Privacy controls** — one-click removal of EXIF/GPS metadata from photos. Everything still runs 100% offline.
+- 🎬 **More video tools** — extract audio (MP3/M4A) and turn videos into animated GIFs; long jobs now show a real progress bar with a cancel button.
+- 🌍 **8 languages** — Italian, English, Spanish, French, German, Portuguese, Chinese, Japanese.
+- ♿ **Accessibility** — measured WCAG contrast, visible keyboard focus and reduced-motion support across both themes.
+- 🔧 **Better engine detection** — ffmpeg and Tesseract are found automatically in WinGet, Chocolatey, Scoop and standard install locations; a "Recheck" button picks up installs made while the app is open.
+- 🧪 **Quality** — the whole suite plus a real-browser end-to-end smoke test now run on every change.
+- Plus dozens of fixes: PDF text replacement preserves background and rotated text, protected PDFs open correctly in the editor, editor layout and translations cleaned up.
 
 ## 🔒 Is it safe? / È sicuro?
 
@@ -35,7 +41,7 @@ It runs entirely on your machine (`127.0.0.1`); nothing ever goes online.
 <!-- Italiano -->
 
 **Sì — VersoCon è 100% locale, open-source, senza telemetria e senza account.**
-Ogni cosa gira sulla tua macchina (`127.0.0.1`); nessuno file va mai online.
+Ogni cosa gira sulla tua macchina (`127.0.0.1`); nessun file va mai online.
 
 > ### Windows mostra "Windows ha protetto il tuo PC" (SmartScreen)
 > È **normale** per software open-source non firmato e **non** indica la presenza di un virus.
@@ -68,3 +74,6 @@ A: (1) The source is public on GitHub. (2) The binary you run is built *from* th
 
 **Q: When will the warning go away?** / **Quando sparisce l'avviso?**
 A: For most users within weeks, once SmartScreen has enough "clean install" reports. Definitively, once we get a code-signing certificate (needs a business license). / Per la maggior parte degli utenti in poche settimane. In modo definitivo quando avremo il certificato di firma (richiede una ditta).
+
+**Q: Does v0.3.0 include the security fixes from v0.2.5/v0.2.6?** / **La v0.3.0 include i fix di sicurezza di v0.2.5/v0.2.6?**
+A: Yes — all of them (path traversal, DNS-rebinding/CSRF protection, hidden console windows, Italian translation fixes). / Sì — tutti (path traversal, protezione DNS-rebinding/CSRF, finestre console nascoste, fix delle traduzioni italiane).

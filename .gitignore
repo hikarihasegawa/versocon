@@ -6,6 +6,7 @@ __pycache__/
 .eggs/
 build/
 dist/
+out/
 QA.pdf.png
 packaging/*.log
 packaging/versocon._fix.png

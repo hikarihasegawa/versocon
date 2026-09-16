@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Versione app (es. 0.2.5)'
+        description: 'Versione app (es. 0.3.0)'
         required: true
       display_name:
         description: 'Nome riservato in Partner Center'

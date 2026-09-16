@@ -1,10 +1,10 @@
 """Crea il pacchetto MSIX di VersoCon per Microsoft Store partendo dalla build PyInstaller.
 
 Uso (dalla root del repo):
-    python packaging/msix/build_msix.py --dist dist/Versocon --version 0.2.5 \
+    python packaging/msix/build_msix.py --dist dist/Versocon --version 0.3.0 \
         --name "<Package/Identity/Name>" --publisher "<Package/Identity/Publisher>" \
         --publisher-display "<Package/Properties/PublisherDisplayName>" \
-        --display-name "<nome riservato in Partner Center>" --out dist/VersoCon-0.2.5.msix
+        --display-name "<nome riservato in Partner Center>" --out dist/VersoCon-0.3.0.msix
 
 I valori di identita' si leggono in Partner Center > Product identity.
 Richiede makeappx.exe (Windows SDK). Il pacchetto per lo Store non va firmato: lo firma Microsoft.
@@ -53,7 +53,7 @@ def makeappx() -> str:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dist", required=True, type=Path, help="cartella PyInstaller (contiene Versocon.exe)")
-    ap.add_argument("--version", required=True, help="versione app, es. 0.2.5 (diventa 0.2.5.0)")
+    ap.add_argument("--version", required=True, help="versione app, es. 0.3.0 (diventa 0.3.0.0)")
     ap.add_argument("--name", required=True)
     ap.add_argument("--publisher", required=True)
     ap.add_argument("--publisher-display", required=True)
