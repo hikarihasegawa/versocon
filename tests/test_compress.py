@@ -114,6 +114,63 @@ def test_compress_pdf_empty_raises():
         comp.compress_pdf(b"")
 
 
+def _smooth_png(size=(600, 420), seed=3) -> bytes:
+    """Gradiente morbido: con Deflate si riduce molto (il rumore no)."""
+    img = Image.new("RGB", size)
+    px = img.load()
+    for y in range(size[1]):
+        for x in range(size[0]):
+            px[x, y] = (
+                (x * 255) // size[0],
+                (y * 255) // size[1],
+                ((x + y) * 255) // (size[0] + size[1]),
+            )
+    b = io.BytesIO()
+    img.save(b, format="PNG")
+    return b.getvalue()
+
+
+def _uncompressed_pdf() -> bytes:
+    """PDF con stream non compressi (export 'grezzo', senza alcun filtro)."""
+    import pymupdf
+
+    src = docconv.images_to_pdf(
+        [("a.png", _smooth_png()), ("b.png", _smooth_png((600, 420), 9))]
+    )
+    doc = pymupdf.open(stream=src, filetype="pdf")
+    try:
+        raw = doc.tobytes(expand=True, deflate=0, garbage=0)
+    finally:
+        doc.close()
+    assert raw.count(b"/Filter") == 0, "il fixture deve restare non compresso"
+    return raw
+
+
+def test_compress_pdf_high_non_peggiora_e_riduce_gli_stream_grezzi():
+    """Regressione: 'high' peggiorava la compressione (file più grande del grezzo)."""
+    raw = _uncompressed_pdf()
+    medium, _ = comp.compress_pdf(raw, level="medium")
+    high, _ = comp.compress_pdf(raw, level="high")
+    assert len(high) < len(raw) * 0.8, f"high non comprime: {len(high)} vs {len(raw)}"
+    assert len(high) <= len(medium), f"high ({len(high)}) peggiore di medium ({len(medium)})"
+
+
+def test_compress_pdf_high_contenuto_invariato():
+    """L'effetto: il PDF compresso si apre e le pagine renderizzano contenuto reale."""
+    import pymupdf
+
+    raw = _uncompressed_pdf()
+    out, meta = comp.compress_pdf(raw, level="high")
+    assert meta["pages"] == 2
+    doc = pymupdf.open(stream=out, filetype="pdf")
+    try:
+        assert doc.page_count == 2
+        pix = doc[0].get_pixmap(dpi=36)
+        assert len(set(pix.samples)) > 8, "pagina bianca o corrotta dopo la compressione"
+    finally:
+        doc.close()
+
+
 # ── API: compress-image ──
 def test_api_compress_image(client):
     res = client.post(

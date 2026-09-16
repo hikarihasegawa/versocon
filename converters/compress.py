@@ -117,7 +117,12 @@ def _pdf_save_kwargs(level: str) -> dict:
         return {"garbage": 1, "deflate_fonts": 1}
     if level == "medium":
         return {"garbage": 2, "deflate": 1, "deflate_images": 1, "deflate_fonts": 1}
-    return {"garbage": 3, "deflate": 1, "deflate_images": 1, "deflate_fonts": 1, "compression_effort": 9}
+    # high: garbage=4 fonde anche gli stream duplicati; use_objstms impacchetta
+    # gli oggetti in stream compressi. Niente `compression_effort`: vale solo
+    # per Brotli (deflate=2) e con Flate faceva *crescere* l'output (regressione
+    # coperta da test_compress_pdf_high_non_peggiora_e_riduce_gli_stream_grezzi).
+    return {"garbage": 4, "deflate": 1, "deflate_images": 1, "deflate_fonts": 1,
+            "use_objstms": 1}
 
 
 def compress_pdf(data: bytes, level: str = "medium") -> tuple[bytes, dict]:
@@ -126,7 +131,7 @@ def compress_pdf(data: bytes, level: str = "medium") -> tuple[bytes, dict]:
     level:
       low    → garbage=1, deflate_fonts
       medium → garbage=2, deflate+deflate_images+deflate_fonts
-      high   → garbage=3, deflate+deflate_images+deflate_fonts, compression_effort=9
+      high   → garbage=4, deflate+deflate_images+deflate_fonts, object streams
     """
     lvl = (level or "medium").lower()
     if lvl not in PDF_LEVELS:
