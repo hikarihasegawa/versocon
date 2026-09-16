@@ -21,6 +21,8 @@
   --ink-soft:   rgba(242, 234, 217, .66);
   --red:        #ef4a3c;
   --red-deep:   #c8362a;
+  /* rosso per il testo: --red-deep non supera 4.5:1 sui fondi scuri */
+  --red-text:   #f2564a;
   --gold:       #f6bd33;
   --ok:         #3ad07a;
   --ok-soft:    rgba(58, 208, 122, .14);
@@ -38,6 +40,9 @@
 html { -webkit-font-smoothing: antialiased; }
 /* entrambi i temi sono scuri: menu nativi (select/checkbox/scrollbar) coerenti */
 :root { color-scheme: dark; }
+
+/* tastiera: indicatore di focus sempre visibile (il tema Pro lo ridefinisce) */
+:focus-visible { outline: 3px solid var(--red); outline-offset: 2px; }
 
 /* ---- Paper canvas ---- */
 body {
@@ -137,7 +142,7 @@ h1 {
 .badge {
   font-family: var(--font-title);
   font-size: 13px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
-  color: #fff;
+  color: var(--paper);
   background: var(--gold);
   border: var(--border);
   box-shadow: var(--shadow-sm);
@@ -232,7 +237,7 @@ h1 {
 .tab:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 rgba(20, 18, 16, .9); }
 .tab:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 rgba(20, 18, 16, .9); }
 .tab.active {
-  background: var(--red);
+  background: var(--red-deep);
   color: #fff;
   border-color: var(--ink);
   box-shadow:
@@ -327,8 +332,8 @@ h3 { margin: 0 0 6px; font-family: var(--font-title); font-style: italic; font-w
 
 .btn-primary {
   color: #fff;
-  background: var(--red);
-  background-image: linear-gradient(180deg, #f2564a 0%, var(--red) 45%, var(--red-deep) 100%);
+  background: var(--red-deep);
+  background-image: linear-gradient(180deg, #cf4136 0%, #c8362a 45%, #b02e24 100%);
   text-shadow: 1px 2px 0 rgba(0, 0, 0, .35);
   border-color: var(--ink);
 }
@@ -358,7 +363,7 @@ h3 { margin: 0 0 6px; font-family: var(--font-title); font-style: italic; font-w
 .seg-btn:hover { background: rgba(242, 234, 217, .1); }
 .seg-btn.active {
   color: #fff;
-  background: var(--red);
+  background: var(--red-deep);
   border-color: var(--ink);
   box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .4);
 }
@@ -429,7 +434,7 @@ input[type="color"] {
   box-shadow: 2px 2px 0 rgba(20, 18, 16, .7);
 }
 input[type="color"] { padding: 2px 4px; }
-.ctl-val { color: var(--red-deep); font-weight: 900; font-family: var(--font-title); font-style: italic; }
+.ctl-val { color: var(--red-text); font-weight: 900; font-family: var(--font-title); font-style: italic; }
 
 /* ---- File lists ---- */
 .filelist { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
@@ -455,20 +460,20 @@ input[type="color"] { padding: 2px 4px; }
 .file .fname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .file .fsize { color: var(--ink-soft); font-size: 12px; white-space: nowrap; font-weight: 700; }
 .file .fsize.muted { opacity: .6; font-weight: 600; margin-right: 2px; }
-.file .fsaved { background: rgba(10,107,94,.12); color:#076b5e; font-size: 11px; font-weight: 900; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
-.file .ferr  { color: var(--red-deep); font-weight: 900; font-size: 13px; }
+.file .fsaved { background: var(--ok-soft); color: var(--ok); font-size: 11px; font-weight: 900; padding: 2px 7px; border-radius: 999px; white-space: nowrap; }
+.file .ferr  { color: var(--red-text); font-weight: 900; font-size: 13px; }
 .file a {
   font-family: var(--font-title); font-style: italic; font-weight: 900;
-  color: var(--red-deep); text-decoration: none;
+  color: var(--red-text); text-decoration: none;
   border-bottom: 2px solid var(--red);
 }
-.file a:hover { color: var(--red); }
+.file a:hover { color: #ff8577; }
 .file .rm {
   appearance: none; border: 2px solid transparent; background: none;
   color: var(--ink-soft); cursor: pointer;
   font-size: 15px; padding: 3px 9px; border-radius: 6px;
 }
-.file .rm:hover { color: #fff; background: var(--red); border-color: var(--ink); }
+.file .rm:hover { color: #fff; background: var(--red-deep); border-color: var(--ink); }
 
 /* ---- Panels / subtabs ---- */
 .panel-title {
@@ -532,7 +537,7 @@ input[type="color"] { padding: 2px 4px; }
   color: var(--ink-soft); font-size: 12px; margin-top: 6px;
   font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
 }
-.foot i { font-style: italic; font-family: var(--font-title); color: var(--red-deep); font-weight: 900; }
+.foot i { font-style: italic; font-family: var(--font-title); color: var(--red-text); font-weight: 900; }
 .foot-ver { white-space: nowrap; }
 .foot-note {
   flex: 1 1 260px; min-width: 0; text-align: center;
@@ -873,7 +878,8 @@ input[type="color"] { width: 36px; height: 30px; padding: 2px; border: var(--bor
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .petal, .dropzone-card::after, .card { animation: none !important; }
+  .petal, .dropzone-card::after, .card, .file { animation: none !important; }
+  .btn, .tab, .seg-btn, .subtab, .toast, .kofi-btn { transition: none; }
 }
 
 /* ===================================================================
@@ -891,6 +897,7 @@ html.theme-pro {
   --ink-soft:   #a6a6a6;
   --red:        #ff6b2c;
   --red-deep:   #ffa06b;
+  --red-text:   #ffa06b;
   --gold:       #2e2e2e;
   --ok:         #6ee7a8;
   --ok-soft:    rgba(110, 231, 168, .14);
@@ -1018,7 +1025,7 @@ html.theme-pro .seg-btn {
 }
 html.theme-pro .seg-btn:hover { background: #2b2b2b; }
 html.theme-pro .seg-btn.active { background: var(--paper-3); color: #ffffff; border-color: transparent; box-shadow: none; }
-html.theme-pro .ctl-val { color: var(--red-deep); font-family: var(--font); font-weight: 600; font-style: normal; }
+html.theme-pro .ctl-val { color: var(--red-text); font-family: var(--font); font-weight: 600; font-style: normal; }
 html.theme-pro .numin,
 html.theme-pro select,
 html.theme-pro input[type="color"],
@@ -1049,7 +1056,7 @@ html.theme-pro .file .ficon {
 }
 html.theme-pro .file a {
   font-family: var(--font); font-style: normal; font-weight: 600;
-  color: var(--red-deep); border-bottom: none;
+  color: var(--red-text); border-bottom: none;
   text-decoration: underline; text-underline-offset: 3px;
 }
 html.theme-pro .file a:hover { color: #ffc9a8; }
@@ -1066,7 +1073,7 @@ html.theme-pro .subtab {
 html.theme-pro .subtab:hover { background: #2b2b2b; color: var(--ink); }
 html.theme-pro .subtab.active { background: var(--paper-3); color: #ffffff; border-color: transparent; box-shadow: none; }
 html.theme-pro .foot { font-weight: 500; letter-spacing: .04em; text-transform: none; }
-html.theme-pro .foot i { font-family: var(--font); font-style: normal; font-weight: 600; color: var(--red-deep); }
+html.theme-pro .foot i { font-family: var(--font); font-style: normal; font-weight: 600; color: var(--red-text); }
 html.theme-pro .kofi-btn {
   font-family: var(--font); font-size: 12px; font-weight: 500; font-style: normal;
   text-transform: none; letter-spacing: 0;
@@ -1263,10 +1270,10 @@ html.theme-pro .ctlrow select:focus { outline: none; box-shadow: 0 0 0 3px rgba(
 .app-body .tabs .tab:hover { background: rgba(242, 234, 217, .09); box-shadow: none; transform: none; }
 .app-body .tabs .tab:active { transform: none; box-shadow: none; }
 .app-body .tabs .tab.active {
-  background: var(--red); color: #fff; border-color: var(--ink);
+  background: var(--red-deep); color: #fff; border-color: var(--ink);
   box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .25);
 }
-.app-body .tabs .tab.active:hover { background: var(--red-deep); }
+.app-body .tabs .tab.active:hover { background: #b02e24; }
 .nav-ic, .tool-ic { display: none; }
 .nav-toggle { display: none; padding: 0 10px; }
 .nav-toggle svg { width: 20px; height: 20px; }
