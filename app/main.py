@@ -30,6 +30,7 @@ from converters import video as vidconv
 from converters.report import OperationCancelled, check_cancelled, report
 
 from app import constants
+from app import update as upd
 from app.i18n import lang_of, t as T, t_lang
 from app.jobs import JobError, JobManager
 from app.security import LocalOnlyMiddleware, safe_child
@@ -147,14 +148,16 @@ def engines_recheck():
     }
 
 
-def _open_support_in_browser() -> None:
+def _open_url_in_browser(url: str) -> None:
+    """Apre `url` nel browser di sistema senza bloccare la richiesta HTTP."""
     import threading
     import webbrowser
 
-    def _open() -> None:
-        webbrowser.open(constants.KOFI_URL, new=1)
+    threading.Thread(target=webbrowser.open, args=(url,), kwargs={"new": 1}, daemon=True).start()
 
-    threading.Thread(target=_open, daemon=True).start()
+
+def _open_support_in_browser() -> None:
+    _open_url_in_browser(constants.KOFI_URL)
 
 
 @app.post("/api/support")
@@ -163,6 +166,25 @@ def support(request: Request):
         raise HTTPException(503, T(request, "api.support_not_configured"))
     _open_support_in_browser()
     return {"opened": True, "url": constants.KOFI_URL}
+
+
+@app.post("/api/update-check")
+def update_check(request: Request):
+    """Confronta la versione installata con l'ultima release pubblica.
+
+    Contatta GitHub solo quando il client lo chiede (opt-in, default OFF)."""
+    try:
+        return upd.check_for_update()
+    except upd.UpdateCheckError:
+        raise HTTPException(502, T(request, "api.update_fail"))
+
+
+@app.post("/api/update-open")
+def update_open():
+    """Apre la pagina di aggiornamento dell'edizione in uso (Store o Releases)."""
+    url = upd.page_url()
+    _open_url_in_browser(url)
+    return {"opened": True, "url": url}
 
 
 def _sanitize_quality(quality) -> int | None:
