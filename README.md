@@ -14,7 +14,7 @@ PDFs to edit and sign, scans to clean, videos to convert. Everything runs on
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776ab?logo=python&logoColor=white)](#from-source)
 
 <p align="center">
-  <img src="assets/demo/versocon-demo.gif" alt="VersoCon demo: HEIC photo conversion, live PDF editor preview, PDF compression, Pro and Manga themes" width="900">
+  <img src="assets/demo/versocon-demo.gif?v=2" alt="VersoCon demo: HEIC photo conversion, live PDF editor preview, PDF compression, Pro and Manga themes" width="900">
 </p>
 
 ## Why VersoCon
