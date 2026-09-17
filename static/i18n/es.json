@@ -366,6 +366,7 @@
   "dyn.write_name_first": "Escribe el nombre para firmar.",
   "btn.applying": "Aplicando…",
   "dyn.pdf_modified": "PDF modificado ✓",
+  "dyn.edit_already_applied": "Acción ya aplicada: modifica los parámetros o elige otra función para aplicarla de nuevo.",
   "dyn.kofi_unconfigured": "Enlace de apoyo no configurado.",
   "cp.rn.value_prefix": "prefijo/sufijo/texto/base",
   "cp.rn.label_prefix": "Prefijo",

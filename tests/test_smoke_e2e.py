@@ -195,3 +195,93 @@ def test_editor_pdf_anteprima_e_live(smoke, base_url, tmp_path: Path):
         "() => { const i = document.getElementById('edPrevImg');"
         " return i.complete && i.naturalWidth > 0; }"
     )
+
+
+def test_editor_ruota_pannello_toggle_e_catena(smoke, base_url, tmp_path: Path):
+    """Regressione (2026-09-17): verso unico percepito e rotazione «persa» dopo
+    Applica. Copre: pannello parametri sotto il tasto premuto + toggle al
+    ripremere, verso 270°, anteprima che non ri-applica, doppio click bloccato,
+    catena rotate→watermark con rotazione conservata."""
+    import fitz
+
+    pdf = tmp_path / "e2e-ruota.pdf"
+    doc = fitz.open()
+    p = doc.new_page(width=300, height=400)
+    p.insert_text((20, 40), "MARK-TOP", fontsize=26)
+    doc.save(pdf)
+    doc.close()
+
+    page = smoke.page
+    smoke.goto(base_url)
+    smoke.close_welcome()
+    page.click("#tabBtn-pdf")
+    page.click('#tabPdf .subtabs .subtab[data-sub="pdf-edit"]')
+    page.set_input_files("#edPdfIn", str(pdf))
+    expect = playwright_sync.expect
+    expect(page.locator("#edPreview")).to_be_visible(timeout=EXPECT_TIMEOUT)
+
+    def block_state(tool: str) -> dict:
+        return page.evaluate(
+            """(tool) => { const b = document.querySelector('#edTools .ed-tool[data-tool="' + tool + '"]');
+                 const el = document.getElementById('edBlock-' + tool);
+                 return {hidden: el.hidden, expanded: b.getAttribute('aria-expanded'),
+                         inGrid: el.classList.contains('ed-block-inline'),
+                         gap: Math.round(el.getBoundingClientRect().top - b.getBoundingClientRect().bottom)}; }""",
+            tool,
+        )
+
+    # rotate è l'azione attiva di default: pannello aperto subito sotto il tasto
+    st = block_state("rotate")
+    assert not st["hidden"] and st["expanded"] == "true" and st["inGrid"]
+    assert 0 <= st["gap"] < 60, f"pannello non adiacente al tasto: {st}"
+
+    # ripremere lo stesso tasto = collassa; ancora = riespande
+    page.click('#edTools .ed-tool[data-tool="rotate"]')
+    assert block_state("rotate")["hidden"] is True
+    page.click('#edTools .ed-tool[data-tool="rotate"]')
+    st = block_state("rotate")
+    assert not st["hidden"] and st["expanded"] == "true"
+
+    # altra funzione: il pannello si sposta sotto il nuovo tasto
+    page.click('#edTools .ed-tool[data-tool="watermark"]')
+    st = block_state("watermark")
+    assert not st["hidden"] and st["inGrid"] and 0 <= st["gap"] < 60
+    assert block_state("rotate")["hidden"] is True
+
+    # verso antiorario: applicato e verificato sull'artefatto reale
+    page.click('#edTools .ed-tool[data-tool="rotate"]')
+    page.select_option("#edRotAngle", "270")
+    page.dispatch_event("#edRotAngle", "change")
+    expect(page.locator("#edPrevImg")).to_be_visible(timeout=EXPECT_TIMEOUT)
+    page.click("#btnEdApply")
+    expect(page.locator("#edDownload")).to_be_visible(timeout=EXPECT_TIMEOUT)
+    page.wait_for_timeout(800)
+    r = page.request.get(base_url + page.get_attribute("#edDownload", "href"))
+    assert r.ok
+    out = fitz.open(stream=r.body(), filetype="pdf")
+    assert out[0].rotation == 270, f"rotation applicata: {out[0].rotation}"
+    out.close()
+
+    # l'anteprima non ri-applica l'azione appena applicata (niente effetto doppio)
+    assert page.evaluate("() => document.getElementById('edPrevImg').hidden") is True
+
+    # secondo click senza modifiche: bloccato con messaggio, file invariato
+    page.click("#btnEdApply")
+    page.wait_for_timeout(500)
+    msg = page.evaluate("() => window.IC.t('dyn.edit_already_applied')")
+    assert msg in page.locator("#toast").text_content()
+    r = page.request.get(base_url + page.get_attribute("#edDownload", "href"))
+    out = fitz.open(stream=r.body(), filetype="pdf")
+    assert out[0].rotation == 270
+    out.close()
+
+    # catena: watermark sul documento ruotato, rotazione conservata
+    page.click('#edTools .ed-tool[data-tool="watermark"]')
+    page.fill("#edWmText", "VERIFICA-E2E")
+    page.click("#btnEdApply")
+    page.wait_for_timeout(1500)
+    r = page.request.get(base_url + page.get_attribute("#edDownload", "href"))
+    out = fitz.open(stream=r.body(), filetype="pdf")
+    assert out[0].rotation == 270
+    assert "VERIFICA-E2E" in out[0].get_text()
+    out.close()

@@ -366,6 +366,7 @@
   "dyn.write_name_first": "署名する名前を入力してください。",
   "btn.applying": "適用中…",
   "dyn.pdf_modified": "PDFを編集しました ✓",
+  "dyn.edit_already_applied": "この操作は適用済みです。再度適用するにはパラメーターを変更するか、別の機能を選んでください。",
   "dyn.kofi_unconfigured": "支援リンクが設定されていません。",
   "cp.rn.value_prefix": "接頭辞/接尾辞/テキスト/ベース名",
   "cp.rn.label_prefix": "接頭辞",

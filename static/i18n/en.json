@@ -384,6 +384,7 @@
   "dyn.write_name_first": "Write the name to sign with.",
   "btn.applying": "Applying…",
   "dyn.pdf_modified": "PDF modified ✓",
+  "dyn.edit_already_applied": "Action already applied: change the parameters or pick another tool to apply it again.",
   "dyn.kofi_unconfigured": "Support link not configured.",
   "cp.rn.value_prefix": "prefix/suffix/text/base",
   "cp.rn.label_prefix": "Prefix",

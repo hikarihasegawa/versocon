@@ -366,6 +366,7 @@
   "dyn.write_name_first": "Saisissez le nom à signer.",
   "btn.applying": "Application en cours…",
   "dyn.pdf_modified": "PDF modifié ✓",
+  "dyn.edit_already_applied": "Action déjà appliquée : modifiez les paramètres ou choisissez une autre fonction pour l'appliquer à nouveau.",
   "dyn.kofi_unconfigured": "Lien de soutien non configuré.",
   "cp.rn.value_prefix": "préfixe/suffixe/texte/base",
   "cp.rn.label_prefix": "Préfixe",

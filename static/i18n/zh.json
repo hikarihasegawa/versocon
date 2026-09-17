@@ -366,6 +366,7 @@
   "dyn.write_name_first": "请输入要签名的姓名。",
   "btn.applying": "正在应用…",
   "dyn.pdf_modified": "PDF 已修改 ✓",
+  "dyn.edit_already_applied": "该操作已应用：如需再次应用，请修改参数或选择其他功能。",
   "dyn.kofi_unconfigured": "支持链接未配置。",
   "cp.rn.value_prefix": "前缀/后缀/文本/base",
   "cp.rn.label_prefix": "前缀",

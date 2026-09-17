@@ -1019,6 +1019,7 @@
   let edPrevSeq = 0;
   let edPrevUrl = null;
   let edApplyBusy = false;
+  let edAppliedSig = null;  /* firma dell'ultima azione applicata (vedi edFormSignature) */
 
   if (window.pdfjsLib) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
@@ -1506,10 +1507,23 @@
   const edBlocks = {};
   ED_ACTIONS.forEach((a) => { edBlocks[a] = document.getElementById("edBlock-" + a); });
   let inkPadOpen = false;
+  let edBlockCollapsed = false;  /* ripremere il tasto funzione collassa i parametri */
   function syncEdBlock() {
     const act = edAction.value;
+    const host = document.getElementById("edBlocksHost");
+    const btn = document.querySelector('#edTools .ed-tool[data-tool="' + act + '"]');
     for (const [k, el] of Object.entries(edBlocks)) {
-      if (el) el.hidden = (k !== act);
+      if (!el) continue;
+      const active = (k === act);
+      el.hidden = !active || edBlockCollapsed;
+      if (active && !edBlockCollapsed && btn) {
+        /* Parametri subito sotto il bottone premuto, non in fondo al pannello. */
+        if (el.previousElementSibling !== btn) btn.insertAdjacentElement("afterend", el);
+        el.classList.add("ed-block-inline");
+      } else if (host && el.parentElement !== host) {
+        el.classList.remove("ed-block-inline");
+        host.appendChild(el);
+      }
     }
     const pad = document.getElementById("edSignPad");
     if (pad) pad.hidden = (act !== "signature" || !inkPadOpen);
@@ -1572,18 +1586,26 @@
   }
   function updateEdToolsActive() {
     document.querySelectorAll("#edTools .ed-tool").forEach((b) => {
-      b.setAttribute("aria-pressed", String(b.getAttribute("data-tool") === edAction.value));
+      const active = b.getAttribute("data-tool") === edAction.value;
+      b.setAttribute("aria-pressed", String(active));
+      b.setAttribute("aria-expanded", String(active && !edBlockCollapsed));
     });
   }
   const edToolsBox = document.getElementById("edTools");
   if (edToolsBox) edToolsBox.addEventListener("click", (e) => {
     const btn = e.target.closest(".ed-tool");
     if (!btn) return;
-    edAction.value = btn.getAttribute("data-tool");
+    const tool = btn.getAttribute("data-tool");
+    if (tool === edAction.value) {
+      edBlockCollapsed = !edBlockCollapsed;  /* ripremere lo stesso tasto: collassa/espandi */
+    } else {
+      edAction.value = tool;
+      edBlockCollapsed = false;
+    }
     syncEdBlock();
     btn.focus();
   });
-  edAction.addEventListener("change", syncEdBlock);
+  edAction.addEventListener("change", () => { edBlockCollapsed = false; syncEdBlock(); });
   renderEdTools();
   syncEdBlock();
   const pairs = [
@@ -1834,6 +1856,16 @@
     return fd;
   }
 
+  /* Firma azione+parametri: identifica l'esatta operazione in attesa di "Applica".
+     Il documento di lavoro (campo `file`) è escluso: dopo un'applicazione viene
+     sostituito dal risultato, ma l'operazione in attesa resta la stessa.
+     Serve a non ri-applicare (anteprima e doppio click) ciò che è già nel documento. */
+  function edFormSignature(fd) {
+    return Array.from(fd.entries()).filter(([k]) => k !== "file").map(([k, v]) =>
+      k + ":" + (typeof v === "string" ? v : "file:" + (v.name || "") + ":" + (v.size || 0))
+    ).join("|");
+  }
+
   /* Parametri Form dell'azione corrente: condivisi da "Applica" e anteprima live.
      Solleva Error (messaggio tradotto) se i campi obbligatori mancano. */
   function buildEdParams(fd) {
@@ -2027,6 +2059,11 @@
       edHidePreview();
       return;
     }
+    if (edAppliedSig !== null && edFormSignature(fd) === edAppliedSig) {
+      /* Già applicata sul documento di lavoro: l'anteprima mostrerebbe un doppio effetto. */
+      edHidePreview();
+      return;
+    }
     fd.append("page", String(edCurPage));
     fd.append("dpi", String(edPreviewDpi()));
     const seq = ++edPrevSeq;
@@ -2078,10 +2115,14 @@
 
   btnEdApply.addEventListener("click", async () => {
     if (!edPdfFile) return showToast(IC.t("dyn.pick_pdf_first"), "err");
-    edDownload.hidden = true;
-    edStatus.textContent = "";
     let fd;
     try { fd = buildEdForm(); } catch (e) { return showToast(e.message || String(e), "err"); }
+    if (edAppliedSig !== null && edFormSignature(fd) === edAppliedSig) {
+      /* Evita il doppio effetto involontario (es. secondo click su Ruota). */
+      return showToast(IC.t("dyn.edit_already_applied"), "info");
+    }
+    edDownload.hidden = true;
+    edStatus.textContent = "";
     edApplyBusy = true;
     btnEdApply.disabled = true;
     btnEdApply.textContent = IC.t("btn.applying");
@@ -2095,6 +2136,7 @@
       edDownload.hidden = false;
       // Anteprima live: il risultato diventa il documento di lavoro, così le
       // modifiche successive si applicano in catena e l'utente vede l'effetto.
+      edAppliedSig = edFormSignature(fd);
       try {
         const blob = await (await fetch(res.download)).blob();
         edPdfFile = new File([blob], res.name, { type: "application/pdf" });
@@ -2593,6 +2635,7 @@
     try { renderMergeList(); } catch (e) {}
     try { renderResults(); } catch (e) {}
     try { renderEdTools(); } catch (e) {}
+    try { syncEdBlock(); } catch (e) {}
     try { edRenderPreviewBadgeText(); } catch (e) {}
     try { syncNavLabels(); } catch (e) {}
     try { if (scanPageEmpty && !scanPageEmpty.hidden) scanSetEmpty(scanEmptyKey); } catch (e) {}
@@ -2635,6 +2678,7 @@
   document.addEventListener("vscon:theme", () => {
     try { syncNavLabels(); } catch (e) {}
     try { renderEdTools(); } catch (e) {}
+    try { syncEdBlock(); } catch (e) {}
   });
   syncNavLabels();
 })();

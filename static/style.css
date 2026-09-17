@@ -662,6 +662,8 @@ input[type="color"] { padding: 2px 4px; }
   opacity: 0; pointer-events: none;
 }
 .ed-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+/* Pannello parametri dell'azione attiva: compare subito sotto il bottone premuto. */
+.ed-tools .ed-block-inline { grid-column: 1 / -1; margin: 4px 0 2px; }
 .ed-tools h5 {
   grid-column: 1 / -1; margin: 6px 0 0;
   font-family: var(--font-title); font-size: .72rem;
