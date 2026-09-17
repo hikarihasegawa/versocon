@@ -1,0 +1,42 @@
+VersoCon — Microsoft Store screenshots (1366×768) — captions
+=============================================================
+
+IT (italiano)
+-------------
+01-foto-heic.png
+  Foto: converti HEIC, JPG, PNG e altri formati in blocco — fino a 500 file, qualità regolabile e rimozione di EXIF/GPS con un clic.
+
+02-editor-watermark.png
+  Editor PDF: ogni modifica (qui una filigrana) è visibile in anteprima live prima di applicarla.
+
+03-editor-firma.png
+  Firma calligrafica: 8 stili, posizione e dimensioni libere, oppure disegnala a mano.
+
+04-pulizia-scansioni.png
+  Pulizia scansioni: raddrizza, correggi ombre, bianco/nero adattivo e ritaglio prospettico a 4 angoli.
+
+05-compressione-pdf.png
+  Comprimi PDF senza cambiare il contenuto: nel test il livello alto è passato da 4,72 MB a 1,19 MB (−75%).
+
+06-video-progresso.png
+  Video: converti in MP4/WebM, estrai audio o crea GIF; ogni operazione lunga ha avanzamento reale e Annulla.
+
+EN (English)
+------------
+01-foto-heic.png
+  Photos: batch-convert HEIC, JPG, PNG and more — up to 500 files, adjustable quality and one-click EXIF/GPS removal.
+
+02-editor-watermark.png
+  PDF editor: every change (here a watermark) shows a live preview before you apply it.
+
+03-editor-firma.png
+  Handwritten signatures: 8 calligraphic styles, free position and size — or draw your own.
+
+04-pulizia-scansioni.png
+  Scan cleanup: deskew, fix shadows, adaptive black & white and 4-corner perspective crop.
+
+05-compressione-pdf.png
+  Compress PDFs without changing content: in our test the high level went from 4.72 MB to 1.19 MB (−75%).
+
+06-video-progresso.png
+  Video: convert to MP4/WebM, extract audio or create GIFs — long jobs show real progress and can be cancelled.
