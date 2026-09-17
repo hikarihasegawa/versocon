@@ -70,6 +70,18 @@ def _tessdata_dir(tess_cmd: str) -> str | None:
 
 _TESS_CACHE: str | None = None
 _TESS_RESOLVED = False
+# Valori originali delle variabili d'ambiente dei motori, salvati prima della
+# prima risoluzione: `reset_ocr_cache` li ripristina, così il «Ricontrolla» non
+# riparte con i valori scritti dalla risoluzione precedente.
+_TESS_ENV_SAVED: dict[str, str | None] | None = None
+_TESS_ENV_VARS = ("TESSERACT_CMD", "TESSDATA_PREFIX")
+
+
+def _save_engine_env() -> None:
+    """Memorizza (una sola volta) i valori originali delle variabili dei motori."""
+    global _TESS_ENV_SAVED
+    if _TESS_ENV_SAVED is None:
+        _TESS_ENV_SAVED = {k: os.environ.get(k) for k in _TESS_ENV_VARS}
 
 
 def _get_tesseract_cmd() -> str | None:
@@ -81,6 +93,7 @@ def _get_tesseract_cmd() -> str | None:
     _TESS_RESOLVED = True
     # Se abbiamo trovato un binario ma non è nel PATH, glielo diciamo a pytesseract.
     if _TESS_CACHE:
+        _save_engine_env()
         os.environ["TESSERACT_CMD"] = _TESS_CACHE
         data = _tessdata_dir(_TESS_CACHE)
         if data:
@@ -167,11 +180,22 @@ def ocr_info() -> dict:
 
 
 def reset_ocr_cache() -> None:
-    """Dimentica percorso, versione e lingue di Tesseract (bottone «Ricontrolla»)."""
-    global _TESS_CACHE, _TESS_RESOLVED, _PROBE
+    """Dimentica percorso, versione e lingue di Tesseract (bottone «Ricontrolla»).
+
+    Ripristina anche le variabili d'ambiente scritte dalla risoluzione
+    precedente, così la ricerca successiva parte dall'ambiente reale.
+    """
+    global _TESS_CACHE, _TESS_RESOLVED, _PROBE, _TESS_ENV_SAVED
     _TESS_CACHE = None
     _TESS_RESOLVED = False
     _PROBE = None
+    if _TESS_ENV_SAVED is not None:
+        for k, v in _TESS_ENV_SAVED.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        _TESS_ENV_SAVED = None
 
 
 def _render_pixmap(doc: "pymupdf.Document", page_no: int, dpi: int) -> bytes:

@@ -143,6 +143,32 @@ def test_tessdata_prefix_assente_senza_cartella(monkeypatch):
         assert "TESSDATA_PREFIX" not in os.environ
 
 
+def test_reset_ocr_cache_ripristina_ambiente(monkeypatch, tmp_path):
+    """Regressione CI 2026-09-17: `reset_ocr_cache` non deve lasciare TESSDATA_PREFIX.
+
+    Un bundle finto risolto durante i test scrive TESSDATA_PREFIX nel processo;
+    `monkeypatch.delenv(..., raising=False)` su variabile assente non registra
+    l'undo, quindi il valore stantio sopravviveva ai test successivi e l'OCR
+    reale falliva su Linux (niente `tessdata` accanto al binario di sistema).
+    """
+    bundled = tmp_path / "bundle" / "tesseract"
+    exe = bundled / "tesseract.exe"
+    exe.parent.mkdir(parents=True)
+    exe.write_bytes(b"")
+    (bundled / "tessdata").mkdir()
+    monkeypatch.setattr(engines.sys, "_MEIPASS", str(tmp_path / "bundle"), raising=False)
+    monkeypatch.setattr(engines.sys, "executable", str(tmp_path / "app" / "Versocon.exe"))
+    monkeypatch.setenv("TESSERACT_CMD", "")
+    monkeypatch.delenv("TESSDATA_PREFIX", raising=False)
+    ex.reset_ocr_cache()
+
+    assert ex._get_tesseract_cmd() == str(exe)
+    assert os.environ["TESSDATA_PREFIX"] == str(bundled / "tessdata")
+
+    ex.reset_ocr_cache()
+    assert "TESSDATA_PREFIX" not in os.environ
+
+
 def test_messaggi_motori_non_invitano_installazioni_separate(monkeypatch):
     """v0.3.1: i motori sono inclusi nel pacchetto; gli errori non rimandano a installer esterni."""
     monkeypatch.setattr(vid, "_find_ffmpeg", lambda: None)
