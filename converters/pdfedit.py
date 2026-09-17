@@ -215,7 +215,8 @@ def watermark_text(
     rotate: int = 0,
 ) -> bytes:
     """Applica un watermark di testo su OGNI pagina.
-    corner ∈ {tl,tr,bl,br,center}; font_size pt; opacity 0..1; rotate ∈ {0,90,180,−90}."""
+    corner ∈ {tl,tr,bl,br,center}; font_size pt; opacity 0..1; rotate ∈ {0,90,180,−90}.
+    Se il testo non entra nella pagina, la dimensione viene ridotta per farlo entrare."""
     if not (text or "").strip():
         raise ValueError("Testo watermark vuoto")
     if corner not in _WATERMARK_CORNERS:
@@ -229,30 +230,63 @@ def watermark_text(
         page = doc[i]
         r = page.rect
         fs2 = fs * (r.width / 595.0) if r.width else fs  # scala con larghezza
-        fs2 = max(10, min(300, fs2))
+        fs2 = max(10.0, min(300.0, fs2))
         line = text
         # posiziona il testo
         w = page.rect.width
         h = page.rect.height
         margin = fs2 * 0.6
-        est = len(line) * fs2 * 0.5  # stima larghezza testo
-        if corner == "tl":
-            pos = (margin, h - margin)
-        elif corner == "tr":
-            pos = (max(margin, w - est - margin), h - margin)
-        elif corner == "bl":
-            pos = (margin, margin)
-        elif corner == "br":
-            pos = (max(margin, w - est - margin), margin)
-        else:  # center
-            pos = (max(margin, (w - est) / 2), (h - fs2) / 2)
+        rot = int(rotate)
+        # Larghezza VERA del testo (Helvetica): la vecchia stima len*fs*0.5
+        # sottostimava e i testi lunghi uscivano dalla pagina, troncati.
+        avail = max(10.0, (h if rot in (90, -90) else w) - 2 * margin)
+        est = pymupdf.get_text_length(line, fontname="helv", fontsize=fs2)
+        if est > avail:
+            fs2 = max(6.0, fs2 * avail / est)
+            margin = fs2 * 0.6
+            est = pymupdf.get_text_length(line, fontname="helv", fontsize=fs2)
+        # Estensioni misurate attorno alla baseline (Helvetica, insert_text):
+        # ascende ~1.075*fs, discende ~0.3*fs. In pymupdf y cresce verso il
+        # basso: gli angoli ``t*`` stanno in alto, ``b*`` in basso. Con `rotate`
+        # il testo cresce in direzioni diverse; le baseline sono calcolate per
+        # tenere il box dei glifi dentro la pagina.
+        top = corner in ("tl", "tr")
+        left = corner in ("tl", "bl")
+        center = corner == "center"
+        asc, dsc = 1.075 * fs2, 0.3 * fs2
+        if rot == 0:
+            x0 = (w - est) / 2 if center else (margin if left else w - margin - est)
+            if center:
+                y0 = (h + asc - dsc) / 2
+            else:
+                y0 = margin + asc if top else h - margin - dsc
+        elif rot == 180:
+            x0 = (w + est) / 2 if center else (margin + est if left else w - margin)
+            if center:
+                y0 = (h - asc + dsc) / 2
+            else:
+                y0 = margin + dsc if top else h - margin - asc
+        elif rot == 90:  # cresce verso l'alto, i glifi stanno a sinistra
+            x0 = (w + asc - dsc) / 2 if center else (
+                margin + asc if left else w - margin - dsc)
+            if center:
+                y0 = (h + est) / 2
+            else:
+                y0 = margin + est if top else h - margin
+        else:  # -90: cresce verso il basso, i glifi stanno a destra
+            x0 = (w + dsc - asc) / 2 if center else (
+                margin + dsc if left else w - margin - asc)
+            if center:
+                y0 = (h - est) / 2
+            else:
+                y0 = margin if top else h - margin - est
         page.insert_text(
-            pymupdf.Point(*pos),
+            pymupdf.Point(x0, y0),
             line,
             fontsize=fs2,
             color=color,
             fill_opacity=op,
-            rotate=int(rotate),
+            rotate=rot,
             overlay=True,
         )
     return _save(doc)

@@ -231,6 +231,53 @@ def test_watermark_fontsize_clamped():
     assert doc.page_count == 1
 
 
+def test_watermark_testo_lungo_entra_nella_pagina():
+    """Regressione (2026-09-17): testo più largo della pagina veniva troncato
+    all'ultimo carattere (stima len*fs*0.5 al posto della misura reale)."""
+    d = _make_pdf(1)
+    long_text = "WATERMARK-DI-PROVA-MOLTO-LUNGO-1234567890"
+    out = pdfedit.watermark_text(d, long_text, corner="center", font_size=48)
+    doc = _load(out)
+    assert long_text in doc[0].get_text()
+
+
+@pytest.mark.parametrize("corner", ["tl", "tr", "bl", "br", "center"])
+def test_watermark_angoli_verticali_corretti(corner):
+    """Regressione (2026-09-17): gli angoli alto/basso erano invertiti (y cresce
+    verso il basso in pymupdf) e il box usciva dalla pagina con testi lunghi."""
+    d = _make_pdf(1)
+    out = pdfedit.watermark_text(d, "WM", corner=corner, font_size=24)
+    page = _load(out)[0]
+    ws = [w for w in page.get_text("words") if w[4] == "WM"]  # esclude "PAGINA-1"
+    assert ws, "watermark non trovato"
+    xmid = (ws[0][0] + ws[0][2]) / 2
+    ymid = (ws[0][1] + ws[0][3]) / 2
+    if corner == "center":
+        assert abs(ymid - page.rect.height / 2) < page.rect.height * 0.2
+    else:
+        assert (ymid < page.rect.height / 2) == corner.startswith("t"), f"{corner}: y={ymid}"
+        assert (xmid < page.rect.width / 2) == corner.endswith("l"), f"{corner}: x={xmid}"
+
+
+@pytest.mark.parametrize("rot", [0, 90, 180, -90])
+@pytest.mark.parametrize("corner", ["tl", "tr", "bl", "br", "center"])
+def test_watermark_testo_sempre_dentro_la_pagina(corner, rot):
+    """Effetto: qualsiasi combinazione angolo/rotazione resta dentro i bordi."""
+    import pymupdf as _fitz
+
+    d = _make_pdf(1)
+    text = "WATERMARK-DI-PROVA-1234567890"
+    out = pdfedit.watermark_text(d, text, corner=corner, font_size=48, rotate=rot)
+    doc = _load(out)
+    page = doc[0]
+    assert text in page.get_text()
+    pr = page.rect
+    for w in page.get_text("words"):
+        bbox = _fitz.Rect(w[:4])
+        assert bbox.x0 >= -0.5 and bbox.y0 >= -0.5 and bbox.x1 <= pr.width + 0.5 and bbox.y1 <= pr.height + 0.5, (
+            f"parola fuori pagina ({corner}, {rot}): {tuple(round(v, 1) for v in w[:4])}")
+
+
 # --------------------------------------------------------------------------
 # Firma in immagine
 # --------------------------------------------------------------------------
