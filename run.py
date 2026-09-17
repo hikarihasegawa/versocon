@@ -100,8 +100,11 @@ def _open_ui(url: str, force_browser: bool) -> int:
             import webview
 
             webview.settings["ALLOW_DOWNLOADS"] = True
-            webview.create_window("VersoCon", url, width=860, height=860,
-                                  background_color="#f7f2e9")
+            # Finestra desktop: parte massimizzata (il layout a due pannelli
+            # dell'editor non entra in 860x860); 1280x860 come base se l'utente
+            # la ripristina.
+            webview.create_window("VersoCon", url, width=1280, height=860,
+                                  maximized=True, background_color="#f7f2e9")
             webview.start()
             return 0
         except Exception as e:  # noqa: BLE001
