@@ -10,4 +10,4 @@ Gratis, 100% offline, senza account e senza telemetria: i tuoi file non lasciano
 • Comfort: 8 lingue (italiano, inglese, spagnolo, francese, tedesco, portoghese, cinese, giapponese), tema Pro o Manga, contrasto accessibile, navigazione da tastiera e rispetto della riduzione del movimento.
 • Gratis davvero: nessun abbonamento, nessuna filigrana, nessun limite "Pro".
 
-Motori opzionali: se ffmpeg e Tesseract sono installati (anche via winget, Chocolatey o Scoop), VersoCon li rileva da solo e il pulsante "Ricontrolla" li aggiorna senza riavviare l'app.
+Motori inclusi: OCR (Tesseract, italiano e inglese) e video (ffmpeg) sono dentro l'installer — funzionano al primo avvio, senza installazioni separate né download.
