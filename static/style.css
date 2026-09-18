@@ -783,8 +783,10 @@ input[type="color"] { padding: 2px 4px; }
 .ed-prev-img {
   position: absolute; inset: 0; z-index: 1;
   width: 100%; height: 100%;
+  object-fit: contain;  /* mai stirare il PNG: aspect sempre rispettato */
   display: block; pointer-events: none;
 }
+.ed-rot-btn { font-size: 18px; line-height: 1; padding: 4px 12px; }
 .ed-prev-img[hidden] { display: none; }
 .ed-prev-badge {
   position: absolute; z-index: 4;

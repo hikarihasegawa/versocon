@@ -337,13 +337,12 @@
         <label data-i18n="pdf.edit.pages">Pagine</label>
         <input type="text" id="edRotPages" value="" placeholder="tutte | 1 | 1,3,5" class="numin grow"
                data-i18n-attr="placeholder:pdf.edit.pages_ph" />
-        <label data-i18n="pdf.edit.angle">Angolo</label>
-        <select id="edRotAngle">
-          <option value="90" selected data-i18n="pdf.edit.ang_90">90° (destra)</option>
-          <option value="270" data-i18n="pdf.edit.ang_270">270° (sinistra)</option>
-          <option value="180" data-i18n="pdf.edit.ang_180">180° (capovolgi)</option>
-        </select>
-        <span class="hint" data-i18n="pdf.edit.rotate_hint">Pagine vuote = tutte. 90° ruota in senso orario, 270° in senso antiorario.</span>
+        <button class="btn btn-ghost ed-rot-btn" id="edRotLeft" type="button"
+                data-i18n-attr="title:pdf.edit.rot_left;aria-label:pdf.edit.rot_left">↺</button>
+        <button class="btn btn-ghost ed-rot-btn" id="edRotRight" type="button"
+                data-i18n-attr="title:pdf.edit.rot_right;aria-label:pdf.edit.rot_right">↻</button>
+        <span class="ctl-val" id="edRotPending">0°</span>
+        <span class="hint" data-i18n="pdf.edit.rotate_hint">Pagine vuote = tutte. Le frecce ruotano l'anteprima; «Applica» salva la rotazione.</span>
       </div>
 
       <div class="ctlrow" id="edBlock-delete" hidden>

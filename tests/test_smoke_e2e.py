@@ -188,7 +188,9 @@ def test_editor_pdf_anteprima_e_live(smoke, base_url, tmp_path: Path):
     )
     assert dims[0] > 0 and dims[1] > 0
 
-    page.click('#edTools .ed-tool[data-tool="rotate"]')
+    # La rotazione non ha anteprima server finché non scegli una direzione:
+    # l'anteprima live si verifica con la filigrana (azione con parametri attivi).
+    page.click('#edTools .ed-tool[data-tool="watermark"]')
     prev = page.locator("#edPrevImg")
     expect(prev).to_be_visible(timeout=EXPECT_TIMEOUT)
     assert page.evaluate(
@@ -248,11 +250,23 @@ def test_editor_ruota_pannello_toggle_e_catena(smoke, base_url, tmp_path: Path):
     assert not st["hidden"] and st["inGrid"] and 0 <= st["gap"] < 60
     assert block_state("rotate")["hidden"] is True
 
-    # verso antiorario: applicato e verificato sull'artefatto reale
+    # verso antiorario con la freccia: applicato e verificato sull'artefatto reale
     page.click('#edTools .ed-tool[data-tool="rotate"]')
-    page.select_option("#edRotAngle", "270")
-    page.dispatch_event("#edRotAngle", "change")
+    page.click("#edRotLeft")
     expect(page.locator("#edPrevImg")).to_be_visible(timeout=EXPECT_TIMEOUT)
+    # coerenza anteprima: canvas e PNG server entrambi orizzontali, PNG non stirato
+    m = page.evaluate(
+        """() => { const c = document.getElementById('edCanvas');
+             const i = document.getElementById('edPrevImg');
+             const r = i.getBoundingClientRect();
+             return {canvas: [c.width, c.height], nat: [i.naturalWidth, i.naturalHeight],
+                     css: [r.width, r.height]}; }"""
+    )
+    assert m["canvas"][0] > m["canvas"][1], f"canvas non ruotato: {m}"
+    assert m["nat"][0] > m["nat"][1], f"PNG server non ruotato: {m}"
+    ar_nat = m["nat"][0] / m["nat"][1]
+    ar_css = m["css"][0] / m["css"][1]
+    assert abs(ar_nat - ar_css) < 0.05, f"PNG stirato: natural {ar_nat:.2f} vs css {ar_css:.2f}"
     page.click("#btnEdApply")
     expect(page.locator("#edDownload")).to_be_visible(timeout=EXPECT_TIMEOUT)
     page.wait_for_timeout(800)
@@ -265,10 +279,10 @@ def test_editor_ruota_pannello_toggle_e_catena(smoke, base_url, tmp_path: Path):
     # l'anteprima non ri-applica l'azione appena applicata (niente effetto doppio)
     assert page.evaluate("() => document.getElementById('edPrevImg').hidden") is True
 
-    # secondo click senza modifiche: bloccato con messaggio, file invariato
+    # secondo click senza toccare le frecce: nessuna rotazione doppia, avviso chiaro
     page.click("#btnEdApply")
     page.wait_for_timeout(500)
-    msg = page.evaluate("() => window.IC.t('dyn.edit_already_applied')")
+    msg = page.evaluate("() => window.IC.t('dyn.rot_choose')")
     assert msg in page.locator("#toast").text_content()
     r = page.request.get(base_url + page.get_attribute("#edDownload", "href"))
     out = fitz.open(stream=r.body(), filetype="pdf")

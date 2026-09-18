@@ -1020,6 +1020,7 @@
   let edPrevUrl = null;
   let edApplyBusy = false;
   let edAppliedSig = null;  /* firma dell'ultima azione applicata (vedi edFormSignature) */
+  let edRotPending = 0;     /* rotazione pendente accumulata dalle frecce (0/90/180/270) */
 
   if (window.pdfjsLib) {
     window.pdfjsLib.GlobalWorkerOptions.workerSrc = "vendor/pdfjs/pdf.worker.min.js";
@@ -1284,11 +1285,14 @@
     const page = await edPdfDoc.getPage(edCurPage);
     if (token !== edRenderToken) return;
     setEmpty("");
-    const vp1 = page.getViewport({ scale: 1 });
+    /* La rotazione pendente delle frecce viene mostrata anche dal canvas: così
+       card e anteprima server hanno lo stesso aspect e l'immagine non si stira. */
+    const rot = ((page.rotate || 0) + edPendingRotation()) % 360;
+    const vp1 = page.getViewport({ scale: 1, rotation: rot });
     const dpr = window.devicePixelRatio || 1;
     const scale = (fitWidthCss() / vp1.width) * edZoom;
     edLastScale = scale;
-    const vp2 = page.getViewport({ scale: scale });
+    const vp2 = page.getViewport({ scale: scale, rotation: rot });
     const cssW = Math.round(vp2.width);
     const cssH = Math.round(vp2.height);
     edCanvas.width  = Math.floor(vp2.width  * dpr);
@@ -1529,6 +1533,7 @@
     if (pad) pad.hidden = (act !== "signature" || !inkPadOpen);
     const sigHint = document.getElementById("edHintSig");
     if (sigHint) sigHint.hidden = (act !== "signature");
+    edUpdateRotUI();
     syncDrawLayers();
     redrawPlacePreview();
     updateEdToolsActive();
@@ -1866,13 +1871,37 @@
     ).join("|");
   }
 
+  /* Frecce di rotazione: accumulano l'angolo pendente (0/90/180/270), mostrato
+     da canvas e anteprima live; «Applica» lo salva nel documento e lo azzera. */
+  function edPendingRotation() {
+    return edAction.value === "rotate" ? edRotPending : 0;
+  }
+  function edUpdateRotUI() {
+    const el = document.getElementById("edRotPending");
+    if (el) el.textContent = edRotPending + "\u00b0";
+  }
+  function edStepRotation(delta) {
+    edRotPending = ((edRotPending + delta) % 360 + 360) % 360;
+    edAppliedSig = null;
+    edUpdateRotUI();
+    renderEdPage();
+    scheduleEdPreview(0, true);
+  }
+  {
+    const left = document.getElementById("edRotLeft");
+    const right = document.getElementById("edRotRight");
+    if (left) left.addEventListener("click", () => edStepRotation(-90));
+    if (right) right.addEventListener("click", () => edStepRotation(90));
+  }
+
   /* Parametri Form dell'azione corrente: condivisi da "Applica" e anteprima live.
      Solleva Error (messaggio tradotto) se i campi obbligatori mancano. */
   function buildEdParams(fd) {
     const act = edAction.value;
     if (act === "rotate") {
+      if (edRotPending === 0) throw new Error(IC.t("dyn.rot_choose"));
       fd.append("pages", pagesToPayload($("#edRotPages").value));
-      fd.append("angle", $("#edRotAngle").value);
+      fd.append("angle", String(edRotPending));
     } else if (act === "delete") {
       const payload = pagesToPayload($("#edDelPages").value);
       if (!payload) throw new Error(IC.t("dyn.pages_required"));
@@ -2137,6 +2166,13 @@
       // Anteprima live: il risultato diventa il documento di lavoro, così le
       // modifiche successive si applicano in catena e l'utente vede l'effetto.
       edAppliedSig = edFormSignature(fd);
+      if (edAction.value === "rotate") {
+        /* La rotazione è consumata: le frecce ripartono da 0 e ogni applicazione
+           è un gesto esplicito (niente guardia «già applicata»). */
+        edRotPending = 0;
+        edAppliedSig = null;
+        edUpdateRotUI();
+      }
       try {
         const blob = await (await fetch(res.download)).blob();
         edPdfFile = new File([blob], res.name, { type: "application/pdf" });
