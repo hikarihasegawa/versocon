@@ -114,10 +114,15 @@ MAX_BATCH_FILES = 500
 
 @app.get("/api/config")
 def config():
+    supported_in = sorted(imgconv.ACCEPTED_EXT)
+    if not imgconv.HEIF_AVAILABLE:
+        # HEIC/HEIF non caricabile in questa build/sistema: non prometterlo.
+        supported_in = [e for e in supported_in if e not in imgconv.HEIF_EXT]
     return {
         "version": app.version,
-        "supported_in": sorted(imgconv.ACCEPTED_EXT),
+        "supported_in": supported_in,
         "supported_out": list(VALID_OUT),
+        "heic_available": imgconv.HEIF_AVAILABLE,
         "documents": {
             "pdf_out": ["jpeg", "png", "webp"],
         },

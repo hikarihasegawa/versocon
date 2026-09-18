@@ -4,10 +4,23 @@ from __future__ import annotations
 import io
 from pathlib import Path
 
-import pillow_heif
 from PIL import Image, ImageOps
 
-pillow_heif.register_heif_opener()
+# HEIC/HEIF è opzionale: se la DLL nativa è bloccata (es. criterio di controllo
+# applicazioni di Windows) o manca, l'app deve continuare a funzionare per gli
+# altri formati e spiegare l'errore solo quando serve HEIC.
+try:
+    import pillow_heif
+
+    pillow_heif.register_heif_opener()
+    HEIF_AVAILABLE = True
+    HEIF_ERROR = ""
+except Exception as _heif_err:  # noqa: BLE001
+    pillow_heif = None
+    HEIF_AVAILABLE = False
+    HEIF_ERROR = str(_heif_err)
+
+HEIF_EXT = {".heic", ".heif"}
 
 SUPPORTED_OUT = {"jpeg", "jpg", "png", "webp", "gif"}
 ACCEPTED_EXT = {
@@ -22,6 +35,12 @@ ORIENTATION_TAG = 0x0112
 
 def is_convertible(filename: str) -> bool:
     return Path(filename).suffix.lower() in ACCEPTED_EXT
+
+
+def _looks_like_heif(data: bytes) -> bool:
+    """Riconosce il contenitore ISO-BMFF con brand HEIC/HEIF dai primi byte."""
+    return (len(data) >= 12 and data[4:8] == b"ftyp"
+            and data[8:12] in (b"heic", b"heix", b"heif", b"mif1", b"msf1", b"heim", b"heis"))
 
 
 def _clamp_quality(quality) -> int:
@@ -159,7 +178,14 @@ def convert_bytes(
         raise ValueError(f"Formato di uscita non supportato: {out_format}")
 
     q = _clamp_quality(quality)
-    img = Image.open(io.BytesIO(data))
+    try:
+        img = Image.open(io.BytesIO(data))
+    except Exception:
+        if _looks_like_heif(data) and not HEIF_AVAILABLE:
+            raise ValueError(
+                "Supporto HEIC non disponibile su questo sistema: "
+                + (HEIF_ERROR or "modulo nativo non caricato"))
+        raise
     n_frames = getattr(img, "n_frames", 1) or 1
 
     if out == "gif":

@@ -34,7 +34,15 @@ for _name in ("stdout", "stderr"):
 
 import uvicorn  # noqa: E402  (dopo la guardia su sys.stdout/stderr)
 
-from app.main import app  # noqa: E402,F401
+_APP_IMPORT_ERROR: Exception | None = None
+try:
+    from app.main import app  # noqa: E402,F401
+except Exception as _e:  # noqa: BLE001
+    # Non deve uscire un traceback grezzo di PyInstaller: senza questa guardia
+    # una DLL bloccata (es. criterio di controllo applicazioni di Windows)
+    # faceva fallire l'avvio con «Failed to execute script 'run'».
+    _APP_IMPORT_ERROR = _e
+    app = None
 
 HOST = "127.0.0.1"
 
@@ -65,6 +73,28 @@ def _thread_excepthook(args: threading.ExceptHookArgs) -> None:
 
 def _main_excepthook(exc_type, exc, tb) -> None:
     _crash("Uncaught exception:\n" + "".join(traceback.format_exception(exc_type, exc, tb)))
+
+
+def _show_error_dialog(title: str, text: str) -> None:
+    """Avviso di avvio impossibile: MessageBox nativo (nessuna dipendenza GUI)."""
+    try:
+        import ctypes
+
+        ctypes.windll.user32.MessageBoxW(0, text, title, 0x10)  # MB_ICONERROR
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _startup_failure_text(err: Exception) -> str:
+    return (
+        "VersoCon non pu\u00f2 avviarsi su questo PC.\n\n"
+        f"Errore: {err}\n\n"
+        "Se il messaggio parla di \u00abcriterio di controllo dell'applicazione\u00bb, "
+        "Windows (Smart App Control o AppLocker) ha bloccato un file dell'app "
+        "perch\u00e9 non \u00e8 firmato: consentilo dal pannello Sicurezza di Windows "
+        "oppure installa VersoCon su un PC senza questa restrizione.\n\n"
+        "Dettagli salvati in: " + _CRASH_LOG
+    )
 
 
 def _pick_free_port() -> int:
@@ -122,6 +152,10 @@ def _open_ui(url: str, force_browser: bool) -> int:
 def main() -> int:
     sys.excepthook = _main_excepthook
     threading.excepthook = _thread_excepthook
+    if _APP_IMPORT_ERROR is not None:
+        _crash("AVVIO IMPOSSIBILE (import app.main): " + repr(_APP_IMPORT_ERROR))
+        _show_error_dialog("VersoCon", _startup_failure_text(_APP_IMPORT_ERROR))
+        return 1
     args = sys.argv[1:]
     force_browser = "--browser" in args or os.environ.get("VERSOCON_BROWSER") == "1"
 

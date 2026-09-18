@@ -214,3 +214,38 @@ def test_bad_output_format_raises_includes_gif_now_valid():
     # tiff resta non supportato come output
     with pytest.raises(ValueError):
         imgconv.convert_bytes(_png_bytes(), "tiff")
+
+
+def test_heic_bloccata_non_abbatte_il_modulo(monkeypatch):
+    """Regressione (2026-09-17): una policy di Windows (Smart App Control) ha
+    bloccato _pillow_heif.pyd e l'app intera non partiva piu'. Il modulo deve
+    caricarsi comunque, degradare solo l'HEIC e spiegare l'errore."""
+    import builtins
+    import importlib
+
+    import converters.images as images_mod
+
+    real_import = builtins.__import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == "pillow_heif" or name.startswith("pillow_heif."):
+            raise ImportError(
+                "DLL load failed while importing _pillow_heif: "
+                "Un criterio di controllo dell'applicazione ha bloccato il file.")
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", fake_import)
+    monkeypatch.delitem(sys.modules, "pillow_heif", raising=False)
+    mod = importlib.reload(images_mod)
+    try:
+        assert mod.HEIF_AVAILABLE is False
+        assert "criterio" in mod.HEIF_ERROR
+        out = mod.convert_bytes(_png_bytes(), "jpeg")
+        assert out[:2] == b"\xff\xd8", "PNG/JPEG devono continuare a funzionare"
+        fake_heic = b"\x00\x00\x00\x18ftypheic\x00\x00\x00\x00" + b"\x00" * 8
+        with pytest.raises(ValueError, match="HEIC"):
+            mod.convert_bytes(fake_heic, "jpeg")
+    finally:
+        monkeypatch.undo()
+        importlib.reload(images_mod)
+    assert images_mod.HEIF_AVAILABLE is True

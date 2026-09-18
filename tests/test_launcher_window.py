@@ -39,3 +39,23 @@ def test_finestra_desktop_massimizzata_e_larga(monkeypatch):
     assert call.get("maximized") is True, "la finestra deve aprirsi massimizzata"
     assert int(call.get("width", 0)) >= 1200, "base finestra troppo stretta per l'editor"
     assert fake.settings.get("ALLOW_DOWNLOADS") is True
+
+
+def test_avvio_impossibile_messaggio_chiaro(monkeypatch):
+    """Regressione (2026-09-17): DLL bloccata da policy (Smart App Control) →
+    niente traceback PyInstaller, ma avviso comprensibile e exit code 1."""
+    err = ImportError(
+        "DLL load failed while importing _pillow_heif: "
+        "Un criterio di controllo dell'applicazione ha bloccato il file.")
+    shown: list[tuple[str, str]] = []
+    monkeypatch.setattr(run, "_APP_IMPORT_ERROR", err)
+    monkeypatch.setattr(run, "_show_error_dialog", lambda t, x: shown.append((t, x)))
+    monkeypatch.setattr(run, "_crash", lambda _msg: None)
+
+    rc = run.main()
+
+    assert rc == 1
+    assert shown, "deve comparire un avviso all'utente"
+    text = shown[0][1]
+    assert "_pillow_heif" in text and "criterio di controllo" in text
+    assert "firmato" in text and run._CRASH_LOG in text
