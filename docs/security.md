@@ -1,11 +1,17 @@
-# VersoCon — v0.3.1 — Release notes
+# VersoCon — v0.3.2 — Release notes
 
 ## ✨ What's new
-- 🔤 **OCR, built in** — Tesseract (with Italian + English language data) now ships inside the installer: text recognition and searchable PDFs work on first run, with no separate installation and no downloads. The app no longer asks you to install it.
-- 🎬 **Video, built in** — ffmpeg is bundled too: transcode, extract audio (MP3/M4A) and create animated GIFs out of the box.
-- 🗜️ **PDF compression fixed** — the "high" level now actually shrinks files (measured −67% on stream-heavy scans) instead of returning a file as large as the original.
-- 📜 **Third-party licenses included** — the notices for the bundled Tesseract, Leptonica and ffmpeg builds are shown during setup and shipped in the app folder.
-- Everything else from v0.3.0 (full PDF editor with live preview, scan cleanup, privacy controls, 8 languages, two themes, job progress with cancel) is unchanged, and VersoCon remains 100% offline.
+- 🔄 **PDF editor: rotate with arrows** — choose 90/180/270 with the ↺ ↻ buttons; the pending angle stays visible under the button, the preview rotates with the page, and the live preview is no longer stretched.
+- 🖋️ **Watermark measured for real** — long texts are no longer cut off: the size is measured with the real font metrics and automatically reduced to fit inside the page, at any page rotation.
+- 🖥️ **Desktop window starts maximized** — the two-panel editor now fits on screen; the window reopens at 1280×860 as a base.
+- 🛡️ **Startup survives blocked DLLs** — if Windows (Smart App Control / AppLocker) blocks a bundled library, the app no longer dies with a PyInstaller traceback: it starts, disables only the affected feature and explains how to allow the file.
+- Everything else from v0.3.1 (OCR and ffmpeg built in, PDF compression fix, third-party licenses) is unchanged, and VersoCon remains 100% offline.
+
+## SHA-256
+`versocon-setup-0.3.2.exe`
+`0F68625438A03A1DCDE44FE9FAF3140620EBD2FF0FB115429C49FACCBC3490A0`
+
+(Windows: `Get-FileHash versocon-setup-0.3.2.exe -Algorithm SHA256`).
 
 ## 🔒 Is it safe? / È sicuro?
 
@@ -70,5 +76,5 @@ A: (1) The source is public on GitHub. (2) The binary you run is built *from* th
 **Q: When will the warning go away?** / **Quando sparisce l'avviso?**
 A: For most users within weeks, once SmartScreen has enough "clean install" reports. Definitively, once we get a code-signing certificate (needs a business license). / Per la maggior parte degli utenti in poche settimane. In modo definitivo quando avremo il certificato di firma (richiede una ditta).
 
-**Q: Does v0.3.1 include the security fixes from v0.2.5/v0.2.6?** / **La v0.3.1 include i fix di sicurezza di v0.2.5/v0.2.6?**
+**Q: Does v0.3.2 include the security fixes from v0.2.5/v0.2.6?** / **La v0.3.2 include i fix di sicurezza di v0.2.5/v0.2.6?**
 A: Yes — all of them (path traversal, DNS-rebinding/CSRF protection, hidden console windows, Italian translation fixes). / Sì — tutti (path traversal, protezione DNS-rebinding/CSRF, finestre console nascoste, fix delle traduzioni italiane).

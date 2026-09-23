@@ -69,7 +69,7 @@ open-source build. That is a generic caution, not a malware report.
 Before you run it:
 1. Verify the **SHA-256** of the downloaded file against the one on the
    [Releases page](https://github.com/hikarihasegawa/versocon/releases/latest)
-   (v0.3.1: `72417A3C5C48C41837642F467AF65C94C7F4F2172CC8EEB171CA8C4652490FB4`).
+   (v0.3.2: `0F68625438A03A1DCDE44FE9FAF3140620EBD2FF0FB115429C49FACCBC3490A0`).
 2. Optional: upload your copy to [VirusTotal](https://www.virustotal.com/gui/home/url).
 3. If everything checks out: **More info → Run anyway / Esegui comunque**.
 
