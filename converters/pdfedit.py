@@ -228,6 +228,7 @@ def watermark_text(
     doc = _open(data)
     for i in range(doc.page_count):
         page = doc[i]
+        _derotate_page(page)
         r = page.rect
         fs2 = fs * (r.width / 595.0) if r.width else fs  # scala con larghezza
         fs2 = max(10.0, min(300.0, fs2))
@@ -322,6 +323,7 @@ def add_signature(
     n = doc.page_count
     p = _norm_page(page, n, "page")
     pg = doc[p - 1]
+    _derotate_page(pg)
     r = pg.rect
     w_in = max(0.3, min(20.0, float(width)))
     w_pt = w_in * 72
@@ -329,13 +331,13 @@ def add_signature(
     h_pt = w_pt * aspect
     margin = 24
     if corner == "tl":
-        rect = pymupdf.Rect(margin, r.height - h_pt - margin, margin + w_pt, r.height - margin)
-    elif corner == "tr":
-        rect = pymupdf.Rect(r.width - w_pt - margin, r.height - h_pt - margin, r.width - margin, r.height - margin)
-    elif corner == "bl":
         rect = pymupdf.Rect(margin, margin, margin + w_pt, margin + h_pt)
-    elif corner == "br":
+    elif corner == "tr":
         rect = pymupdf.Rect(r.width - w_pt - margin, margin, r.width - margin, margin + h_pt)
+    elif corner == "bl":
+        rect = pymupdf.Rect(margin, r.height - h_pt - margin, margin + w_pt, r.height - margin)
+    elif corner == "br":
+        rect = pymupdf.Rect(r.width - w_pt - margin, r.height - h_pt - margin, r.width - margin, r.height - margin)
     else:  # center
         cx, cy = (r.width - w_pt) / 2, (r.height - h_pt) / 2
         rect = pymupdf.Rect(cx, cy, cx + w_pt, cy + h_pt)
@@ -346,6 +348,18 @@ def add_signature(
 def _clamp(v: float, lo: float, hi: float) -> float:
     v = float(v)
     return max(lo, min(hi, v))
+
+
+def _derotate_page(page: "pymupdf.Page") -> None:
+    """Materializza /Rotate nel contenuto della pagina (aspetto invariato).
+
+    PyMuPDF posiziona i nuovi oggetti nel sistema non ruotato, mentre
+    ``page.rect`` è il rettangolo visualizzato: su una pagina con /Rotate i
+    contenuti aggiunti (testo, immagini, annotazioni, redazioni) sbordano dal
+    mediabox o finiscono nell'angolo sbagliato. Azzerare /Rotate fondendolo nel
+    contenuto rende i due sistemi coincidenti."""
+    if page.rotation:
+        page.remove_rotation()
 
 
 def _to_rgba(image: bytes) -> Image.Image:
@@ -403,6 +417,7 @@ def place_signature(
     n = doc.page_count
     p = _norm_page(page, n, "page")
     pg = doc[p - 1]
+    _derotate_page(pg)
     r = pg.rect
     w_pt = r.width * width_pct / 100.0
     aspect = im.height / im.width if im.width else 1
@@ -592,6 +607,7 @@ def annotate_text(data: bytes, page: int, needle: str, kind: str = "highlight",
     doc = _open(data)
     p = _norm_page(page, doc.page_count)
     pg = doc[p - 1]
+    _derotate_page(pg)
     rects = pg.search_for(needle)
     if not rects:
         raise ValueError(f"Testo non trovato: {needle!r}")
@@ -618,6 +634,7 @@ def add_note(data: bytes, page: int, x_pct: float, y_pct: float, text: str,
     doc = _open(data)
     p = _norm_page(page, doc.page_count)
     pg = doc[p - 1]
+    _derotate_page(pg)
     annot = pg.add_text_annot(_point_pct(pg, x_pct, y_pct), text, icon=icon)
     annot.set_colors(stroke=_rgb(color))
     annot.set_info(content=text)
@@ -632,6 +649,7 @@ def add_ink(data: bytes, page: int, strokes, color: str = "#e2382c", width: floa
     doc = _open(data)
     p = _norm_page(page, doc.page_count)
     pg = doc[p - 1]
+    _derotate_page(pg)
     handwriting = []
     for stroke in strokes:
         if not isinstance(stroke, (list, tuple)) or len(stroke) < 2:
@@ -666,6 +684,7 @@ def add_stamp(data: bytes, page: int, text: str, x_pct: float, y_pct: float,
     doc = _open(data)
     p = _norm_page(page, doc.page_count)
     pg = doc[p - 1]
+    _derotate_page(pg)
     rect = _rect_pct(pg, x_pct, y_pct, w_pct, h_pct)
     pg.draw_rect(rect, color=rgb, width=1.2, dashes="[4 2] 0", stroke_opacity=0.75)
     fs = _clamp(font_size, 6, 72)
@@ -694,6 +713,7 @@ def add_text(data: bytes, page: int, text: str, x_pct: float, y_pct: float,
     doc = _open(data)
     p = _norm_page(page, doc.page_count)
     pg = doc[p - 1]
+    _derotate_page(pg)
     start = _point_pct(pg, x_pct, y_pct)
     rect = pymupdf.Rect(start.x, start.y, pg.rect.width - 12, pg.rect.height - 12)
     if rect.width > 20 and rect.height > 10:
@@ -724,6 +744,7 @@ def redact(data: bytes, needle: str = "", rects=None, page=None,
     hits = 0
     for i in targets:
         pg = doc[i]
+        _derotate_page(pg)
         if needle:
             for r in pg.search_for(needle):
                 pg.add_redact_annot(r, fill=rgb)
@@ -758,6 +779,7 @@ def find_replace(data: bytes, needle: str, replacement: str, pages=None,
     jobs: list[tuple] = []
     for i in targets:
         pg = doc[i]
+        _derotate_page(pg)
         for r in pg.search_for(needle):
             rect = pymupdf.Rect(r)
             font, size, color, span_origin, direction = _style_at(pg, rect)
@@ -807,6 +829,7 @@ def number_pages(data: bytes, start: int = 1, prefix: str = "", suffix: str = ""
     align_x, vertical = _POS_ALIGN[position]
     for i in targets:
         pg = doc[i]
+        _derotate_page(pg)
         txt = f"{prefix}{counter:0{nd}d}{suffix}"
         width = pymupdf.get_text_length(txt, fontname="helv", fontsize=fs)
         x = max(2.0, min(align_x * (pg.rect.width - width), pg.rect.width - width - 2.0))
@@ -838,6 +861,7 @@ def header_footer(data: bytes, header: str = "", footer: str = "",
     align_x = {"left": 0.0, "center": 0.5, "right": 1.0}[position]
     for i in targets:
         pg = doc[i]
+        _derotate_page(pg)
         subs = {"{page}": str(i + 1), "{pages}": str(n), "{date}": date}
         for text, y in ((header, mg + fs), (footer, pg.rect.height - mg)):
             if not (text or "").strip():

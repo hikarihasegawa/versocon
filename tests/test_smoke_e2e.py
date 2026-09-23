@@ -289,13 +289,14 @@ def test_editor_ruota_pannello_toggle_e_catena(smoke, base_url, tmp_path: Path):
     assert out[0].rotation == 270
     out.close()
 
-    # catena: watermark sul documento ruotato, rotazione conservata
+    # catena: watermark sul documento ruotato; l'aspetto resta ruotato e la
+    # rotazione viene materializzata nel contenuto (/Rotate 0, rect landscape)
     page.click('#edTools .ed-tool[data-tool="watermark"]')
     page.fill("#edWmText", "VERIFICA-E2E")
     page.click("#btnEdApply")
     page.wait_for_timeout(1500)
     r = page.request.get(base_url + page.get_attribute("#edDownload", "href"))
     out = fitz.open(stream=r.body(), filetype="pdf")
-    assert out[0].rotation == 270
+    assert out[0].rotation == 0 and out[0].rect.width > out[0].rect.height
     assert "VERIFICA-E2E" in out[0].get_text()
     out.close()

@@ -241,6 +241,24 @@ def test_watermark_testo_lungo_entra_nella_pagina():
     assert long_text in doc[0].get_text()
 
 
+def test_watermark_su_pagina_ruotata_non_si_tronca():
+    """Regressione (2026-09-23): con /Rotate 270 su A4 il testo scorreva fuori
+    dal mediabox nativo e veniva tagliato; la rotazione va materializzata prima
+    di disegnare (aspetto invariato, flag /Rotate assorbito nel contenuto)."""
+    doc = pymupdf.Document()
+    page = doc.new_page(width=595, height=842)
+    page.insert_text((72, 100), "base", fontsize=12)
+    page.set_rotation(270)
+    rotated = doc.tobytes()
+    doc.close()
+    assert _load(rotated)[0].rect.width > _load(rotated)[0].rect.height  # landscape visivo
+    text = "VERIFICA-GATE-0.3.2-TESTO-LUNGO-COMPLETO"
+    out = pdfedit.watermark_text(rotated, text, corner="center", font_size=60, opacity=0.5)
+    page = _load(out)[0]
+    assert text in page.get_text(), "watermark troncato su pagina ruotata"
+    assert page.rect.width > page.rect.height, "l'aspetto deve restare landscape"
+
+
 @pytest.mark.parametrize("corner", ["tl", "tr", "bl", "br", "center"])
 def test_watermark_angoli_verticali_corretti(corner):
     """Regressione (2026-09-17): gli angoli alto/basso erano invertiti (y cresce
@@ -307,7 +325,32 @@ def test_signature_all_corners(c):
     d = _make_pdf(1)
     out = pdfedit.add_signature(d, _signature_img(), page=1, corner=c)
     doc = _load(out)
-    assert len(doc[0].get_images(full=True)) >= 1
+    pg = doc[0]
+    assert len(pg.get_images(full=True)) >= 1
+    b = pg.get_image_info()[0]["bbox"]
+    cx = (b[0] + b[2]) / 2
+    cy = (b[1] + b[3]) / 2
+    if c == "center":
+        assert abs(cx - pg.rect.width / 2) < pg.rect.width * 0.15
+        assert abs(cy - pg.rect.height / 2) < pg.rect.height * 0.15
+    else:
+        assert (cy < pg.rect.height / 2) == c.startswith("t"), f"{c}: cy={cy:.1f}"
+        assert (cx < pg.rect.width / 2) == c.endswith("l"), f"{c}: cx={cx:.1f}"
+
+
+def test_signature_su_pagina_ruotata_posizione_visiva():
+    """Regressione (2026-09-23): su pagina /Rotate 270 la firma finiva
+    nell'angolo sbagliato; ora la rotazione si materializza e 'br' resta in
+    basso a destra nel sistema visualizzato."""
+    doc = pymupdf.Document()
+    p = doc.new_page(width=595, height=842)
+    p.set_rotation(270)
+    out = pdfedit.add_signature(doc.tobytes(), _signature_img(), corner="br", width=1.0)
+    page = _load(out)[0]
+    assert page.rotation == 0 and page.rect.width > page.rect.height
+    b = page.get_image_info()[0]["bbox"]
+    assert b[2] > page.rect.width * 0.6, f"x={b[2]:.1f} non a destra"
+    assert b[3] > page.rect.height * 0.6, f"y={b[3]:.1f} non in basso"
 
 
 def test_signature_invalid_page():
